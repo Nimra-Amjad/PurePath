@@ -1,4 +1,4 @@
-package com.example.purepath
+package ai.purepath
 
 import io.flutter.embedding.android.FlutterActivity
 
