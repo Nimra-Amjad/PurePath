@@ -36,7 +36,7 @@ class _SignupPageState extends State<SignupPage> {
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedUp) {
-            context.push(AppRoute.onboarding.path);
+            context.push(AppRoute.preferences.path);
             AppSnackBar.success(context, "Account created successfully");
           } else if (state is AuthFailure) {
             AppSnackBar.error(context, state.message);

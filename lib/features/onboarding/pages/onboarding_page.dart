@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:purepath/core/constants/app_text_styles.dart';
+import 'package:purepath/core/constants/assets_constants.dart';
+import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
-import 'package:purepath/features/onboarding/views/habit_view.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
+import 'package:purepath/core/widgets/space.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -11,30 +14,38 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  final PageController _pageController = PageController();
-  int _currentStep = 0;
+  late final PageController _pageController;
+  int _currentIndex = 0;
 
-  // ── Add/remove steps here only ──────────────────────────────────────────
-  final List<Widget> _steps = const [HabitView(), HabitView()];
+  static const _slides = <_OnboardingSlide>[
+    _OnboardingSlide(
+      title: 'Begin your journey',
+      subtitle:
+          'Every big change starts with a single small step. Set your daily intentions and let our feline friend help you stay focused on what truly matters to you.',
+      actionLabel: 'Next',
+      image: Assets.onboarding1Icon,
+    ),
+    _OnboardingSlide(
+      title: 'Master Your Routine',
+      subtitle:
+          'Transform your life through the power of repetition. Wake up with purpose, smash your goals, and turn those tiny actions into lifelong healthy habits.',
+      actionLabel: 'Next',
+      image: Assets.onboarding2Icon,
+      isLast: true,
+    ),
+    _OnboardingSlide(
+      title: 'Track your progress',
+      subtitle:
+          'Consistency is the secret sauce to success. Log your habits daily with a single tap to build a visual history of your dedication and hard work.',
+      actionLabel: 'Finish',
+      image: Assets.onboarding3Icon,
+    ),
+  ];
 
-  void _next() {
-    if (_currentStep < _steps.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      context.push(AppRoute.home.path);
-    }
-  }
-
-  void _back() {
-    if (_currentStep > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
-    }
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
   }
 
   @override
@@ -43,141 +54,164 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
+  void _onTapSkip() {
+    if (_currentIndex == 0) {
+      _pageController.animateToPage(
+        1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    AppRoute.login.go(context);
+  }
+
+  void _onTapAction() {
+    if (_currentIndex == _slides.length - 1) {
+      AppRoute.login.go(context);
+      return;
+    }
+
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5EDE8), // warm peach from design
+      backgroundColor: kWhiteColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── TOP BAR (fixed) ───────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: _back,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _slides.length,
+                  onPageChanged: (index) =>
+                      setState(() => _currentIndex = index),
+                  itemBuilder: (context, index) {
+                    final slide = _slides[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Space.vertical(20),
+                        _OnboardingIllustrationCard(image: slide.image),
+                        Space.vertical(30),
+                        Text(
+                          slide.title,
+                          style: AppTextStyles.bold.copyWith(
+                            fontSize: 25,
+                            letterSpacing: 1.1,
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.chevron_left,
-                        size: 22,
-                        color: Color(0xFF2D2D2D),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: (_currentStep + 1) / _steps.length,
-                        minHeight: 6,
-                        backgroundColor: const Color(0xFFE0D5CE),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFFD4608A),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushReplacementNamed(context, '/home'),
-                    child: const Text(
-                      'Skip',
-                      style: TextStyle(fontSize: 15, color: Color(0xFF888888)),
-                    ),
-                  ),
-                ],
+                        Space.vertical(12),
+                        Text(
+                          slide.subtitle,
+                          style: AppTextStyles.normal.copyWith(
+                            fontSize: 16,
+                            letterSpacing: 1.3,
+                            color: kBlackColor.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-
-            // ── MIDDLE CONTENT (scrollable, swipeable) ───────────────────
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                physics:
-                    const NeverScrollableScrollPhysics(), // controlled by buttons
-                onPageChanged: (i) => setState(() => _currentStep = i),
-                itemCount: _steps.length,
-                itemBuilder: (context, index) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    child: _steps[index],
-                  );
-                },
+              Space.vertical(8),
+              _OnboardingActions(
+                label: _slides[_currentIndex].actionLabel,
+                isLast: _slides[_currentIndex].isLast,
+                onSkip: _onTapSkip,
+                onAction: _onTapAction,
               ),
-            ),
-
-            // ── BOTTOM BAR (fixed) ────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.flag_outlined,
-                      size: 20,
-                      color: Color(0xFF2D2D2D),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Journey',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF2D2D2D),
-                    ),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2D2D2D),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      _currentStep == _steps.length - 1 ? 'Finish' : 'Next',
-                      style: const TextStyle(fontSize: 15),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              Space.vertical(8),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _OnboardingActions extends StatelessWidget {
+  const _OnboardingActions({
+    required this.label,
+    required this.isLast,
+    required this.onSkip,
+    required this.onAction,
+  });
+
+  final String label;
+  final bool isLast;
+  final VoidCallback onSkip;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        InkWell(
+          onTap: onSkip,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: Text(
+              'Skip now',
+              style: AppTextStyles.normal.copyWith(
+                fontSize: 16,
+                color: kBlackColor.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+        ),
+        const Spacer(),
+        PrimaryButton(
+          text: label,
+          onPressed: onAction,
+          isMainAxisSizeMin: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _OnboardingIllustrationCard extends StatelessWidget {
+  const _OnboardingIllustrationCard({required this.image});
+
+  final String image;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 320,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0FF),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Center(child: Image.asset(image)),
+    );
+  }
+}
+
+class _OnboardingSlide {
+  const _OnboardingSlide({
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.image,
+    this.isLast = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final String image;
+  final bool isLast;
 }

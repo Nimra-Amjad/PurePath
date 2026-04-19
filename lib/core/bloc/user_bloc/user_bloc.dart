@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meta/meta.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/features/auth/model/user_model.dart';
@@ -13,6 +14,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<LoginRequested>(_loginRequested);
     on<SignupRequested>(_signupRequested);
     on<LogoutRequested>(_logoutRequested);
+    // on<CheckOnboardingUser>(_checkOnboardingUser);
   }
 
   Future<void> _loginRequested(

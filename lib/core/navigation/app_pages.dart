@@ -7,7 +7,9 @@ import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/auth/pages/login_page.dart';
 import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
+import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/onboarding/pages/onboarding_page.dart';
+import 'package:purepath/features/preferences/pages/preferences_page.dart';
 
 final router = GoRouter(
   debugLogDiagnostics: kDebugMode,
@@ -26,12 +28,20 @@ final router = GoRouter(
       builder: (context, state) => const LoginPage(),
     ),
     GoRoute(
+      path: AppRoute.onboarding.path,
+      builder: (context, state) => const OnboardingPage(),
+    ),
+    GoRoute(
       path: AppRoute.signup.path,
       builder: (context, state) => const SignupPage(),
     ),
     GoRoute(
-      path: AppRoute.onboarding.path,
-      builder: (context, state) => const OnboardingPage(),
+      path: AppRoute.preferences.path,
+      builder: (context, state) => const PreferencesPage(),
+    ),
+    GoRoute(
+      path: AppRoute.home.path,
+      builder: (context, state) => const HomePage(),
     ),
   ],
 );

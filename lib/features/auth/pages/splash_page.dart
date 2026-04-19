@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
@@ -36,10 +38,18 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkUserAuth() async {
-    if (mounted) {
-      Future.delayed(const Duration(seconds: 2), () {
-        context.go(AppRoute.login.path);
-      });
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final firebaseUser = context
+        .read<UserBloc>()
+        .firebaseAuthRepository
+        .firebaseUser;
+    if (firebaseUser != null) {
+      context.go(AppRoute.home.path);
+      return;
     }
+
+    context.go(AppRoute.onboarding.path);
   }
 }

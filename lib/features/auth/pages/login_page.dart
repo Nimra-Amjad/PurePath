@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedIn) {
-            context.push(AppRoute.onboarding.path);
+            context.push(AppRoute.preferences.path);
             AppSnackBar.success(context, "Login successful");
           } else if (state is AuthFailure) {
             AppSnackBar.error(context, state.message);

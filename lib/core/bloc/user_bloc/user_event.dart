@@ -23,3 +23,8 @@ class SignupRequested extends UserEvent {
 }
 
 class LogoutRequested extends UserEvent {}
+
+class CheckOnboardingUser extends UserEvent {
+  final User? user;
+  CheckOnboardingUser(this.user);
+}
