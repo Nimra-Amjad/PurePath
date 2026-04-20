@@ -62,10 +62,10 @@ class PrimaryButton extends StatelessWidget {
           pressedOpacity: 0.4,
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(borderRadius),
-          color: buttonColor ?? kLightYellowColor,
+          color: buttonColor ?? kPrimaryColor,
           disabledColor: buttonColor != null
               ? buttonColor!.withValues(alpha: buttonOpacity)
-              : kLightYellowColor.withOpacityValue(0.1),
+              : kGreyColor.withOpacityValue(0.5),
           onPressed: inactive
               ? null
               : () {
@@ -97,7 +97,7 @@ class PrimaryButton extends StatelessWidget {
     return isLoading
         ? Center(
             child: CircularProgressIndicator(
-              color: kPrimaryColor,
+              color: kWhiteColor,
               strokeWidth: 1,
             ),
           )
@@ -132,8 +132,8 @@ class PrimaryButton extends StatelessWidget {
                       color:
                           textColor ??
                           (inactive
-                              ? kPrimaryColor.withOpacityValue(0.6)
-                              : kPrimaryColor),
+                              ? kBlackColor.withOpacityValue(0.4)
+                              : kWhiteColor),
                     ),
                   ),
                 ),

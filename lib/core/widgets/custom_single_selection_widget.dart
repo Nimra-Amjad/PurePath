@@ -32,7 +32,9 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
           color: kWhiteColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? kPrimaryColor : kWhiteColor,
+            color: isSelected
+                ? kPrimaryColor
+                : kGreyColor.withOpacityValue(0.5),
             width: isSelected ? 1.6 : 1,
           ),
         ),

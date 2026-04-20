@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/widgets/custom_single_selection_widget.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/preferences/widgets/top_title_widget.dart';
 
 class ChallengeView extends StatefulWidget {
   const ChallengeView({super.key});
@@ -25,16 +26,9 @@ class _ChallengeViewState extends State<ChallengeView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          "What's been your biggest challenge with habits?",
-          style: AppTextStyles.bold.copyWith(fontSize: 24),
-          textAlign: TextAlign.center,
-        ),
-        Space.vertical(8),
-        Text(
-          "This will help us tailor your experience and challenges.",
-          style: AppTextStyles.normal.copyWith(fontSize: 14),
-          textAlign: TextAlign.center,
+        TopTitleWidget(
+          title: "What's been your biggest challenge with habits?",
+          subtitle: "This will help us tailor your experience and challenges.",
         ),
         Space.vertical(16),
         ...challengeOptions.map(

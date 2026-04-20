@@ -8,6 +8,7 @@ import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
+import 'package:purepath/features/preferences/views/reminder_setup_view.dart';
 
 class PreferencesPage extends StatefulWidget {
   const PreferencesPage({super.key});
@@ -25,6 +26,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
     GoalView(),
     ChallengeView(),
     NotificationView(),
+    ReminderSetupView(),
   ];
 
   void _next() {
@@ -56,17 +58,16 @@ class _PreferencesPageState extends State<PreferencesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5EDE8), // warm peach from design
+      backgroundColor: kWhiteColor,
       body: SafeArea(
         child: Column(
           children: [
-            // ── TOP BAR (fixed) ───────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   _currentStep == 0
-                      ? Icon(Icons.abc, color: kTransparentColor)
+                      ? SizedBox(width: 40, height: 40)
                       : GestureDetector(
                           onTap: _back,
                           child: Container(
@@ -74,11 +75,13 @@ class _PreferencesPageState extends State<PreferencesPage> {
                             height: 40,
                             decoration: BoxDecoration(
                               color: kWhiteColor,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: kBlackColor.withOpacityValue(0.08),
+                                  color: kBlackColor.withOpacityValue(0.2),
                                   blurRadius: 2,
+                                  spreadRadius: 0,
+                                  blurStyle: BlurStyle.outer,
                                   offset: const Offset(0, 0),
                                 ),
                               ],
@@ -103,12 +106,23 @@ class _PreferencesPageState extends State<PreferencesPage> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                         builder: (context, value, child) {
-                          return LinearProgressIndicator(
-                            value: value,
-                            minHeight: 6,
-                            backgroundColor: kLightYellowColor,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFFD4608A),
+                          return SizedBox(
+                            height: 6,
+                            child: Stack(
+                              children: [
+                                Container(color: kLightYellowColor),
+                                FractionallySizedBox(
+                                  widthFactor: value.clamp(0.0, 1.0),
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [kPinkColor, kPrimaryColor],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         },
@@ -121,12 +135,10 @@ class _PreferencesPageState extends State<PreferencesPage> {
               ),
             ),
 
-            // ── MIDDLE CONTENT (scrollable, swipeable) ───────────────────
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
-                physics:
-                    const NeverScrollableScrollPhysics(), // controlled by buttons
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentStep = i),
                 itemCount: _steps.length,
                 itemBuilder: (context, index) {
@@ -144,12 +156,32 @@ class _PreferencesPageState extends State<PreferencesPage> {
             // ── BOTTOM BAR (fixed) ────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: PrimaryButton(
-                text: _currentStep == _steps.length - 1 ? 'Finish' : 'Next',
-                onPressed: _next,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PrimaryButton(
+                    text: switch (_currentStep) {
+                      2 => 'Allow notifications',
+                      3 => 'Finish setup',
+                      _ => 'Next',
+                    },
+                    onPressed: _next,
+                  ),
+                  if (_currentStep == 2) ...[
+                    Space.vertical(10),
+                    PrimaryButton(
+                      text: "Skip for now",
+                      onPressed: _next,
+                      showBorder: true,
+                      buttonColor: kWhiteColor,
+                      borderColor: kPrimaryColor,
+                      textColor: kPrimaryColor,
+                    ),
+                  ],
+                ],
               ),
             ),
-            Space.vertical(30),
+            Space.vertical(20),
           ],
         ),
       ),

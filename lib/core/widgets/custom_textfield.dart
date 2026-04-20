@@ -44,12 +44,12 @@ class CustomTextField extends StatelessWidget {
       validator: validator,
       onChanged: onChanged,
       maxLines: maxLines,
-      cursorColor: kLightYellowColor,
+      cursorColor: kBlackColor,
       inputFormatters: inputFormatters ?? [],
-      style: TextStyle(color: kLightYellowColor.withOpacityValue(0.8)),
+      style: TextStyle(color: kBlackColor.withOpacityValue(0.8)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: kLightYellowColor.withOpacityValue(0.5)),
+        hintStyle: TextStyle(color: kBlackColor.withOpacityValue(0.4)),
         labelText: labelText,
         prefixIcon: Padding(padding: const EdgeInsets.all(10.0), child: prefix),
         suffixIcon: Padding(padding: const EdgeInsets.all(10.0), child: suffix),
@@ -60,11 +60,11 @@ class CustomTextField extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: kLightYellowColor),
+          borderSide: BorderSide(color: kPrimaryColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: kLightYellowColor, width: 2),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

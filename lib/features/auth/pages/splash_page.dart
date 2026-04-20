@@ -27,7 +27,7 @@ class _SplashPageState extends State<SplashPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [kPrimaryColor, kBlackColor],
+            colors: [kPrimaryColor, kWhiteColor],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -46,10 +46,10 @@ class _SplashPageState extends State<SplashPage> {
         .firebaseAuthRepository
         .firebaseUser;
     if (firebaseUser != null) {
-      context.go(AppRoute.home.path);
+      context.go(AppRoute.preferences.path);
       return;
     }
 
-    context.go(AppRoute.onboarding.path);
+    context.go(AppRoute.preferences.path);
   }
 }

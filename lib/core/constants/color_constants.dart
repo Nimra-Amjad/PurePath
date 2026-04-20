@@ -9,4 +9,5 @@ const kLightYellowColor = Color(0xFFF5E0BE);
 const kTransparentColor = Colors.transparent;
 const kGreenColor = Color(0xFF4CAF50);
 const kRedColor = Color(0xFFF44336);
+const kPinkColor = Color(0xFFD4608A);
 const kOrangeColor = Color(0xFFFF9800);

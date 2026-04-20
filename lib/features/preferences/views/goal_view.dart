@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/widgets/custom_single_selection_widget.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/preferences/widgets/top_title_widget.dart';
 
 class GoalView extends StatefulWidget {
   const GoalView({super.key});
@@ -25,16 +26,9 @@ class _GoalViewState extends State<GoalView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          "What's your primary focus right now?",
-          style: AppTextStyles.bold.copyWith(fontSize: 24),
-          textAlign: TextAlign.center,
-        ),
-        Space.vertical(8),
-        Text(
-          "This will help us tailor your experience and goals.",
-          style: AppTextStyles.normal.copyWith(fontSize: 14),
-          textAlign: TextAlign.center,
+        TopTitleWidget(
+          title: "What's your primary focus right now?",
+          subtitle: "This will help us tailor your experience and goals.",
         ),
         Space.vertical(16),
         ...goalOptions.map(

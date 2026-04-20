@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDarkGreyColor,
+      backgroundColor: kWhiteColor,
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedIn) {
@@ -61,14 +61,14 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     'Welcome Back',
                     style: AppTextStyles.bold.copyWith(
-                      color: kLightYellowColor,
+                      color: kPrimaryColor,
                       fontSize: 35,
                     ),
                   ),
                   Text(
                     'Login to access you account',
                     style: AppTextStyles.normal.copyWith(
-                      color: kWhiteColor,
+                      color: kBlackColor,
                       fontSize: 20,
                     ),
                   ),
@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _emailTextController,
                     prefix: SvgPicture.asset(
                       Assets.svgEmailIcon,
-                      colorFilter: colorFilter(color: kLightYellowColor),
+                      colorFilter: colorFilter(color: kPrimaryColor),
                     ),
                     validator: (value) {
                       return Validators.email(value);
@@ -94,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     prefix: SvgPicture.asset(
                       Assets.svgLockIcon,
-                      colorFilter: colorFilter(color: kLightYellowColor),
+                      colorFilter: colorFilter(color: kPrimaryColor),
                     ),
                     suffix: GestureDetector(
                       onTap: () {
@@ -106,7 +106,7 @@ class _LoginPageState extends State<LoginPage> {
                         hidePassword
                             ? Assets.svgEyeCloseIcon
                             : Assets.svgEyeOpenIcon,
-                        colorFilter: colorFilter(color: kLightYellowColor),
+                        colorFilter: colorFilter(color: kPrimaryColor),
                       ),
                     ),
                   ),
@@ -114,7 +114,6 @@ class _LoginPageState extends State<LoginPage> {
                   PrimaryButton(
                     text: "Login",
                     // inactive: true,
-                    buttonColor: kLightYellowColor,
                     isLoading: state is AuthLoading,
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
@@ -123,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                             email: _emailTextController.text.trim(),
                             password: _passwordTextController.text.trim(),
                           ),
-                        );
+                        ); 
                       }
                     },
                   ),
@@ -144,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                           text: TextSpan(
                             text: "Don't have an account? ",
                             style: AppTextStyles.medium.copyWith(
-                              color: kGreyColor,
+                              color: kBlackColor,
                               fontSize: 14,
                               letterSpacing: 0.2,
                             ),
@@ -152,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                               TextSpan(
                                 text: "Sign up",
                                 style: AppTextStyles.semiBold.copyWith(
-                                  color: kWhiteColor,
+                                  color: kPrimaryColor,
                                   fontSize: 14,
                                   letterSpacing: 0.2,
                                 ),

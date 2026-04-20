@@ -32,7 +32,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDarkGreyColor,
+      backgroundColor: kWhiteColor,
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedUp) {
@@ -56,14 +56,14 @@ class _SignupPageState extends State<SignupPage> {
                     Text(
                       'Get Started Now',
                       style: AppTextStyles.bold.copyWith(
-                        color: kLightYellowColor,
+                        color: kPrimaryColor,
                         fontSize: 35,
                       ),
                     ),
                     Text(
                       'Create an account',
                       style: AppTextStyles.normal.copyWith(
-                        color: kWhiteColor,
+                        color: kBlackColor,
                         fontSize: 20,
                       ),
                     ),
@@ -79,7 +79,7 @@ class _SignupPageState extends State<SignupPage> {
 
                       prefix: SvgPicture.asset(
                         Assets.svgUserIcon,
-                        colorFilter: colorFilter(color: kLightYellowColor),
+                        colorFilter: colorFilter(color: kPrimaryColor),
                       ),
                     ),
                     Space.vertical(16),
@@ -88,7 +88,7 @@ class _SignupPageState extends State<SignupPage> {
                       controller: _emailTextController,
                       prefix: SvgPicture.asset(
                         Assets.svgEmailIcon,
-                        colorFilter: colorFilter(color: kLightYellowColor),
+                        colorFilter: colorFilter(color: kPrimaryColor),
                       ),
                       validator: (value) {
                         return Validators.email(value);
@@ -104,7 +104,7 @@ class _SignupPageState extends State<SignupPage> {
                       },
                       prefix: SvgPicture.asset(
                         Assets.svgLockIcon,
-                        colorFilter: colorFilter(color: kLightYellowColor),
+                        colorFilter: colorFilter(color: kPrimaryColor),
                       ),
                       suffix: GestureDetector(
                         onTap: () {
@@ -116,14 +116,13 @@ class _SignupPageState extends State<SignupPage> {
                           hidePassword
                               ? Assets.svgEyeCloseIcon
                               : Assets.svgEyeOpenIcon,
-                          colorFilter: colorFilter(color: kLightYellowColor),
+                          colorFilter: colorFilter(color: kPrimaryColor),
                         ),
                       ),
                     ),
                     Space.vertical(30),
                     PrimaryButton(
                       text: "Sign up",
-                      buttonColor: kLightYellowColor,
                       isLoading: state is AuthLoading,
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
@@ -154,7 +153,7 @@ class _SignupPageState extends State<SignupPage> {
                             text: TextSpan(
                               text: "Don't have an account? ",
                               style: AppTextStyles.medium.copyWith(
-                                color: kGreyColor,
+                                color: kBlackColor,
                                 fontSize: 14,
                                 letterSpacing: 0.2,
                               ),
@@ -162,7 +161,7 @@ class _SignupPageState extends State<SignupPage> {
                                 TextSpan(
                                   text: "Login",
                                   style: AppTextStyles.semiBold.copyWith(
-                                    color: kWhiteColor,
+                                    color: kPrimaryColor,
                                     fontSize: 14,
                                     letterSpacing: 0.2,
                                   ),
