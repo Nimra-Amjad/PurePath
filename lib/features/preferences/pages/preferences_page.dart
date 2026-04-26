@@ -36,7 +36,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
         curve: Curves.easeInOut,
       );
     } else {
-      context.push(AppRoute.home.path);
+      context.push(AppRoute.bottomNavBar.path);
     }
   }
 

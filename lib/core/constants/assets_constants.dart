@@ -18,4 +18,6 @@ class Assets {
   static const String svgHomeIcon = 'assets/icons/home.svg';
   static const String svgInsightsIcon = 'assets/icons/insights.svg';
   static const String svgCommunityIcon = 'assets/icons/community.svg';
+  static const String svgArrowBackIcon = 'assets/icons/arrow-back.svg';
+  static const String svgArrowForwardIcon = 'assets/icons/arrow-forward.svg';
 }

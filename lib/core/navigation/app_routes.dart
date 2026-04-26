@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 
 enum AppRoute {
   splash('/splash'),
-  home('/home'),
+  bottomNavBar('/bottomNavBar'),
   preferences('/preferences'),
+  summary('/summary'),
   login('/login'),
   signup('/signup');
 
