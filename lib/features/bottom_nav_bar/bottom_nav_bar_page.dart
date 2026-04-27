@@ -4,6 +4,7 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/utils.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/community/pages/community_page.dart';
 import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/insights/pages/insights_page.dart';
@@ -41,6 +42,15 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
           ],
         ),
       ),
+      // FAB is only visible on the Home tab (index 0)
+      floatingActionButton: _index == 0
+          ? FloatingActionButton(
+              onPressed: () => AppRoute.addHabit.push(context),
+              backgroundColor: purple,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add_rounded, color: kWhiteColor, size: 28),
+            )
+          : null,
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: kWhiteColor,
@@ -104,32 +114,3 @@ class _HomeTab {
   final String icon;
 }
 
-class _HomeTabBody extends StatelessWidget {
-  const _HomeTabBody({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(title, style: AppTextStyles.bold.copyWith(fontSize: 22)),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.normal.copyWith(
-                color: kBlackColor.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -7,7 +7,8 @@ enum AppRoute {
   preferences('/preferences'),
   summary('/summary'),
   login('/login'),
-  signup('/signup');
+  signup('/signup'),
+  addHabit('/addHabit');
 
   const AppRoute(this.path);
 

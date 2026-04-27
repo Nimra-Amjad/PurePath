@@ -16,6 +16,8 @@ class CustomTextField extends StatelessWidget {
   final int maxLines;
   final TextCapitalization? textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   const CustomTextField({
     super.key,
@@ -31,6 +33,8 @@ class CustomTextField extends StatelessWidget {
     this.maxLines = 1,
     this.textCapitalization,
     this.inputFormatters,
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -44,6 +48,8 @@ class CustomTextField extends StatelessWidget {
       validator: validator,
       onChanged: onChanged,
       maxLines: maxLines,
+      readOnly: readOnly,
+      onTap: onTap,
       cursorColor: kBlackColor,
       inputFormatters: inputFormatters ?? [],
       style: TextStyle(color: kBlackColor.withOpacityValue(0.8)),
@@ -51,8 +57,12 @@ class CustomTextField extends StatelessWidget {
         hintText: hintText,
         hintStyle: TextStyle(color: kBlackColor.withOpacityValue(0.4)),
         labelText: labelText,
-        prefixIcon: Padding(padding: const EdgeInsets.all(10.0), child: prefix),
-        suffixIcon: Padding(padding: const EdgeInsets.all(10.0), child: suffix),
+        prefixIcon: prefix != null
+            ? Padding(padding: const EdgeInsets.all(10.0), child: prefix)
+            : null,
+        suffixIcon: suffix != null
+            ? Padding(padding: const EdgeInsets.all(10.0), child: suffix)
+            : null,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 16,

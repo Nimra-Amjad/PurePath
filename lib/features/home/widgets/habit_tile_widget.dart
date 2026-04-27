@@ -8,16 +8,20 @@ import 'package:purepath/features/home/models/habit_model.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit tile widget
 //
-// Displays a single habit row: icon, title, subtitle, and a checkmark badge.
-// Tapping the tile fires [onTap] — the parent dispatches [HabitToggled] to
-// the bloc, which toggles completion and updates the calendar arc + progress
-// card automatically. This widget stays free of all business logic.
+// Displays one habit row: category emoji avatar, title, subtitle,
+// and an animated checkmark badge.
+//
+// Tapping fires [onTap] → parent dispatches [HabitToggled] to [HomeBloc],
+// which toggles completion and propagates the change to both the calendar
+// arc and the daily progress card automatically.
+//
+// This widget is purely for display — no business logic lives here.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HabitTileWidget extends StatelessWidget {
   final HabitModel habit;
 
-  /// Called when the user taps the tile.
+  /// Called when the tile is tapped.
   /// Parent is responsible for dispatching [HabitToggled] to [HomeBloc].
   final VoidCallback onTap;
 
@@ -30,7 +34,7 @@ class HabitTileWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = habit.category.color;
-    final icon = habit.category.icon;
+    final emoji = habit.category.emoji;
 
     return GestureDetector(
       onTap: onTap,
@@ -49,10 +53,11 @@ class HabitTileWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Category icon
+            // Category emoji inside a tinted circle
             CircleAvatar(
+              radius: 22,
               backgroundColor: color.withOpacityValue(0.15),
-              child: Icon(icon, color: color, size: 20),
+              child: Text(emoji, style: const TextStyle(fontSize: 18)),
             ),
             Space.horizontal(12),
 
@@ -72,14 +77,14 @@ class HabitTileWidget extends StatelessWidget {
             ),
             Space.horizontal(12),
 
-            // Checkmark badge — animates between grey (pending) and purple (done)
+            // Checkmark badge — animates between grey (pending) and category color (done)
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               width: 28,
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: habit.isCompleted ? purple : Colors.grey.shade200,
+                color: habit.isCompleted ? color : Colors.grey.shade200,
               ),
               child: habit.isCompleted
                   ? const Icon(Icons.check, size: 16, color: Colors.white)
