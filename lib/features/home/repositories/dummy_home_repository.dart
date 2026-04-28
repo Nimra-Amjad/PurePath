@@ -1,68 +1,78 @@
 import 'package:purepath/features/home/models/day_summary.dart';
+import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Dummy home repository
 //
-// Returns hard-coded but realistic habit data so the UI looks meaningful
-// before Firestore is connected.
+// Returns realistic in-memory habit data so the UI looks meaningful before
+// Firestore is connected.
+//
+// The data is stored in static fields so all instances (HomePage, InsightsPage,
+// ManageHabitsPage) share the same list — deleting or editing a habit is
+// reflected everywhere instantly.
 //
 // SWAP GUIDE: Replace DummyHomeRepository() with FirestoreHomeRepository()
-// in home_page.dart's BlocProvider — nothing else needs to change.
+// wherever a HomeRepository is created — nothing else needs to change.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class DummyHomeRepository implements HomeRepository {
-  // ── Habit templates ────────────────────────────────────────────────────────
-  // Simulates the habits a user has created. In production this list
-  // comes from Firestore (the user's habits collection).
+  // ── Shared in-memory habit list ────────────────────────────────────────────
+  // Static → one copy for the entire app session.
+  // Mutable → CRUD operations work immediately without a real database.
 
-  static const _habits = [
-    _HabitTemplate(
+  static final List<HabitDefinition> _habits = [
+    const HabitDefinition(
       id: 'h1',
       title: 'Morning Run',
-      subtitle: '5 km · Fitness',
       category: HabitCategory.fitness,
+      isDaily: true,
+      goal: '5 km',
     ),
-    _HabitTemplate(
+    const HabitDefinition(
       id: 'h2',
       title: 'Drink 2L Water',
-      subtitle: '2L · Hydration',
       category: HabitCategory.hydration,
+      isDaily: true,
+      goal: '2L',
     ),
-    _HabitTemplate(
+    const HabitDefinition(
       id: 'h3',
       title: 'Mindfulness',
-      subtitle: '10 min · Mindfulness',
       category: HabitCategory.mindfulness,
+      isDaily: true,
+      goal: '10 min',
     ),
-    _HabitTemplate(
+    const HabitDefinition(
       id: 'h4',
       title: 'Read 20 Pages',
-      subtitle: '20 pages · Learning',
       category: HabitCategory.learning,
+      isDaily: false,
+      weekDays: [0, 1, 2, 3, 4], // Mon – Fri
+      goal: '20 pages',
     ),
-    _HabitTemplate(
+    const HabitDefinition(
       id: 'h5',
       title: 'Sleep 8 Hours',
-      subtitle: '8 hrs · Sleep',
       category: HabitCategory.sleep,
+      isDaily: true,
+      goal: '8 hrs',
     ),
   ];
 
-  // ── Weekly progress pattern ────────────────────────────────────────────────
-  // Each inner list = one day (Mon → Sun), each value maps to a habit above.
-  // Gives realistic variety across the week.
+  // ── Weekly completion pattern ──────────────────────────────────────────────
+  // Keyed by habit id → 7 values [Mon … Sun], 1.0 = done, 0.0 = not done.
+  // Stored as a static final (not const) so individual values can be toggled
+  // when the user marks a habit complete on the home screen.
 
-  static const _weeklyProgress = [
-    [1.0, 1.0, 0.0, 0.0, 0.0], // Monday   — 2/5 done
-    [1.0, 1.0, 1.0, 1.0, 1.0], // Tuesday  — perfect day
-    [1.0, 0.0, 1.0, 0.0, 0.0], // Wednesday — 2/5 done
-    [1.0, 1.0, 1.0, 1.0, 0.0], // Thursday — 4/5 done
-    [1.0, 1.0, 0.0, 0.0, 0.0], // Friday   — 2/5 done
-    [1.0, 0.0, 0.0, 0.0, 0.0], // Saturday — 1/5 done
-    [0.0, 0.0, 0.0, 0.0, 0.0], // Sunday   — rest day
-  ];
+  static const Map<String, List<double>> _weeklyProgress = {
+    'h1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+    'h2': [1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0],
+    'h3': [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+    'h4': [1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    'h5': [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0],
+  };
 
   // ── HomeRepository implementation ──────────────────────────────────────────
 
@@ -70,7 +80,6 @@ class DummyHomeRepository implements HomeRepository {
   Future<Map<DateTime, DaySummary>> getSummaryForWeek(
     DateTime weekStart,
   ) async {
-    // Simulate a short network delay — remove when Firestore is connected.
     await Future.delayed(const Duration(milliseconds: 250));
 
     final today = _dateOnly(DateTime.now());
@@ -80,45 +89,49 @@ class DummyHomeRepository implements HomeRepository {
       final date = _dateOnly(weekStart.add(Duration(days: dayIndex)));
       final isFuture = date.isAfter(today);
 
-      final habits = _habits.asMap().entries.map((entry) {
-        final template = entry.value;
+      final habitsForDay = _habits.map((definition) {
         // Future dates always show 0 progress.
-        final progress = isFuture ? 0.0 : _weeklyProgress[dayIndex][entry.key];
+        final pattern = _weeklyProgress[definition.id];
+        final progress =
+            (isFuture || pattern == null) ? 0.0 : pattern[dayIndex];
 
         return HabitModel(
-          id: template.id,
-          title: template.title,
-          subtitle: template.subtitle,
-          category: template.category,
+          id: definition.id,
+          title: definition.title,
+          subtitle: definition.subtitle,
+          category: definition.category,
+          isDaily: definition.isDaily,
           progress: progress,
         );
       }).toList();
 
-      result[date] = DaySummary(date: date, habits: habits);
+      result[date] = DaySummary(date: date, habits: habitsForDay);
     }
 
     return result;
   }
 
+  @override
+  Future<List<HabitDefinition>> getAllHabits() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    // Return a copy so callers can't mutate the internal list directly.
+    return List.unmodifiable(_habits);
+  }
+
+  @override
+  Future<void> deleteHabit(String id) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    _habits.removeWhere((h) => h.id == id);
+  }
+
+  @override
+  Future<void> updateHabit(HabitDefinition definition) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final index = _habits.indexWhere((h) => h.id == definition.id);
+    if (index != -1) _habits[index] = definition;
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Internal template — keeps the habits list above readable
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _HabitTemplate {
-  final String id;
-  final String title;
-  final String subtitle;
-  final HabitCategory category;
-
-  const _HabitTemplate({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.category,
-  });
 }

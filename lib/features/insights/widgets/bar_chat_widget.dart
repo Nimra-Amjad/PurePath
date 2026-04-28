@@ -1,78 +1,116 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/home/models/day_summary.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bar chart widget
+//
+// Renders one vertical bar per day (Mon → Sun) whose height represents the
+// overall habit-completion progress for that day (0.0 → 1.0).
+//
+// [summaries] → 7 [DaySummary] entries from [InsightsState.visibleWeekSummaries]
+// ─────────────────────────────────────────────────────────────────────────────
 
 class BarChartWidget extends StatelessWidget {
-  const BarChartWidget({super.key});
+  final List<DaySummary> summaries;
 
-  final List<double> values = const [0.4, 0.7, 0.6, 0.9, 0.65, 0.5, 0.0];
-
-  final List<String> days = const [
-    "MON",
-    "TUE",
-    "WED",
-    "THU",
-    "FRI",
-    "SAT",
-    "SUN",
-  ];
+  const BarChartWidget({super.key, required this.summaries});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       decoration: BoxDecoration(
         color: kWhiteColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: kBlackColor.withOpacityValue(0.1), blurRadius: 10),
+          BoxShadow(
+            color: kBlackColor.withOpacityValue(0.06),
+            blurRadius: 10,
+          ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(values.length, (index) {
-          return BarItem(value: values[index], label: days[index]);
-        }),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Weekly Overview',
+            style: AppTextStyles.semiBold.copyWith(fontSize: 14),
+          ),
+          Space.vertical(16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: summaries
+                .map((day) => _BarItem(summary: day))
+                .toList(),
+          ),
+        ],
       ),
     );
   }
 }
 
-class BarItem extends StatelessWidget {
-  final double value;
-  final String label;
+// ─────────────────────────────────────────────────────────────────────────────
+// Single bar item
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const BarItem({super.key, required this.value, required this.label});
+class _BarItem extends StatelessWidget {
+  final DaySummary summary;
+
+  const _BarItem({required this.summary});
+
+  bool get _isToday {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return summary.date == today;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final progress = summary.overallProgress;
+    final dayLabel = DateFormat('EEE').format(summary.date).toUpperCase();
+    final barColor = _isToday ? purple : purple.withOpacityValue(0.45);
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        // Percentage label above bar (only when > 0)
+        Text(
+          progress > 0 ? '${(progress * 100).round()}%' : '',
+          style: AppTextStyles.normal.copyWith(
+            fontSize: 10,
+            color: textSecondary,
+          ),
+        ),
+        Space.vertical(4),
+
+        // Bar
         SizedBox(
-          height: 150,
+          height: 120,
           child: Stack(
             alignment: Alignment.bottomCenter,
             children: [
-              // Background bar
+              // Background track
               Container(
-                width: 40,
+                width: 36,
                 decoration: BoxDecoration(
                   color: kLightGreyColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
 
-              // Foreground bar
+              // Filled portion
               FractionallySizedBox(
-                heightFactor: value,
+                heightFactor: progress.clamp(0.0, 1.0),
                 child: Container(
-                  width: 40,
+                  width: 36,
                   decoration: BoxDecoration(
-                    color: kRedColor,
+                    color: barColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
@@ -81,7 +119,16 @@ class BarItem extends StatelessWidget {
           ),
         ),
         Space.vertical(8),
-        Text(label, style: AppTextStyles.normal.copyWith(fontSize: 12)),
+
+        // Day label
+        Text(
+          dayLabel,
+          style: AppTextStyles.normal.copyWith(
+            fontSize: 11,
+            color: _isToday ? purple : textSecondary,
+            fontWeight: _isToday ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ],
     );
   }

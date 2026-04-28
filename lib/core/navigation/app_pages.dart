@@ -9,6 +9,7 @@ import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
 import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
 import 'package:purepath/features/home/pages/add_habit_page.dart';
+import 'package:purepath/features/home/pages/manage_habits_page.dart';
 import 'package:purepath/features/preferences/pages/preferences_page.dart';
 import 'package:purepath/features/preferences/views/summary_page.dart';
 
@@ -47,6 +48,10 @@ final router = GoRouter(
     GoRoute(
       path: AppRoute.addHabit.path,
       builder: (context, state) => const AddHabitPage(),
+    ),
+    GoRoute(
+      path: AppRoute.manageHabits.path,
+      builder: (context, state) => const ManageHabitsPage(),
     ),
   ],
 );

@@ -125,13 +125,20 @@ class HabitModel {
   final HabitCategory category;
   final double progress; // 0.0 – 1.0
 
+  /// true → runs every day, false → runs on specific weekdays only.
+  /// Used to show the Daily / Weekly badge on the habit tile.
+  final bool isDaily;
+
   const HabitModel({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.category,
     required this.progress,
+    this.isDaily = true,
   });
 
   bool get isCompleted => progress >= 1.0;
+
+  String get frequencyLabel => isDaily ? 'Daily' : 'Weekly';
 }

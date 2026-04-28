@@ -4,6 +4,7 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/home/repositories/dummy_home_repository.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
@@ -104,9 +105,45 @@ class _HomeView extends StatelessWidget {
         if (summary == null) return const _LoadingView();
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DailyProgressCard(summary: summary),
-            Space.vertical(16),
+            Space.vertical(20),
+
+            // ── Section header ──────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Today's Habits",
+                  style: AppTextStyles.semiBold.copyWith(fontSize: 16),
+                ),
+                GestureDetector(
+                  onTap: () => AppRoute.manageHabits.push(context),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: AppTextStyles.medium.copyWith(
+                          fontSize: 13,
+                          color: purple,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: purple,
+                        size: 12,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Space.vertical(12),
+
+            // ── Habit tiles ─────────────────────────────────────────────
             ...summary.habits.map(
               (habit) => HabitTileWidget(
                 habit: habit,

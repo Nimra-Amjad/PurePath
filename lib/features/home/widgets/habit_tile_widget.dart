@@ -61,21 +61,28 @@ class HabitTileWidget extends StatelessWidget {
             ),
             Space.horizontal(12),
 
-            // Title and subtitle
+            // Title, subtitle, and frequency badge
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(habit.title, style: AppTextStyles.bold),
-                  Space.vertical(4),
+                  Space.vertical(3),
                   Text(
                     habit.subtitle,
                     style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                  ),
+                  Space.vertical(5),
+                  _FrequencyBadge(
+                    label: habit.frequencyLabel,
+                    color: color,
                   ),
                 ],
               ),
             ),
             Space.horizontal(12),
+
+            Space.horizontal(8),
 
             // Checkmark badge — animates between grey (pending) and category color (done)
             AnimatedContainer(
@@ -92,6 +99,32 @@ class HabitTileWidget extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Frequency badge — "Daily" or "Weekly" pill
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FrequencyBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _FrequencyBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacityValue(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.medium.copyWith(fontSize: 11, color: color),
       ),
     );
   }

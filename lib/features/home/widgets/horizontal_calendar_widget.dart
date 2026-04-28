@@ -125,8 +125,11 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (page) {
-                // Tell the BLoC about the new visible week so it can load data
-                // and update the month label.
+                // Block navigation to future weeks — snap back immediately.
+                if (page > _centerPage) {
+                  _pageController.jumpToPage(_centerPage);
+                  return;
+                }
                 widget.onWeekChanged(_mondayForPage(page));
               },
               itemBuilder: (_, page) {
@@ -138,7 +141,10 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
                       .map(
                         (tile) => _DayTile(
                           data: tile,
-                          onTap: () => widget.onDateSelected(tile.date),
+                          // Future tiles are not tappable.
+                          onTap: tile.isFuture
+                              ? null
+                              : () => widget.onDateSelected(tile.date),
                         ),
                       )
                       .toList(),
@@ -224,7 +230,9 @@ class _DayTileData {
 
 class _DayTile extends StatelessWidget {
   final _DayTileData data;
-  final VoidCallback onTap;
+
+  /// Null for future dates — disables the tap gesture entirely.
+  final VoidCallback? onTap;
 
   static const _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -236,59 +244,65 @@ class _DayTile extends StatelessWidget {
     final bool highlight = data.isSelected || data.isToday;
     final String dayLabel = _dayLabels[data.date.weekday - 1];
 
+    // Future dates are shown at reduced opacity so they look inactive.
+    final double opacity = data.isFuture ? 0.35 : 1.0;
+
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        // Constant padding keeps the PageView height stable.
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-        decoration: data.isSelected
-            ? BoxDecoration(
-                color: lightPurple,
-                border: Border.all(color: purple, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
-              )
-            : BoxDecoration(
-                color: Colors.transparent,
-                border: Border.all(color: Colors.transparent, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Circle with arc progress border
-            SizedBox(
-              width: 36,
-              height: 36,
-              child: CustomPaint(
-                painter: _ArcPainter(
-                  progress: data.progress,
-                  isFuture: data.isFuture,
-                  // Show lightPurple fill only when today and NOT selected
-                  // (selected tiles already have the container background).
-                  showTodayFill: data.isToday && !data.isSelected,
+      onTap: onTap, // null → gesture is ignored automatically
+      child: Opacity(
+        opacity: opacity,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          // Constant padding keeps the PageView height stable.
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          decoration: data.isSelected
+              ? BoxDecoration(
+                  color: lightPurple,
+                  border: Border.all(color: purple, width: 1.5),
+                  borderRadius: BorderRadius.circular(16),
+                )
+              : BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border.all(color: Colors.transparent, width: 1.5),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Center(
-                  child: Text(
-                    '${data.date.day}',
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 13,
-                      color: highlight ? purple : kBlackColor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Circle with arc progress border
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: CustomPaint(
+                  painter: _ArcPainter(
+                    progress: data.progress,
+                    isFuture: data.isFuture,
+                    // Show lightPurple fill only when today and NOT selected
+                    // (selected tiles already have the container background).
+                    showTodayFill: data.isToday && !data.isSelected,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${data.date.day}',
+                      style: AppTextStyles.medium.copyWith(
+                        fontSize: 13,
+                        color: highlight ? purple : kBlackColor,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              dayLabel,
-              style: AppTextStyles.normal.copyWith(
-                fontSize: 11,
-                color: highlight ? purple : kGreyColor,
+              const SizedBox(height: 4),
+              Text(
+                dayLabel,
+                style: AppTextStyles.normal.copyWith(
+                  fontSize: 11,
+                  color: highlight ? purple : kGreyColor,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -3,6 +3,8 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/custom_vertical_divider.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/profile/pages/badges_page.dart';
+import 'package:purepath/features/profile/pages/reminders_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -21,11 +23,9 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 20),
             _tierCard(),
             const SizedBox(height: 20),
-            _badgesSection(),
+            _badgesSection(context),
             const SizedBox(height: 20),
-            // _goalsSection(),
-            // const SizedBox(height: 20),
-            _settingsSection(),
+            _settingsSection(context),
           ],
         ),
       ),
@@ -139,7 +139,10 @@ class ProfilePage extends StatelessWidget {
   }
 
   /// -------------------------- BADGES SECTION --------------------------
-  Widget _badgesSection() {
+  Widget _badgesSection(BuildContext context) {
+    // Show the first 4 actually-earned badges from the badges page
+    final previews = BadgesPage.earnedPreviews();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,23 +156,30 @@ class ProfilePage extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
-            Text(
-              "See all 12",
-              style: AppTextStyles.normal.copyWith(color: purple),
+            GestureDetector(
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BadgesPage())),
+              child: Text(
+                "See all ${BadgesPage.totalCount}",
+                style: AppTextStyles.medium.copyWith(
+                  color: purple,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ],
         ),
         Space.vertical(12),
         Row(
-          children: [
-            _badge("🔥", "Streak King"),
-            Space.horizontal(12),
-            _badge("🧘", "Zen Master"),
-            Space.horizontal(12),
-            _badge("📚", "Bookworm"),
-            Space.horizontal(12),
-            _badge("🌅", "Early Bird"),
-          ],
+          children: previews
+              .expand(
+                (p) => [
+                  _badge(p.$1, p.$2),
+                  if (p != previews.last) Space.horizontal(12),
+                ],
+              )
+              .toList(),
         ),
       ],
     );
@@ -194,6 +204,7 @@ class ProfilePage extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
               style: AppTextStyles.normal.copyWith(fontSize: 12),
             ),
           ],
@@ -203,29 +214,44 @@ class ProfilePage extends StatelessWidget {
   }
 
   /// -------------------------- SETTINGS SECTION --------------------------
-  Widget _settingsSection() {
+  Widget _settingsSection(BuildContext context) {
     return Column(
       children: [
-        _settingTile(Icons.notifications, "Reminders", false),
-        _settingTile(Icons.palette, "Appearance", false),
-        _settingTile(Icons.star, "Upgrade to Pro", false),
-        _settingTile(Icons.lock, "Privacy & Data", false),
-        _settingTile(Icons.people, "Invite Friends", false),
-        _settingTile(Icons.logout, "Sign out", true),
+        _settingTile(
+          icon: Icons.notifications_rounded,
+          title: "Reminders",
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const RemindersPage())),
+        ),
+        _settingTile(icon: Icons.star_rounded, title: "Upgrade to Pro"),
+        _settingTile(icon: Icons.lock_rounded, title: "Privacy & Data"),
+        _settingTile(icon: Icons.people_rounded, title: "Invite Friends"),
+        _settingTile(
+          icon: Icons.logout_rounded,
+          title: "Sign out",
+          isDanger: true,
+        ),
       ],
     );
   }
 
-  Widget _settingTile(IconData icon, String title, bool isDanger) {
+  Widget _settingTile({
+    required IconData icon,
+    required String title,
+    bool isDanger = false,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
-      leading: Icon(icon, color: isDanger ? Colors.red : textSecondary),
+      onTap: onTap,
+      leading: Icon(icon, color: isDanger ? red : textSecondary),
       title: Text(
         title,
         style: AppTextStyles.normal.copyWith(
-          color: isDanger ? Colors.red : textPrimary,
+          color: isDanger ? red : textPrimary,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const Icon(Icons.chevron_right, size: 18, color: textSecondary),
     );
   }
 }

@@ -123,6 +123,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         title: habit.title,
         subtitle: habit.subtitle,
         category: habit.category,
+        isDaily: habit.isDaily,
         progress: habit.isCompleted ? 0.0 : 1.0,
       );
     }).toList();
