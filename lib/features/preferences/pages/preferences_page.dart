@@ -8,7 +8,6 @@ import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
-import 'package:purepath/features/preferences/views/reminder_setup_view.dart';
 
 class PreferencesPage extends StatefulWidget {
   const PreferencesPage({super.key});
@@ -26,7 +25,6 @@ class _PreferencesPageState extends State<PreferencesPage> {
     GoalView(),
     ChallengeView(),
     NotificationView(),
-    ReminderSetupView(),
   ];
 
   void _next() {
@@ -36,7 +34,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
         curve: Curves.easeInOut,
       );
     } else {
-      context.push(AppRoute.bottomNavBar.path);
+      context.push(AppRoute.welcome.path);
     }
   }
 
@@ -160,11 +158,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PrimaryButton(
-                    text: switch (_currentStep) {
-                      2 => 'Allow notifications',
-                      3 => 'Finish setup',
-                      _ => 'Next',
-                    },
+                    text: _currentStep == 2 ? 'Allow notifications' : 'Next',
                     onPressed: _next,
                   ),
                   if (_currentStep == 2) ...[

@@ -11,6 +11,7 @@ import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
 import 'package:purepath/features/home/pages/add_habit_page.dart';
 import 'package:purepath/features/home/pages/manage_habits_page.dart';
 import 'package:purepath/features/preferences/pages/preferences_page.dart';
+import 'package:purepath/features/preferences/pages/welcome_page.dart';
 import 'package:purepath/features/preferences/views/summary_page.dart';
 
 final router = GoRouter(
@@ -36,6 +37,10 @@ final router = GoRouter(
     GoRoute(
       path: AppRoute.preferences.path,
       builder: (context, state) => const PreferencesPage(),
+    ),
+    GoRoute(
+      path: AppRoute.welcome.path,
+      builder: (context, state) => const WelcomePage(),
     ),
     GoRoute(
       path: AppRoute.summary.path,

@@ -86,6 +86,7 @@ class _LoadedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = state.habitWeeklyStats;
+    final summaries = state.visibleWeekSummaries;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -109,7 +110,7 @@ class _LoadedView extends StatelessWidget {
           Space.vertical(20),
 
           // ── Bar chart ────────────────────────────────────────────────────
-          BarChartWidget(summaries: state.visibleWeekSummaries),
+          BarChartWidget(summaries: summaries),
           Space.vertical(24),
 
           // ── Per-habit weekly stats ───────────────────────────────────────

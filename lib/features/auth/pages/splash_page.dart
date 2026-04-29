@@ -46,10 +46,10 @@ class _SplashPageState extends State<SplashPage> {
         .firebaseAuthRepository
         .firebaseUser;
     if (firebaseUser != null) {
-      context.go(AppRoute.bottomNavBar.path);
+      context.go(AppRoute.preferences.path);
       return;
     }
 
-    context.go(AppRoute.bottomNavBar.path);
+    context.go(AppRoute.preferences.path);
   }
 }

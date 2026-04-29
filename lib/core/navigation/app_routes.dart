@@ -5,6 +5,7 @@ enum AppRoute {
   splash('/splash'),
   bottomNavBar('/bottomNavBar'),
   preferences('/preferences'),
+  welcome('/welcome'),
   summary('/summary'),
   login('/login'),
   signup('/signup'),
