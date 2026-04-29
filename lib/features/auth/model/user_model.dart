@@ -86,26 +86,27 @@ class UserModel {
   }
 
   factory UserModel.empty() => UserModel(
-        fullName: '',
-        uid: '',
-        onboardingStatus: OnboardingStatus.notStarted, // ← default
-        email: '',
-        password: '',
-        fcmToken: '',
-        imgUrl: null,
-        isStreakLocked: false,
-        isNotificationOn: true,
-        lastLoggedDate: null,
-        freezedDate: null,
-        streakCount: 0,
-        stripeSubscriptionId: '',
-      );
+    fullName: '',
+    uid: '',
+    onboardingStatus: OnboardingStatus.inProgress, // ← default
+    email: '',
+    password: '',
+    fcmToken: '',
+    imgUrl: null,
+    isStreakLocked: false,
+    isNotificationOn: true,
+    lastLoggedDate: null,
+    freezedDate: null,
+    streakCount: 0,
+    stripeSubscriptionId: '',
+  );
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       fullName: map['fullName'] as String,
       uid: map['uid'] as String,
-      onboardingStatus: OnboardingStatus.fromValue( // ← parses from string
+      onboardingStatus: OnboardingStatus.fromValue(
+        // ← parses from string
         map['onboardingStatus'] as String? ?? 'not_started',
       ),
       email: map['email'] as String,

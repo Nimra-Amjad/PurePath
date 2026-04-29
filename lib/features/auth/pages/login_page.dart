@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
+import 'package:purepath/core/enums/onboarding_enums.dart';
 import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
@@ -42,8 +43,14 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedIn) {
-            context.push(AppRoute.preferences.path);
-            AppSnackBar.success(context, "Login successful");
+            AppSnackBar.success(context, "Welcome back!");
+            final isOnboarded =
+                state.user!.onboardingStatus == OnboardingStatus.completed;
+            if (isOnboarded) {
+              context.go(AppRoute.bottomNavBar.path);
+            } else {
+              context.go(AppRoute.preferences.path);
+            }
           } else if (state is AuthFailure) {
             AppSnackBar.error(context, state.message);
           }

@@ -3,10 +3,11 @@ part of 'user_bloc.dart';
 @immutable
 sealed class UserEvent {}
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
 class LoginRequested extends UserEvent {
   final String email;
   final String password;
-
   LoginRequested({required this.email, required this.password});
 }
 
@@ -14,7 +15,6 @@ class SignupRequested extends UserEvent {
   final String fullName;
   final String email;
   final String password;
-
   SignupRequested({
     required this.fullName,
     required this.email,
@@ -24,7 +24,40 @@ class SignupRequested extends UserEvent {
 
 class LogoutRequested extends UserEvent {}
 
-class CheckOnboardingUser extends UserEvent {
+// ── Splash / session restore ──────────────────────────────────────────────────
+
+/// Fired from SplashPage to check whether a Firebase session already exists
+/// and load the matching Firestore document.
+class LoadUser extends UserEvent {
+  final User? firebaseUser;
+  LoadUser(this.firebaseUser);
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+
+/// Fired when the user finishes the preference steps.
+/// Saves goal, challenge, and notification preference to Firestore
+/// and marks onboardingStatus as completed.
+class SaveOnboardingData extends UserEvent {
+  final String goal;
+  final String challenge;
+  final bool notificationsEnabled;
+
+  SaveOnboardingData({
+    required this.goal,
+    required this.challenge,
+    required this.notificationsEnabled,
+  });
+}
+
+// ── Internal stream sync ──────────────────────────────────────────────────────
+
+class _SyncFirebaseUser extends UserEvent {
   final User? user;
-  CheckOnboardingUser(this.user);
+  _SyncFirebaseUser(this.user);
+}
+
+class _SyncLocalUser extends UserEvent {
+  final UserModel? user;
+  _SyncLocalUser(this.user);
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/widgets/custom_single_selection_widget.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/preferences/widgets/top_title_widget.dart';
 
 class ChallengeView extends StatefulWidget {
-  const ChallengeView({super.key});
+  const ChallengeView({super.key, this.onChallengeChanged});
+
+  /// Called whenever the user picks a different challenge.
+  final ValueChanged<String>? onChallengeChanged;
 
   @override
   State<ChallengeView> createState() => _ChallengeViewState();
@@ -16,10 +18,18 @@ class _ChallengeViewState extends State<ChallengeView> {
     'I forget to do them',
     'I lose motivation quickly',
     'I take on too much at once',
-    'I don\'t have a clear plan',
+    "I don't have a clear plan",
   ];
 
   String? selectedChallenge = challengeOptions.first;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onChallengeChanged?.call(selectedChallenge!);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +49,8 @@ class _ChallengeViewState extends State<ChallengeView> {
               selectedValue: selectedChallenge,
               title: option,
               onChanged: (value) {
-                setState(() {
-                  selectedChallenge = value;
-                });
+                setState(() => selectedChallenge = value);
+                widget.onChallengeChanged?.call(value!);
               },
             ),
           ),

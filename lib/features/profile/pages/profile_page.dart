@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_vertical_divider.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
@@ -8,6 +13,25 @@ import 'package:purepath/features/profile/pages/reminders_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  // ── Sign-out dialog ────────────────────────────────────────────────────────
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await AppDialog.show(
+      context,
+      icon: Icons.logout_rounded,
+      iconColor: red,
+      title: 'Sign out?',
+      subtitle: "You'll be logged out and need to sign back in to continue.",
+      confirmText: 'Sign out',
+      confirmColor: red,
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<UserBloc>().add(LogoutRequested());
+      context.go(AppRoute.login.path);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +155,6 @@ class ProfilePage extends StatelessWidget {
           Text(
             "1,660 XP earned • 2,000 XP for Gold",
             style: AppTextStyles.normal.copyWith(fontSize: 12),
-            // style: TextStyle(fontSize: 12),
           ),
         ],
       ),
@@ -140,7 +163,6 @@ class ProfilePage extends StatelessWidget {
 
   /// -------------------------- BADGES SECTION --------------------------
   Widget _badgesSection(BuildContext context) {
-    // Show the first 4 actually-earned badges from the badges page
     final previews = BadgesPage.earnedPreviews();
 
     return Column(
@@ -218,25 +240,41 @@ class ProfilePage extends StatelessWidget {
     return Column(
       children: [
         _settingTile(
+          context: context,
           icon: Icons.notifications_rounded,
           title: "Reminders",
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const RemindersPage())),
         ),
-        _settingTile(icon: Icons.star_rounded, title: "Upgrade to Pro"),
-        _settingTile(icon: Icons.lock_rounded, title: "Privacy & Data"),
-        _settingTile(icon: Icons.people_rounded, title: "Invite Friends"),
         _settingTile(
+          context: context,
+          icon: Icons.star_rounded,
+          title: "Upgrade to Pro",
+        ),
+        _settingTile(
+          context: context,
+          icon: Icons.lock_rounded,
+          title: "Privacy & Data",
+        ),
+        _settingTile(
+          context: context,
+          icon: Icons.people_rounded,
+          title: "Invite Friends",
+        ),
+        _settingTile(
+          context: context,
           icon: Icons.logout_rounded,
           title: "Sign out",
           isDanger: true,
+          onTap: () => _confirmSignOut(context),
         ),
       ],
     );
   }
 
   Widget _settingTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     bool isDanger = false,

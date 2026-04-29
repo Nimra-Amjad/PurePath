@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/widgets/custom_single_selection_widget.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/preferences/widgets/top_title_widget.dart';
 
 class GoalView extends StatefulWidget {
-  const GoalView({super.key});
+  const GoalView({super.key, this.onGoalChanged});
+
+  /// Called whenever the user picks a different goal.
+  /// [PreferencesPage] listens to this to know what to save.
+  final ValueChanged<String>? onGoalChanged;
 
   @override
   State<GoalView> createState() => _GoalViewState();
@@ -20,6 +23,16 @@ class _GoalViewState extends State<GoalView> {
   ];
 
   String? selectedGoal = goalOptions.first;
+
+  @override
+  void initState() {
+    super.initState();
+    // Report the default selection immediately so PreferencesPage has a value
+    // even if the user never taps anything.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onGoalChanged?.call(selectedGoal!);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +52,8 @@ class _GoalViewState extends State<GoalView> {
               selectedValue: selectedGoal,
               title: option,
               onChanged: (value) {
-                setState(() {
-                  selectedGoal = value;
-                });
+                setState(() => selectedGoal = value);
+                widget.onGoalChanged?.call(value!);
               },
             ),
           ),

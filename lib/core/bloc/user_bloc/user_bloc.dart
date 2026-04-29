@@ -1,70 +1,221 @@
-import 'package:bloc/bloc.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:purepath/core/enums/onboarding_enums.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
+import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/features/auth/model/user_model.dart';
 
 part 'user_event.dart';
 part 'user_state.dart';
 
-class UserBloc extends Bloc<UserEvent, UserState> {
-  final FirebaseAuthRepository firebaseAuthRepository;
+// ─────────────────────────────────────────────────────────────────────────────
+// UserBloc
+//
+// Global BLoC — lives at the app root inside DI so any widget can read it via
+// context.read<UserBloc>() or context.watch<UserBloc>().
+//
+// Responsibilities:
+//   • Auth  — login, signup, logout
+//   • Session restore — LoadUser (Splash checks Firebase session)
+//   • Onboarding save — SaveOnboardingData writes goal/challenge to Firestore
+//   • Stream sync — keeps UserProvider in sync with Firebase user changes
+//
+// Pattern mirrors MacroPath's UserBloc.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  UserBloc({required this.firebaseAuthRepository}) : super(UserInitial()) {
-    on<LoginRequested>(_loginRequested);
-    on<SignupRequested>(_signupRequested);
-    on<LogoutRequested>(_logoutRequested);
-    // on<CheckOnboardingUser>(_checkOnboardingUser);
+class UserBloc extends Bloc<UserEvent, UserState> {
+  UserBloc({
+    required this.firebaseAuthRepository,
+    required this.userRepository,
+  }) : super(const UserInitial()) {
+    _handleProviderSubscriptions();
+
+    on<LoginRequested>(_onLoginRequested);
+    on<SignupRequested>(_onSignupRequested);
+    on<LogoutRequested>(_onLogoutRequested);
+    on<LoadUser>(_onLoadUser);
+    on<SaveOnboardingData>(_onSaveOnboardingData);
+    on<_SyncFirebaseUser>(_onSyncFirebaseUser);
+    on<_SyncLocalUser>(_onSyncLocalUser);
   }
 
-  Future<void> _loginRequested(
+  final FirebaseAuthRepository firebaseAuthRepository;
+  final UserRepository userRepository;
+
+  late final StreamSubscription<User?> _firebaseUserSub;
+  late final StreamSubscription<UserModel?> _localUserSub;
+
+  // ── Stream subscriptions ───────────────────────────────────────────────────
+
+  void _handleProviderSubscriptions() {
+    _firebaseUserSub = userRepository.firebaseUserStream.listen(
+      (user) => add(_SyncFirebaseUser(user)),
+    );
+    _localUserSub = userRepository.userModelStream.listen(
+      (user) => add(_SyncLocalUser(user)),
+    );
+  }
+
+  // ── Internal sync handlers ─────────────────────────────────────────────────
+
+  void _onSyncFirebaseUser(_SyncFirebaseUser event, Emitter<UserState> emit) {
+    final current = state;
+    if (current is UserLoaded) {
+      emit(UserLoaded(user: current.user!, firebaseUser: event.user));
+    }
+  }
+
+  void _onSyncLocalUser(_SyncLocalUser event, Emitter<UserState> emit) {
+    if (event.user == null) return;
+    final current = state;
+    if (current is UserLoaded) {
+      emit(UserLoaded(
+        user: event.user!,
+        firebaseUser: current.firebaseUser,
+      ));
+    }
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+
+  Future<void> _onLoginRequested(
     LoginRequested event,
     Emitter<UserState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(const AuthLoading());
     try {
       final user = await firebaseAuthRepository.login(
         email: event.email,
         password: event.password,
       );
-      emit(UserSignedIn(user));
+      final fbUser = firebaseAuthRepository.firebaseUser;
+      userRepository.updateFirebaseUser(fbUser);
+      userRepository.updateLocalUser(user);
+      emit(UserSignedIn(user: user, firebaseUser: fbUser));
     } catch (e) {
       emit(AuthFailure(_mapError(e)));
     }
   }
 
-  Future<void> _signupRequested(
+  Future<void> _onSignupRequested(
     SignupRequested event,
     Emitter<UserState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(const AuthLoading());
     try {
       final user = await firebaseAuthRepository.signup(
         fullName: event.fullName,
         email: event.email,
         password: event.password,
       );
-      emit(UserSignedUp(user));
+      final fbUser = firebaseAuthRepository.firebaseUser;
+      userRepository.updateFirebaseUser(fbUser);
+      userRepository.updateLocalUser(user);
+      emit(UserSignedUp(user: user, firebaseUser: fbUser));
     } catch (e) {
       emit(AuthFailure(_mapError(e)));
     }
   }
 
-  Future<void> _logoutRequested(
+  Future<void> _onLogoutRequested(
     LogoutRequested event,
     Emitter<UserState> emit,
   ) async {
     await firebaseAuthRepository.logout();
-    emit(UserLoggedOut());
+    userRepository.updateLocalUser(null);
+    userRepository.updateFirebaseUser(null);
+    emit(const UserLoggedOut());
   }
+
+  // ── Session restore (Splash) ───────────────────────────────────────────────
+
+  Future<void> _onLoadUser(LoadUser event, Emitter<UserState> emit) async {
+    emit(const AuthLoading());
+    try {
+      final fbUser = event.firebaseUser;
+
+      if (fbUser == null) {
+        emit(const UserNotFound());
+        return;
+      }
+
+      userRepository.updateFirebaseUser(fbUser);
+
+      final userDoc = await userRepository.getUserDocumentByUid();
+      if (userDoc == null) {
+        emit(const UserNotFound());
+        return;
+      }
+
+      userRepository.updateLocalUser(userDoc);
+
+      if (userDoc.onboardingStatus == OnboardingStatus.completed) {
+        emit(UserSessionRestored(user: userDoc, firebaseUser: fbUser));
+      } else {
+        emit(UserOnboardingIncomplete(user: userDoc, firebaseUser: fbUser));
+      }
+    } catch (e) {
+      debugPrint('UserBloc.LoadUser error: $e');
+      emit(const UserNotFound());
+    }
+  }
+
+  // ── Onboarding save ────────────────────────────────────────────────────────
+
+  Future<void> _onSaveOnboardingData(
+    SaveOnboardingData event,
+    Emitter<UserState> emit,
+  ) async {
+    try {
+      final fbUser = userRepository.firebaseUser;
+      final currentUser = userRepository.localUser;
+
+      await userRepository.updateUserDocument({
+        'goal': event.goal,
+        'challenge': event.challenge,
+        'notificationsEnabled': event.notificationsEnabled,
+        'onboardingStatus': OnboardingStatus.completed.toValue(),
+      });
+
+      // Sync the updated model locally so any widget reading the bloc
+      // immediately sees the completed status without a Firestore round-trip.
+      final updatedUser = (currentUser ?? UserModel.empty()).copyWith(
+        onboardingStatus: OnboardingStatus.completed,
+      );
+      userRepository.updateLocalUser(updatedUser);
+
+      emit(OnboardingCompleted(user: updatedUser, firebaseUser: fbUser));
+    } catch (e) {
+      debugPrint('UserBloc.SaveOnboardingData error: $e');
+      // Non-fatal: navigate to welcome anyway; the user shouldn't be blocked.
+      final current = state;
+      if (current is UserLoaded) {
+        emit(OnboardingCompleted(
+          user: current.user!,
+          firebaseUser: current.firebaseUser,
+        ));
+      }
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _mapError(Object e) {
     final msg = e.toString();
     if (msg.contains('user-not-found')) return 'No user found with this email.';
     if (msg.contains('wrong-password')) return 'Incorrect password.';
-    if (msg.contains('email-already-in-use'))
-      return 'Email already registered.';
+    if (msg.contains('email-already-in-use')) return 'Email already registered.';
     if (msg.contains('weak-password')) return 'Password is too weak.';
     return 'Something went wrong. Please try again.';
+  }
+
+  @override
+  Future<void> close() {
+    _firebaseUserSub.cancel();
+    _localUserSub.cancel();
+    return super.close();
   }
 }

@@ -1,13 +1,10 @@
 enum OnboardingStatus {
-  notStarted,
   inProgress,
   completed;
 
   // Convert to string for Firestore
   String toValue() {
     switch (this) {
-      case OnboardingStatus.notStarted:
-        return 'not_started';
       case OnboardingStatus.inProgress:
         return 'in_progress';
       case OnboardingStatus.completed:
@@ -22,9 +19,8 @@ enum OnboardingStatus {
         return OnboardingStatus.inProgress;
       case 'completed':
         return OnboardingStatus.completed;
-      case 'not_started':
       default:
-        return OnboardingStatus.notStarted;
+        return OnboardingStatus.inProgress;
     }
   }
 }

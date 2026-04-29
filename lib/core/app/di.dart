@@ -4,7 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/providers/firebase_auth_provider.dart';
+import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
+import 'package:purepath/core/repositories/user_repository.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DI  (Dependency Injection)
+//
+// Three-layer composition identical to MacroPath:
+//
+//   _ProviderDI   — raw data sources (Firebase SDK wrappers)
+//   _RepositoryDI — business logic + Firestore access
+//   _BlocDI       — global BLoCs that any widget can read
+//
+// Usage:
+//   DI(child: router) — wrap the entire app so every widget has access.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class DI extends StatelessWidget {
   const DI({required this.child, super.key});
@@ -18,6 +33,8 @@ class DI extends StatelessWidget {
     );
   }
 }
+
+// ── Layer 1 — Providers (raw Firebase wrappers) ───────────────────────────────
 
 class _ProviderDI extends StatelessWidget {
   const _ProviderDI({required this.child});
@@ -34,11 +51,17 @@ class _ProviderDI extends StatelessWidget {
             firestore: FirebaseFirestore.instance,
           ),
         ),
+        RepositoryProvider<UserProvider>(
+          create: (_) => UserProvider(),
+          dispose: (p) => p.dispose(),
+        ),
       ],
       child: child,
     );
   }
 }
+
+// ── Layer 2 — Repositories (business logic) ───────────────────────────────────
 
 class _RepositoryDI extends StatelessWidget {
   const _RepositoryDI({required this.child});
@@ -50,8 +73,13 @@ class _RepositoryDI extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<FirebaseAuthRepository>(
-          create: (context) => FirebaseAuthRepository(
-            firebaseAuthProvider: context.read<FirebaseAuthProvider>(),
+          create: (ctx) => FirebaseAuthRepository(
+            firebaseAuthProvider: ctx.read<FirebaseAuthProvider>(),
+          ),
+        ),
+        RepositoryProvider<UserRepository>(
+          create: (ctx) => UserRepository(
+            userProvider: ctx.read<UserProvider>(),
           ),
         ),
       ],
@@ -59,6 +87,8 @@ class _RepositoryDI extends StatelessWidget {
     );
   }
 }
+
+// ── Layer 3 — BLoCs (global state) ───────────────────────────────────────────
 
 class _BlocDI extends StatelessWidget {
   const _BlocDI({required this.child});
@@ -70,8 +100,9 @@ class _BlocDI extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<UserBloc>(
-          create: (context) => UserBloc(
-            firebaseAuthRepository: context.read<FirebaseAuthRepository>(),
+          create: (ctx) => UserBloc(
+            firebaseAuthRepository: ctx.read<FirebaseAuthRepository>(),
+            userRepository: ctx.read<UserRepository>(),
           ),
         ),
       ],

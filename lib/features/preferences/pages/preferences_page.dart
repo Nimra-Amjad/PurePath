@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
+import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
 
 class PreferencesPage extends StatefulWidget {
@@ -20,12 +22,23 @@ class _PreferencesPageState extends State<PreferencesPage> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
 
-  // ── Add/remove steps here only ──────────────────────────────────────────
-  final List<Widget> _steps = const [
-    GoalView(),
-    ChallengeView(),
-    NotificationView(),
-  ];
+  // ── Onboarding selections ─────────────────────────────────────────────────
+  // Initialised with the default (first) option of each view so we always
+  // have a value even if the user never taps anything.
+  String _selectedGoal = '🏃‍♂️ Fitness & Health';
+  String _selectedChallenge = 'I forget to do them';
+
+  // ── Steps ─────────────────────────────────────────────────────────────────
+  // GoalView and ChallengeView get callbacks to bubble selections up here.
+  // NotificationView is stateless — the button itself captures allow/skip.
+
+  List<Widget> get _steps => [
+        GoalView(onGoalChanged: (v) => _selectedGoal = v),
+        ChallengeView(onChallengeChanged: (v) => _selectedChallenge = v),
+        const NotificationView(),
+      ];
+
+  // ── Navigation ────────────────────────────────────────────────────────────
 
   void _next() {
     if (_currentStep < _steps.length - 1) {
@@ -33,9 +46,19 @@ class _PreferencesPageState extends State<PreferencesPage> {
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
       );
-    } else {
-      context.push(AppRoute.welcome.path);
     }
+  }
+
+  void _finish({required bool notificationsEnabled}) {
+    // Fire-and-forget: BLoC saves to Firestore in background while we navigate.
+    context.read<UserBloc>().add(
+          SaveOnboardingData(
+            goal: _selectedGoal,
+            challenge: _selectedChallenge,
+            notificationsEnabled: notificationsEnabled,
+          ),
+        );
+    context.push(AppRoute.welcome.path);
   }
 
   void _back() {
@@ -55,17 +78,20 @@ class _PreferencesPageState extends State<PreferencesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final steps = _steps; // evaluated once per build
+
     return Scaffold(
       backgroundColor: kWhiteColor,
       body: SafeArea(
         child: Column(
           children: [
+            // ── Header bar (back + progress) ─────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   _currentStep == 0
-                      ? SizedBox(width: 40, height: 40)
+                      ? const SizedBox(width: 40, height: 40)
                       : GestureDetector(
                           onTap: _back,
                           child: Container(
@@ -97,13 +123,13 @@ class _PreferencesPageState extends State<PreferencesPage> {
                       borderRadius: BorderRadius.circular(4),
                       child: TweenAnimationBuilder<double>(
                         tween: Tween<double>(
-                          end: _steps.length > 1
-                              ? _currentStep / (_steps.length - 1)
+                          end: steps.length > 1
+                              ? _currentStep / (steps.length - 1)
                               : 0,
                         ),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
-                        builder: (context, value, child) {
+                        builder: (context, value, _) {
                           return SizedBox(
                             height: 6,
                             child: Stack(
@@ -128,30 +154,31 @@ class _PreferencesPageState extends State<PreferencesPage> {
                     ),
                   ),
                   Space.horizontal(16),
-                  Icon(Icons.abc, color: kTransparentColor),
+                  const Icon(Icons.abc, color: kTransparentColor),
                 ],
               ),
             ),
 
+            // ── Page content ──────────────────────────────────────────────
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentStep = i),
-                itemCount: _steps.length,
+                itemCount: steps.length,
                 itemBuilder: (context, index) {
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 24,
                     ),
-                    child: _steps[index],
+                    child: steps[index],
                   );
                 },
               ),
             ),
 
-            // ── BOTTOM BAR (fixed) ────────────────────────────────────────
+            // ── Bottom action bar ─────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
@@ -159,13 +186,15 @@ class _PreferencesPageState extends State<PreferencesPage> {
                 children: [
                   PrimaryButton(
                     text: _currentStep == 2 ? 'Allow notifications' : 'Next',
-                    onPressed: _next,
+                    onPressed: _currentStep == 2
+                        ? () => _finish(notificationsEnabled: true)
+                        : _next,
                   ),
                   if (_currentStep == 2) ...[
                     Space.vertical(10),
                     PrimaryButton(
-                      text: "Skip for now",
-                      onPressed: _next,
+                      text: 'Skip for now',
+                      onPressed: () => _finish(notificationsEnabled: false),
                       showBorder: true,
                       buttonColor: kWhiteColor,
                       borderColor: kPrimaryColor,

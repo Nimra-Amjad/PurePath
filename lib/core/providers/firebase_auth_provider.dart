@@ -43,7 +43,7 @@ class FirebaseAuthProvider {
       uid: credential.user!.uid,
       email: email,
       fullName: fullName,
-      onboardingStatus: OnboardingStatus.notStarted,
+      onboardingStatus: OnboardingStatus.inProgress,
       password: password,
     );
 
