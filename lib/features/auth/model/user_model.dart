@@ -3,22 +3,16 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:purepath/core/enums/onboarding_enums.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// UserModel
+//
+// Single model for everything stored in the Firestore `users` collection.
+// Preferences (goal, challenge, notificationsEnabled) are embedded here so
+// one document round-trip gives the complete user picture.
+// ─────────────────────────────────────────────────────────────────────────────
+
 @immutable
 class UserModel {
-  final String fullName;
-  final String uid;
-  final OnboardingStatus onboardingStatus; // ← changed from String to enum
-  final String email;
-  final String password;
-  final String? fcmToken;
-  final String? imgUrl;
-  final bool isStreakLocked;
-  final DateTime? lastLoggedDate;
-  final DateTime? freezedDate;
-  final bool isNotificationOn;
-  final int streakCount;
-  final String stripeSubscriptionId;
-
   const UserModel({
     required this.fullName,
     required this.uid,
@@ -27,28 +21,65 @@ class UserModel {
     required this.password,
     this.fcmToken,
     this.imgUrl,
-    this.isStreakLocked = false,
-    this.isNotificationOn = true,
-    this.lastLoggedDate,
-    this.freezedDate,
     this.streakCount = 0,
     this.stripeSubscriptionId = '',
+    // ── Preferences ─────────────────────────────────────────────────────────
+    this.goal,
+    this.challenge,
+    this.notificationsEnabled = false,
   });
+
+  // ── Core identity ──────────────────────────────────────────────────────────
+  final String fullName;
+  final String uid;
+  final OnboardingStatus onboardingStatus;
+  final String email;
+  final String password;
+  final String? fcmToken;
+  final String? imgUrl;
+  final int streakCount;
+  final String stripeSubscriptionId;
+
+  // ── Preferences (filled during onboarding) ─────────────────────────────────
+  final String? goal;
+  final String? challenge;
+  final bool notificationsEnabled;
+
+  // ── Convenience getters ────────────────────────────────────────────────────
+
+  bool get hasCompletedOnboarding =>
+      onboardingStatus == OnboardingStatus.completed;
+
+  bool get isOnboardingInProgress =>
+      onboardingStatus == OnboardingStatus.inProgress;
+
+  String get firstName {
+    final i = fullName.indexOf(' ');
+    return i != -1 ? fullName.substring(0, i) : fullName;
+  }
+
+  String get lastName {
+    final i = fullName.indexOf(' ');
+    return (i != -1 && i + 1 < fullName.length)
+        ? fullName.substring(i + 1)
+        : '';
+  }
+
+  // ── copyWith ───────────────────────────────────────────────────────────────
 
   UserModel copyWith({
     String? fullName,
     String? uid,
-    OnboardingStatus? onboardingStatus, // ← enum
+    OnboardingStatus? onboardingStatus,
     String? email,
     String? password,
     String? fcmToken,
     String? imgUrl,
-    bool? isStreakLocked,
-    bool? isNotificationOn,
-    DateTime? lastLoggedDate,
-    DateTime? freezedDate,
     int? streakCount,
     String? stripeSubscriptionId,
+    String? goal,
+    String? challenge,
+    bool? notificationsEnabled,
   }) {
     return UserModel(
       fullName: fullName ?? this.fullName,
@@ -58,71 +89,49 @@ class UserModel {
       password: password ?? this.password,
       fcmToken: fcmToken ?? this.fcmToken,
       imgUrl: imgUrl ?? this.imgUrl,
-      isStreakLocked: isStreakLocked ?? this.isStreakLocked,
-      isNotificationOn: isNotificationOn ?? this.isNotificationOn,
-      lastLoggedDate: lastLoggedDate ?? this.lastLoggedDate,
-      freezedDate: freezedDate ?? this.freezedDate,
       streakCount: streakCount ?? this.streakCount,
       stripeSubscriptionId: stripeSubscriptionId ?? this.stripeSubscriptionId,
+      goal: goal ?? this.goal,
+      challenge: challenge ?? this.challenge,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 
+  // ── Serialisation ──────────────────────────────────────────────────────────
+
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
+    return {
       'fullName': fullName,
       'uid': uid,
-      'onboardingStatus': onboardingStatus.toValue(), // ← saves as string
+      'onboardingStatus': onboardingStatus.toValue(),
       'email': email,
       'password': password,
       'fcmToken': fcmToken,
       'imgUrl': imgUrl,
-      'isStreakLocked': isStreakLocked,
-      'isNotificationOn': isNotificationOn,
-      'lastLoggedDate': lastLoggedDate?.toIso8601String(),
-      'freezedDate': freezedDate?.toIso8601String(),
       'streakCount': streakCount,
       'subscriptionId': stripeSubscriptionId,
+      'goal': goal,
+      'challenge': challenge,
+      'notificationsEnabled': notificationsEnabled,
     };
   }
 
-  factory UserModel.empty() => UserModel(
-    fullName: '',
-    uid: '',
-    onboardingStatus: OnboardingStatus.inProgress, // ← default
-    email: '',
-    password: '',
-    fcmToken: '',
-    imgUrl: null,
-    isStreakLocked: false,
-    isNotificationOn: true,
-    lastLoggedDate: null,
-    freezedDate: null,
-    streakCount: 0,
-    stripeSubscriptionId: '',
-  );
-
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      fullName: map['fullName'] as String,
-      uid: map['uid'] as String,
+      fullName: map['fullName'] as String? ?? '',
+      uid: map['uid'] as String? ?? '',
       onboardingStatus: OnboardingStatus.fromValue(
-        // ← parses from string
-        map['onboardingStatus'] as String? ?? 'not_started',
+        map['onboardingStatus'] as String? ?? 'in_progress',
       ),
-      email: map['email'] as String,
+      email: map['email'] as String? ?? '',
       password: map['password'] as String? ?? '',
-      fcmToken: map['fcmToken'] as String? ?? '',
+      fcmToken: map['fcmToken'] as String?,
       imgUrl: map['imgUrl'] as String?,
-      isStreakLocked: map['isStreakLocked'] as bool? ?? false,
-      isNotificationOn: map['isNotificationOn'] as bool? ?? true,
-      lastLoggedDate: map['lastLoggedDate'] != null
-          ? DateTime.parse(map['lastLoggedDate'] as String)
-          : null,
-      freezedDate: map['freezedDate'] != null
-          ? DateTime.parse(map['freezedDate'] as String)
-          : null,
       streakCount: map['streakCount'] as int? ?? 0,
       stripeSubscriptionId: map['subscriptionId'] as String? ?? '',
+      goal: map['goal'] as String?,
+      challenge: map['challenge'] as String?,
+      notificationsEnabled: map['notificationsEnabled'] as bool? ?? false,
     );
   }
 
@@ -131,23 +140,21 @@ class UserModel {
   factory UserModel.fromJson(String source) =>
       UserModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
-  // ── Convenience getters ──────────────────────────────────────────────────
+  // ── Factories ──────────────────────────────────────────────────────────────
 
-  bool get hasCompletedOnboarding =>
-      onboardingStatus == OnboardingStatus.completed;
+  factory UserModel.empty() => UserModel(
+        fullName: '',
+        uid: '',
+        onboardingStatus: OnboardingStatus.inProgress,
+        email: '',
+        password: '',
+      );
 
-  bool get isOnboardingInProgress =>
-      onboardingStatus == OnboardingStatus.inProgress;
-
-  @override
-  String toString() {
-    return 'UserModel(fullName: $fullName, uid: $uid, onboardingStatus: ${onboardingStatus.toValue()}, email: $email, password: $password, fcmToken: $fcmToken, imgUrl: $imgUrl, isStreakLocked: $isStreakLocked, isNotificationOn: $isNotificationOn, lastLoggedDate: $lastLoggedDate, freezedDate: $freezedDate, streakCount: $streakCount)';
-  }
+  // ── Equality ───────────────────────────────────────────────────────────────
 
   @override
   bool operator ==(covariant UserModel other) {
     if (identical(this, other)) return true;
-
     return other.fullName == fullName &&
         other.uid == uid &&
         other.onboardingStatus == onboardingStatus &&
@@ -155,11 +162,11 @@ class UserModel {
         other.password == password &&
         other.fcmToken == fcmToken &&
         other.imgUrl == imgUrl &&
-        other.isStreakLocked == isStreakLocked &&
-        other.isNotificationOn == isNotificationOn &&
-        other.lastLoggedDate == lastLoggedDate &&
-        other.freezedDate == freezedDate &&
-        other.streakCount == streakCount;
+        other.streakCount == streakCount &&
+        other.stripeSubscriptionId == stripeSubscriptionId &&
+        other.goal == goal &&
+        other.challenge == challenge &&
+        other.notificationsEnabled == notificationsEnabled;
   }
 
   @override
@@ -171,22 +178,22 @@ class UserModel {
         password.hashCode ^
         (fcmToken?.hashCode ?? 0) ^
         (imgUrl?.hashCode ?? 0) ^
-        isStreakLocked.hashCode ^
-        isNotificationOn.hashCode ^
-        (lastLoggedDate?.hashCode ?? 0) ^
-        (freezedDate?.hashCode ?? 0) ^
-        streakCount.hashCode;
+        streakCount.hashCode ^
+        stripeSubscriptionId.hashCode ^
+        (goal?.hashCode ?? 0) ^
+        (challenge?.hashCode ?? 0) ^
+        notificationsEnabled.hashCode;
   }
 
-  String get firstName {
-    final index = fullName.indexOf(' ');
-    return index != -1 ? fullName.substring(0, index) : fullName;
-  }
-
-  String get lastName {
-    final index = fullName.indexOf(' ');
-    return (index != -1 && index + 1 < fullName.length)
-        ? fullName.substring(index + 1)
-        : '';
-  }
+  @override
+  String toString() => 'UserModel('
+      'fullName: $fullName, '
+      'uid: $uid, '
+      'onboardingStatus: ${onboardingStatus.toValue()}, '
+      'email: $email, '
+      'goal: $goal, '
+      'challenge: $challenge, '
+      'notificationsEnabled: $notificationsEnabled, '
+      'streakCount: $streakCount'
+      ')';
 }
