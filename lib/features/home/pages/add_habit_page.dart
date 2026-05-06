@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
+import 'package:purepath/features/home/bloc/home_bloc.dart';
+import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
+import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
+import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Habit Page
@@ -42,9 +49,22 @@ class _AddHabitPageState extends State<AddHabitPage> {
   bool _isDaily = true;
   final Set<int> _selectedWeekDays = {}; // 0 = Mon … 6 = Sun
 
+  // Defaults: start = today, end = open-ended (null).
+  late DateTime _startDate = _today();
+  DateTime? _endDate;
+
   // ── Validation error flags (for non-FormField widgets) ────────────────────
   bool _categoryError = false;
   bool _weekDayError = false;
+  bool _dateRangeError = false;
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  // ── Submission state ───────────────────────────────────────────────────────
+  bool _isSubmitting = false;
 
   // ── Static data ────────────────────────────────────────────────────────────
 
@@ -73,37 +93,60 @@ class _AddHabitPageState extends State<AddHabitPage> {
 
   // ── Submit & validation ────────────────────────────────────────────────────
 
-  void _onCreateTapped() {
+  Future<void> _onCreateTapped() async {
+    if (_isSubmitting) return;
+
     // Validate custom selections (not covered by FormField validators)
     setState(() {
       _categoryError = _selectedCategory == null;
       _weekDayError = !_isDaily && _selectedWeekDays.isEmpty;
+      _dateRangeError =
+          _endDate != null && _endDate!.isBefore(_startDate);
     });
 
     final formValid = _formKey.currentState!.validate();
-    final selectionsValid = !_categoryError && !_weekDayError;
+    final selectionsValid =
+        !_categoryError && !_weekDayError && !_dateRangeError;
 
     if (!formValid || !selectionsValid) return;
 
-    // ── All valid ──────────────────────────────────────────────────────────
-    // TODO: dispatch a CreateHabit event to your BLoC here, e.g.:
-    //   context.read<HabitBloc>().add(CreateHabitRequested(
-    //     name:      _nameController.text.trim(),
-    //     category:  _selectedCategory!,
-    //     isDaily:   _isDaily,
-    //     weekDays:  _selectedWeekDays.toList(),
-    //     goal:      _goalController.text.trim(),
-    //     reminder:  _reminderController.text.trim(),
-    //   ));
+    final weekDays = _isDaily
+        ? const <int>[]
+        : (_selectedWeekDays.toList()..sort());
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Habit created successfully!'),
-        backgroundColor: purple,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+    final newHabit = HabitDefinition(
+      // id is ignored by the repository; Firestore generates a unique one.
+      id: '',
+      title: _nameController.text.trim(),
+      category: _selectedCategory!,
+      isDaily: _isDaily,
+      weekDays: weekDays,
+      goal: _goalController.text.trim(),
+      reminderTime: _reminderController.text.trim(),
+      startDate: _startDate,
+      endDate: _endDate,
     );
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await context.read<HomeRepository>().addHabit(newHabit);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      AppSnackBar.error(context, 'Could not create habit. Please try again.');
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Refresh home + manage + insights so the new habit shows up under
+    // each day immediately on every screen.
+    context.read<HomeBloc>().add(HomeStarted());
+    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
+    context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    AppSnackBar.success(context, 'Habit created successfully!');
     Navigator.of(context).pop();
   }
 
@@ -144,6 +187,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
               _buildCategorySection(),
               const SizedBox(height: 28),
               _buildFrequencySection(),
+              const SizedBox(height: 28),
+              _buildDateRangeSection(),
               const SizedBox(height: 28),
               _buildGoalReminderSection(),
               const SizedBox(height: 36),
@@ -382,6 +427,90 @@ class _AddHabitPageState extends State<AddHabitPage> {
     );
   }
 
+  // ── Section: Date range ────────────────────────────────────────────────────
+  //
+  // Start date defaults to today. End date is optional (open-ended habit).
+  // The habit is only shown on dates inside [startDate, endDate].
+
+  Widget _buildDateRangeSection() {
+    return _Section(
+      label: 'DATE RANGE',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _DateField(
+                  label: 'Start',
+                  date: _startDate,
+                  onTap: () async {
+                    final picked = await _pickDate(
+                      initial: _startDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _startDate = picked;
+                        _dateRangeError = false;
+                      });
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DateField(
+                  label: 'End (optional)',
+                  date: _endDate,
+                  hint: 'No end date',
+                  onTap: () async {
+                    final picked = await _pickDate(
+                      initial: _endDate ?? _startDate,
+                      firstDate: _startDate,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _endDate = picked;
+                        _dateRangeError = false;
+                      });
+                    }
+                  },
+                  onClear: _endDate == null
+                      ? null
+                      : () => setState(() => _endDate = null),
+                ),
+              ),
+            ],
+          ),
+          if (_dateRangeError) ...[
+            const SizedBox(height: 6),
+            const _ErrorLabel('End date must be on or after start date'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<DateTime?> _pickDate({
+    required DateTime initial,
+    required DateTime firstDate,
+  }) async {
+    return showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: firstDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: purple),
+        ),
+        child: child!,
+      ),
+    );
+  }
+
   // ── Section: Goal & Reminder ───────────────────────────────────────────────
 
   Widget _buildGoalReminderSection() {
@@ -425,29 +554,40 @@ class _AddHabitPageState extends State<AddHabitPage> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: _onCreateTapped,
+        onPressed: _isSubmitting ? null : _onCreateTapped,
         style: ElevatedButton.styleFrom(
           backgroundColor: purple,
           foregroundColor: kWhiteColor,
+          disabledBackgroundColor: purple.withValues(alpha: 0.6),
+          disabledForegroundColor: kWhiteColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Create Habit',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 16,
-                color: kWhiteColor,
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: kWhiteColor,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Create Habit',
+                    style: AppTextStyles.semiBold.copyWith(
+                      fontSize: 16,
+                      color: kWhiteColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 20),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward_rounded, size: 20),
-          ],
-        ),
       ),
     );
   }
@@ -495,6 +635,89 @@ class _ErrorLabel extends StatelessWidget {
     return Text(
       text,
       style: AppTextStyles.normal.copyWith(fontSize: 12, color: kRedColor),
+    );
+  }
+}
+
+/// Tappable read-only field that opens a date picker.
+/// Optionally renders a small clear button when [onClear] is provided.
+class _DateField extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final String hint;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  const _DateField({
+    required this.label,
+    required this.date,
+    required this.onTap,
+    this.hint = 'Pick a date',
+    this.onClear,
+  });
+
+  String _format(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = date != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: kWhiteColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kGreyColor.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.medium.copyWith(
+                fontSize: 11,
+                color: kDarkGreyColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? _format(date!) : hint,
+                    style: AppTextStyles.medium.copyWith(
+                      fontSize: 13,
+                      color: hasValue ? kBlackColor : kGreyColor,
+                    ),
+                  ),
+                ),
+                if (onClear != null && hasValue)
+                  GestureDetector(
+                    onTap: onClear,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: kGreyColor,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: kGreyColor,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

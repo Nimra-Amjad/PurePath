@@ -5,48 +5,33 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
-import 'package:purepath/features/home/repositories/dummy_home_repository.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
+import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Home page
 //
-// Entry point for the home tab. Its only job:
-//   1. Create and provide the [HomeBloc] (scoped to this screen)
-//   2. Trigger [HomeStarted] to kick off the initial data load
-//
-// All UI lives in [_HomeView] below.
-//
-// TO CONNECT FIRESTORE:
-//   Replace DummyHomeRepository() with FirestoreHomeRepository()
-//   inside the BlocProvider.create — nothing else changes.
+// Reads from the global [HomeBloc] (registered in DI) and dispatches
+// [HomeStarted] in initState so the latest habits are fetched every time
+// the home tab is mounted (e.g. after login or after creating a habit).
 // ─────────────────────────────────────────────────────────────────────────────
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => HomeBloc(repository: DummyHomeRepository())
-        ..add(HomeStarted()),
-      child: const _HomeView(),
-    );
-  }
+  State<HomePage> createState() => _HomePageState();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Home view
-//
-// Reads HomeState via BlocBuilder and passes data down to dumb widgets.
-// Contains no business logic — only layout decisions.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _HomeView extends StatelessWidget {
-  const _HomeView();
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<HomeBloc>().add(HomeStarted());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +47,6 @@ class _HomeView extends StatelessWidget {
               Space.vertical(20),
 
               // ── Weekly calendar ───────────────────────────────────────────
-              // The calendar is a pure UI widget.
-              // It fires callbacks; we forward them to the BLoC as events.
               TrainingCalendar(
                 weekData: state.weekData,
                 selectedDate: state.selectedDate,
@@ -79,7 +62,6 @@ class _HomeView extends StatelessWidget {
               Space.vertical(20),
 
               // ── Content below calendar ────────────────────────────────────
-              // Shows loading indicator, error, or the selected day's data.
               _buildContent(context, state),
 
               Space.vertical(24),
@@ -96,7 +78,9 @@ class _HomeView extends StatelessWidget {
         return const _LoadingView();
 
       case HomeStatus.error:
-        return _ErrorView(message: state.errorMessage ?? 'Something went wrong');
+        return _ErrorView(
+          message: state.errorMessage ?? 'Something went wrong',
+        );
 
       case HomeStatus.loaded:
         final summary = state.selectedDaySummary;
@@ -144,14 +128,22 @@ class _HomeView extends StatelessWidget {
             Space.vertical(12),
 
             // ── Habit tiles ─────────────────────────────────────────────
-            ...summary.habits.map(
-              (habit) => HabitTileWidget(
-                habit: habit,
-                onTap: () => context.read<HomeBloc>().add(
-                  HabitToggled(habit.id),
+            if (summary.habits.isEmpty)
+              const _EmptyHabitsView()
+            else
+              ...summary.habits.map(
+                (habit) => HabitTileWidget(
+                  habit: habit,
+                  onTap: () {
+                    context.read<HomeBloc>().add(HabitToggled(habit.id));
+                    // Keep insights in sync — its weekly stats depend on
+                    // the same completion record we just toggled.
+                    context
+                        .read<InsightsBloc>()
+                        .add(InsightsRefreshRequested());
+                  },
                 ),
               ),
-            ),
           ],
         );
     }
@@ -171,6 +163,46 @@ class _LoadingView extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
         child: CircularProgressIndicator(color: purple),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty habits view — shown when the user hasn't created any habits yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EmptyHabitsView extends StatelessWidget {
+  const _EmptyHabitsView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        color: kWhiteColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGreyColor.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        children: [
+          const Text('🌱', style: TextStyle(fontSize: 32)),
+          Space.vertical(10),
+          Text(
+            'No habits yet',
+            style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+          ),
+          Space.vertical(6),
+          Text(
+            'Tap the + button to create your first habit.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.normal.copyWith(
+              fontSize: 13,
+              color: kDarkGreyColor,
+            ),
+          ),
+        ],
       ),
     );
   }

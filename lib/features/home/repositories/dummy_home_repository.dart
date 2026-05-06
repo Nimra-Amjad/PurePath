@@ -22,42 +22,51 @@ class DummyHomeRepository implements HomeRepository {
   // Static → one copy for the entire app session.
   // Mutable → CRUD operations work immediately without a real database.
 
+  static final DateTime _seedDate = _dateOnly(
+    DateTime.now().subtract(const Duration(days: 365)),
+  );
+
   static final List<HabitDefinition> _habits = [
-    const HabitDefinition(
+    HabitDefinition(
       id: 'h1',
       title: 'Morning Run',
       category: HabitCategory.fitness,
       isDaily: true,
       goal: '5 km',
+      startDate: _seedDate,
     ),
-    const HabitDefinition(
+    HabitDefinition(
       id: 'h2',
       title: 'Drink 2L Water',
       category: HabitCategory.hydration,
       isDaily: true,
       goal: '2L',
+      startDate: _seedDate,
     ),
-    const HabitDefinition(
+    HabitDefinition(
       id: 'h3',
       title: 'Mindfulness',
       category: HabitCategory.mindfulness,
       isDaily: true,
       goal: '10 min',
+      startDate: _seedDate,
     ),
-    const HabitDefinition(
+    HabitDefinition(
       id: 'h4',
       title: 'Read 20 Pages',
       category: HabitCategory.learning,
       isDaily: false,
-      weekDays: [0, 1, 2, 3, 4], // Mon – Fri
+      weekDays: const [0, 1, 2, 3, 4], // Mon – Fri
       goal: '20 pages',
+      startDate: _seedDate,
     ),
-    const HabitDefinition(
+    HabitDefinition(
       id: 'h5',
       title: 'Sleep 8 Hours',
       category: HabitCategory.sleep,
       isDaily: true,
       goal: '8 hrs',
+      startDate: _seedDate,
     ),
   ];
 
@@ -89,21 +98,24 @@ class DummyHomeRepository implements HomeRepository {
       final date = _dateOnly(weekStart.add(Duration(days: dayIndex)));
       final isFuture = date.isAfter(today);
 
-      final habitsForDay = _habits.map((definition) {
-        // Future dates always show 0 progress.
-        final pattern = _weeklyProgress[definition.id];
-        final progress =
-            (isFuture || pattern == null) ? 0.0 : pattern[dayIndex];
+      final habitsForDay = _habits
+          .where((definition) => definition.isActiveOn(date))
+          .map((definition) {
+            // Future dates always show 0 progress.
+            final pattern = _runtimeProgress[definition.id];
+            final progress =
+                (isFuture || pattern == null) ? 0.0 : pattern[dayIndex];
 
-        return HabitModel(
-          id: definition.id,
-          title: definition.title,
-          subtitle: definition.subtitle,
-          category: definition.category,
-          isDaily: definition.isDaily,
-          progress: progress,
-        );
-      }).toList();
+            return HabitModel(
+              id: definition.id,
+              title: definition.title,
+              subtitle: definition.subtitle,
+              category: definition.category,
+              isDaily: definition.isDaily,
+              progress: progress,
+            );
+          })
+          .toList();
 
       result[date] = DaySummary(date: date, habits: habitsForDay);
     }
@@ -119,6 +131,13 @@ class DummyHomeRepository implements HomeRepository {
   }
 
   @override
+  Future<void> addHabit(HabitDefinition definition) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final newId = 'h${DateTime.now().microsecondsSinceEpoch}';
+    _habits.add(definition.copyWith(id: newId));
+  }
+
+  @override
   Future<void> deleteHabit(String id) async {
     await Future.delayed(const Duration(milliseconds: 100));
     _habits.removeWhere((h) => h.id == id);
@@ -131,7 +150,28 @@ class DummyHomeRepository implements HomeRepository {
     if (index != -1) _habits[index] = definition;
   }
 
+  @override
+  Future<void> setHabitProgress({
+    required String habitId,
+    required DateTime date,
+    required double progress,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 50));
+    final pattern = _runtimeProgress[habitId];
+    if (pattern == null) return;
+    final dayIndex = date.weekday - 1; // 0 = Mon … 6 = Sun
+    if (dayIndex < 0 || dayIndex > 6) return;
+    pattern[dayIndex] = progress;
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /// Mutable copy of [_weeklyProgress] so the dummy repo can persist toggles
+  /// in-memory across the session.
+  static final Map<String, List<double>> _runtimeProgress = {
+    for (final entry in _weeklyProgress.entries)
+      entry.key: List<double>.from(entry.value),
+  };
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 }

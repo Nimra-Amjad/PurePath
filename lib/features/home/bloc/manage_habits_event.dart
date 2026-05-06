@@ -9,6 +9,12 @@ sealed class ManageHabitsEvent {}
 /// Triggered once when the manage-habits screen opens.
 final class ManageHabitsStarted extends ManageHabitsEvent {}
 
+/// Triggered when the user creates a new habit on the add-habit screen.
+final class ManageHabitAddRequested extends ManageHabitsEvent {
+  final HabitDefinition definition;
+  ManageHabitAddRequested(this.definition);
+}
+
 /// Triggered when the user confirms deletion of a habit.
 final class ManageHabitDeleteRequested extends ManageHabitsEvent {
   final String habitId;

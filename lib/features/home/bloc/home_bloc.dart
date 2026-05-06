@@ -106,16 +106,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   /// Called when the user taps a habit tile.
   ///
   /// Toggles the habit's progress between 1.0 (done) and 0.0 (not done),
-  /// then writes the updated [DaySummary] back into [weekData].
-  ///
-  /// Because [weekData] is the single source of truth, both the calendar arc
-  /// and the daily progress card automatically reflect the new values —
-  /// no extra wiring needed.
-  void _onHabitToggled(HabitToggled event, Emitter<HomeState> emit) {
+  /// writes the updated [DaySummary] back into [weekData] optimistically,
+  /// and persists the new value via the repository so the insights screen
+  /// (and a future app launch) sees the same result.
+  Future<void> _onHabitToggled(
+    HabitToggled event,
+    Emitter<HomeState> emit,
+  ) async {
     final summary = state.selectedDaySummary;
     if (summary == null) return;
 
+    final target = summary.habits.where((h) => h.id == event.habitId);
+    if (target.isEmpty) return;
+
     // Toggle: completed → 0.0 (undo), incomplete → 1.0 (mark done).
+    final newProgress = target.first.isCompleted ? 0.0 : 1.0;
+
     final updatedHabits = summary.habits.map((habit) {
       if (habit.id != event.habitId) return habit;
       return HabitModel(
@@ -124,7 +130,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         subtitle: habit.subtitle,
         category: habit.category,
         isDaily: habit.isDaily,
-        progress: habit.isCompleted ? 0.0 : 1.0,
+        progress: newProgress,
       );
     }).toList();
 
@@ -133,11 +139,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       habits: updatedHabits,
     );
 
+    // Optimistic UI update — no waiting for the network.
     emit(
       state.copyWith(
         weekData: {...state.weekData, state.selectedDate: updatedSummary},
       ),
     );
+
+    try {
+      await _repository.setHabitProgress(
+        habitId: event.habitId,
+        date: state.selectedDate,
+        progress: newProgress,
+      );
+    } catch (_) {
+      // Non-fatal: the optimistic update stays in place. The user can re-tap
+      // to retry if the network was offline.
+    }
   }
 
   // ── Cache helpers ─────────────────────────────────────────────────────────

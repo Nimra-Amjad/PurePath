@@ -18,3 +18,8 @@ final class InsightsWeekChanged extends InsightsEvent {
   final DateTime weekStart;
   InsightsWeekChanged(this.weekStart);
 }
+
+/// Triggered after an action elsewhere (e.g. toggling a habit on the home
+/// page or editing a habit on the manage screen) so the insights cache
+/// is re-fetched and stays consistent with home.
+final class InsightsRefreshRequested extends InsightsEvent {}

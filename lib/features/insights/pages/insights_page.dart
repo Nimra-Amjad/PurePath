@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/home/repositories/dummy_home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/insights/widgets/bar_chat_widget.dart';
 import 'package:purepath/features/insights/widgets/barchart_calendar_widget.dart';
@@ -12,26 +11,28 @@ import 'package:purepath/features/insights/widgets/progress_widget.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Insights page
 //
-// Entry point for the Insights tab.
-// Creates [InsightsBloc] scoped to this screen and fires [InsightsStarted]
-// immediately so data loads as soon as the tab is opened.
-//
-// SWAP GUIDE: Replace DummyHomeRepository() with FirestoreHomeRepository()
-// in the BlocProvider below — nothing else needs to change.
+// Reads from the global [InsightsBloc] (registered in DI) so toggles made on
+// the home screen and habit edits made on the manage screen flow into the
+// same instance. [InsightsStarted] is dispatched in initState so the latest
+// data is fetched whenever the tab is mounted.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class InsightsPage extends StatelessWidget {
+class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          InsightsBloc(repository: DummyHomeRepository())
-            ..add(InsightsStarted()),
-      child: const _InsightsView(),
-    );
+  State<InsightsPage> createState() => _InsightsPageState();
+}
+
+class _InsightsPageState extends State<InsightsPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<InsightsBloc>().add(InsightsStarted());
   }
+
+  @override
+  Widget build(BuildContext context) => const _InsightsView();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

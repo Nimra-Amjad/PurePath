@@ -2,39 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/edit_habit_page.dart';
-import 'package:purepath/features/home/repositories/dummy_home_repository.dart';
+import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
+import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Manage habits page
 //
-// Shows the complete list of habits the user has created.
-// Each tile has Edit and Delete actions.
-//
-// Edit  → opens EditHabitPage via Navigator.push, sharing ManageHabitsBloc
-//         via BlocProvider.value so the edit form can dispatch directly.
-// Delete → shows a confirmation dialog before dispatching.
-//
-// SWAP GUIDE: Replace DummyHomeRepository() with FirestoreHomeRepository()
-// in the BlocProvider below — nothing else needs to change.
+// Reads from the global [ManageHabitsBloc] (registered in DI) and dispatches
+// [ManageHabitsStarted] in initState so the latest list is fetched every
+// time the page is opened.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ManageHabitsPage extends StatelessWidget {
+class ManageHabitsPage extends StatefulWidget {
   const ManageHabitsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          ManageHabitsBloc(repository: DummyHomeRepository())
-            ..add(ManageHabitsStarted()),
-      child: const _ManageHabitsView(),
-    );
+  State<ManageHabitsPage> createState() => _ManageHabitsPageState();
+}
+
+class _ManageHabitsPageState extends State<ManageHabitsPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
   }
+
+  @override
+  Widget build(BuildContext context) => const _ManageHabitsView();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,11 +118,27 @@ class _LoadedView extends StatelessWidget {
       builder: (_) => _DeleteConfirmDialog(habitTitle: habit.title),
     );
 
-    if (confirmed == true && context.mounted) {
-      context.read<ManageHabitsBloc>().add(
-        ManageHabitDeleteRequested(habit.id),
-      );
+    if (confirmed != true || !context.mounted) return;
+
+    // Delete via the repository directly so we can sequence the refreshes
+    // *after* the write completes (avoids racing the cached fetches below).
+    try {
+      await context.read<HomeRepository>().deleteHabit(habit.id);
+    } catch (_) {
+      if (!context.mounted) return;
+      AppSnackBar.error(context, 'Could not delete habit. Please try again.');
+      return; // Tile stays visible; the user can try again.
     }
+
+    if (!context.mounted) return;
+
+    // Refresh manage + home + insights so the deleted habit disappears
+    // from the calendar, daily card, and weekly progress immediately.
+    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
+    context.read<HomeBloc>().add(HomeStarted());
+    context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    AppSnackBar.success(context, 'Habit deleted successfully!');
   }
 
   @override

@@ -7,6 +7,11 @@ import 'package:purepath/core/providers/firebase_auth_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
+import 'package:purepath/features/home/bloc/home_bloc.dart';
+import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
+import 'package:purepath/features/home/repositories/firestore_home_repository.dart';
+import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DI  (Dependency Injection)
@@ -82,6 +87,9 @@ class _RepositoryDI extends StatelessWidget {
             userProvider: ctx.read<UserProvider>(),
           ),
         ),
+        RepositoryProvider<HomeRepository>(
+          create: (_) => FirestoreHomeRepository(),
+        ),
       ],
       child: child,
     );
@@ -104,6 +112,17 @@ class _BlocDI extends StatelessWidget {
             firebaseAuthRepository: ctx.read<FirebaseAuthRepository>(),
             userRepository: ctx.read<UserRepository>(),
           ),
+        ),
+        BlocProvider<HomeBloc>(
+          create: (ctx) => HomeBloc(repository: ctx.read<HomeRepository>()),
+        ),
+        BlocProvider<ManageHabitsBloc>(
+          create: (ctx) =>
+              ManageHabitsBloc(repository: ctx.read<HomeRepository>()),
+        ),
+        BlocProvider<InsightsBloc>(
+          create: (ctx) =>
+              InsightsBloc(repository: ctx.read<HomeRepository>()),
         ),
       ],
       child: child,

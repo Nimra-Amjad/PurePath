@@ -23,6 +23,11 @@ abstract class HomeRepository {
   /// Returns the complete list of habits the user has created, in creation order.
   Future<List<HabitDefinition>> getAllHabits();
 
+  /// Creates a new habit for the current user.
+  /// Implementations are responsible for assigning a unique id —
+  /// the [definition.id] passed in is ignored.
+  Future<void> addHabit(HabitDefinition definition);
+
   /// Permanently removes the habit with [id].
   /// The habit will no longer appear in future [getSummaryForWeek] results.
   Future<void> deleteHabit(String id);
@@ -30,4 +35,16 @@ abstract class HomeRepository {
   /// Persists changes made to an existing habit.
   /// The updated [definition] replaces the previous version with the same id.
   Future<void> updateHabit(HabitDefinition definition);
+
+  // ── Habit completions ──────────────────────────────────────────────────────
+
+  /// Persists the user's progress on [habitId] for a specific [date].
+  ///
+  /// [progress] is 0.0 (not done) → 1.0 (fully completed).
+  /// Implementations should upsert so repeated calls overwrite the previous value.
+  Future<void> setHabitProgress({
+    required String habitId,
+    required DateTime date,
+    required double progress,
+  });
 }

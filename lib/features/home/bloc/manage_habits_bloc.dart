@@ -24,6 +24,7 @@ class ManageHabitsBloc extends Bloc<ManageHabitsEvent, ManageHabitsState> {
     : _repository = repository,
       super(const ManageHabitsState(status: ManageHabitsStatus.loading)) {
     on<ManageHabitsStarted>(_onStarted);
+    on<ManageHabitAddRequested>(_onAddRequested);
     on<ManageHabitDeleteRequested>(_onDeleteRequested);
     on<ManageHabitUpdateRequested>(_onUpdateRequested);
   }
@@ -45,6 +46,20 @@ class ManageHabitsBloc extends Bloc<ManageHabitsEvent, ManageHabitsState> {
           errorMessage: 'Could not load habits. Please try again.',
         ),
       );
+    }
+  }
+
+  /// Persists the new habit then re-fetches the list so the new id is included.
+  Future<void> _onAddRequested(
+    ManageHabitAddRequested event,
+    Emitter<ManageHabitsState> emit,
+  ) async {
+    try {
+      await _repository.addHabit(event.definition);
+      final habits = await _repository.getAllHabits();
+      emit(state.copyWith(status: ManageHabitsStatus.loaded, habits: habits));
+    } catch (_) {
+      // Non-fatal: the form can be re-submitted.
     }
   }
 

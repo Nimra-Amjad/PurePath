@@ -3,10 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
+import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
+import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Edit Habit Page
@@ -43,10 +47,13 @@ class _EditHabitPageState extends State<EditHabitPage> {
   late HabitCategory? _selectedCategory;
   late bool _isDaily;
   late final Set<int> _selectedWeekDays;
+  late DateTime _startDate;
+  DateTime? _endDate;
 
   // ── Validation error flags ─────────────────────────────────────────────────
   bool _categoryError = false;
   bool _weekDayError = false;
+  bool _dateRangeError = false;
 
   // ── Static data ────────────────────────────────────────────────────────────
   static const _allCategories = HabitCategory.values;
@@ -67,6 +74,8 @@ class _EditHabitPageState extends State<EditHabitPage> {
     _selectedCategory = h.category;
     _isDaily = h.isDaily;
     _selectedWeekDays = Set.from(h.weekDays);
+    _startDate = h.startDate;
+    _endDate = h.endDate;
   }
 
   @override
@@ -79,14 +88,17 @@ class _EditHabitPageState extends State<EditHabitPage> {
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
-  void _onSaveTapped() {
+  Future<void> _onSaveTapped() async {
     setState(() {
       _categoryError = _selectedCategory == null;
       _weekDayError = !_isDaily && _selectedWeekDays.isEmpty;
+      _dateRangeError =
+          _endDate != null && _endDate!.isBefore(_startDate);
     });
 
     final formValid = _formKey.currentState!.validate();
-    final selectionsValid = !_categoryError && !_weekDayError;
+    final selectionsValid =
+        !_categoryError && !_weekDayError && !_dateRangeError;
 
     if (!formValid || !selectionsValid) return;
 
@@ -97,9 +109,29 @@ class _EditHabitPageState extends State<EditHabitPage> {
       weekDays: _isDaily ? [] : _selectedWeekDays.toList()..sort(),
       goal: _goalController.text.trim(),
       reminderTime: _reminderController.text.trim(),
+      startDate: _startDate,
+      endDate: _endDate,
+      clearEndDate: _endDate == null,
     );
 
-    context.read<ManageHabitsBloc>().add(ManageHabitUpdateRequested(updated));
+    // Persist via the repository first so we can sequence the screen
+    // refreshes after the write completes.
+    try {
+      await context.read<HomeRepository>().updateHabit(updated);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Could not update habit. Please try again.');
+      return; // Stay on the page so the user can retry.
+    }
+
+    if (!mounted) return;
+
+    // Push the updated definition into every screen that displays it.
+    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
+    context.read<HomeBloc>().add(HomeStarted());
+    context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    AppSnackBar.success(context, 'Habit updated successfully!');
     Navigator.of(context).pop();
   }
 
@@ -140,6 +172,8 @@ class _EditHabitPageState extends State<EditHabitPage> {
               _buildCategorySection(),
               const SizedBox(height: 28),
               _buildFrequencySection(),
+              const SizedBox(height: 28),
+              _buildDateRangeSection(),
               const SizedBox(height: 28),
               _buildGoalReminderSection(),
               const SizedBox(height: 36),
@@ -370,6 +404,87 @@ class _EditHabitPageState extends State<EditHabitPage> {
     );
   }
 
+  // ── Section: Date range ────────────────────────────────────────────────────
+
+  Widget _buildDateRangeSection() {
+    return _Section(
+      label: 'DATE RANGE',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _DateField(
+                  label: 'Start',
+                  date: _startDate,
+                  onTap: () async {
+                    final picked = await _pickDate(
+                      initial: _startDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365 * 5)),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _startDate = picked;
+                        _dateRangeError = false;
+                      });
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DateField(
+                  label: 'End (optional)',
+                  date: _endDate,
+                  hint: 'No end date',
+                  onTap: () async {
+                    final picked = await _pickDate(
+                      initial: _endDate ?? _startDate,
+                      firstDate: _startDate,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _endDate = picked;
+                        _dateRangeError = false;
+                      });
+                    }
+                  },
+                  onClear: _endDate == null
+                      ? null
+                      : () => setState(() => _endDate = null),
+                ),
+              ),
+            ],
+          ),
+          if (_dateRangeError) ...[
+            const SizedBox(height: 6),
+            const _ErrorLabel('End date must be on or after start date'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<DateTime?> _pickDate({
+    required DateTime initial,
+    required DateTime firstDate,
+  }) async {
+    return showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: firstDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: purple),
+        ),
+        child: child!,
+      ),
+    );
+  }
+
   // ── Section: Goal & Reminder ───────────────────────────────────────────────
 
   Widget _buildGoalReminderSection() {
@@ -480,6 +595,87 @@ class _ErrorLabel extends StatelessWidget {
     return Text(
       text,
       style: AppTextStyles.normal.copyWith(fontSize: 12, color: kRedColor),
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final String hint;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  const _DateField({
+    required this.label,
+    required this.date,
+    required this.onTap,
+    this.hint = 'Pick a date',
+    this.onClear,
+  });
+
+  String _format(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = date != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: kWhiteColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kGreyColor.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.medium.copyWith(
+                fontSize: 11,
+                color: kDarkGreyColor.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? _format(date!) : hint,
+                    style: AppTextStyles.medium.copyWith(
+                      fontSize: 13,
+                      color: hasValue ? kBlackColor : kGreyColor,
+                    ),
+                  ),
+                ),
+                if (onClear != null && hasValue)
+                  GestureDetector(
+                    onTap: onClear,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: kGreyColor,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: kGreyColor,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

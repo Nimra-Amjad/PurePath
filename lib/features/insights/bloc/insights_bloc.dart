@@ -32,6 +32,7 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
       ) {
     on<InsightsStarted>(_onStarted);
     on<InsightsWeekChanged>(_onWeekChanged);
+    on<InsightsRefreshRequested>(_onRefreshRequested);
   }
 
   // ── Static helpers ────────────────────────────────────────────────────────
@@ -90,6 +91,22 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
       emit(state.copyWith(weekData: {...state.weekData, ...newWeekData}));
     } catch (_) {
       // Non-fatal: bars just show 0 for the uncached week.
+    }
+  }
+
+  /// Re-fetches the visible week so changes made elsewhere
+  /// (toggle on home, edit/delete on manage) are reflected here.
+  Future<void> _onRefreshRequested(
+    InsightsRefreshRequested event,
+    Emitter<InsightsState> emit,
+  ) async {
+    try {
+      final weekData = await _repository.getSummaryForWeek(
+        state.visibleWeekStart,
+      );
+      emit(state.copyWith(status: InsightsStatus.loaded, weekData: weekData));
+    } catch (_) {
+      // Non-fatal: keep showing the previous (slightly stale) data.
     }
   }
 

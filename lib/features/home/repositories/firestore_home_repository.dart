@@ -1,0 +1,254 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:purepath/features/home/models/day_summary.dart';
+import 'package:purepath/features/home/models/habit_definition.dart';
+import 'package:purepath/features/home/models/habit_model.dart';
+import 'package:purepath/features/home/repositories/home_repository.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Firestore home repository
+//
+// Two top-level collections:
+//
+// 1) `habits`  — habit definitions (one doc per habit the user creates).
+//    {
+//      id:           <doc id, also stored as a field for convenience>
+//      userId:       <Firebase auth uid of the creator>
+//      title:        String
+//      category:     String   (HabitCategory.name)
+//      isDaily:      bool
+//      weekDays:     [int]    (0 = Mon … 6 = Sun, empty when isDaily)
+//      goal:         String
+//      reminderTime: String
+//      createdAt:    Timestamp
+//    }
+//
+// 2) `insights` — one doc per (user, date) recording which habits the user
+//    completed that day. Doc id is deterministic: `<uid>_<yyyymmdd>` so we
+//    can read 7 days at a time by direct doc id (no composite index needed).
+//    {
+//      userId:     <uid>
+//      date:       "yyyy-MM-dd"
+//      dateMillis: int    (millis since epoch at local midnight)
+//      habits:     [
+//        { id, hasDone }
+//      ]
+//    }
+//    Title/category/etc. are NOT duplicated here — they're looked up from
+//    the `habits` collection at read time. Habits not present in the array
+//    — or with hasDone=false — render as unchecked on home and unfilled in
+//    the insights bar chart.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class FirestoreHomeRepository implements HomeRepository {
+  static const _kHabits = 'habits';
+  static const _kInsights = 'insights';
+
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  FirestoreHomeRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  String? get _uid => _auth.currentUser?.uid;
+
+  CollectionReference<Map<String, dynamic>> get _habitsRef =>
+      _firestore.collection(_kHabits);
+
+  CollectionReference<Map<String, dynamic>> get _insightsRef =>
+      _firestore.collection(_kInsights);
+
+  // ── HomeRepository implementation ──────────────────────────────────────────
+
+  @override
+  Future<List<HabitDefinition>> getAllHabits() async {
+    final uid = _uid;
+    if (uid == null) return const [];
+
+    final query = await _habitsRef.where('userId', isEqualTo: uid).get();
+
+    final habits = query.docs.map((doc) {
+      final data = {...doc.data(), 'id': doc.id};
+      return HabitDefinition.fromMap(data);
+    }).toList();
+
+    // Sort by createdAt client-side so older habits appear first.
+    habits.sort((a, b) {
+      final ta = _createdAtMillis(query.docs, a.id);
+      final tb = _createdAtMillis(query.docs, b.id);
+      return ta.compareTo(tb);
+    });
+
+    return habits;
+  }
+
+  @override
+  Future<void> addHabit(HabitDefinition definition) async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    final docRef = _habitsRef.doc(); // Firestore-generated unique id.
+    await docRef.set({
+      ...definition.toMap(),
+      'id': docRef.id,
+      'userId': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> deleteHabit(String id) async {
+    // Just remove the habit definition. Stale entries in `insights` docs are
+    // harmless: getSummaryForWeek joins on the live habits list, so any
+    // orphaned ids in the array are simply ignored.
+    await _habitsRef.doc(id).delete();
+  }
+
+  @override
+  Future<void> updateHabit(HabitDefinition definition) async {
+    await _habitsRef.doc(definition.id).update(definition.toMap());
+  }
+
+  @override
+  Future<void> setHabitProgress({
+    required String habitId,
+    required DateTime date,
+    required double progress,
+  }) async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    final dateOnly = _dateOnly(date);
+    final docRef = _insightsRef.doc(_insightsDocId(uid, dateOnly));
+    final hasDone = progress >= 1.0;
+
+    // Read-modify-write the day's habits array so flipping one habit doesn't
+    // overwrite the others' completion state.
+    final snap = await docRef.get();
+    final List<Map<String, dynamic>> habits = snap.exists
+        ? (snap.data()?['habits'] as List? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final entry = <String, dynamic>{'id': habitId, 'hasDone': hasDone};
+
+    final idx = habits.indexWhere((e) => e['id'] == habitId);
+    if (idx >= 0) {
+      habits[idx] = entry;
+    } else {
+      habits.add(entry);
+    }
+
+    await docRef.set({
+      'userId': uid,
+      'date': _dateString(dateOnly),
+      'dateMillis': dateOnly.millisecondsSinceEpoch,
+      'habits': habits,
+    });
+  }
+
+  @override
+  Future<Map<DateTime, DaySummary>> getSummaryForWeek(
+    DateTime weekStart,
+  ) async {
+    final habits = await getAllHabits();
+    final hasDoneByKey = await _fetchWeekHasDone(weekStart);
+
+    final result = <DateTime, DaySummary>{};
+
+    for (int dayIndex = 0; dayIndex < 7; dayIndex++) {
+      final date = _dateOnly(weekStart.add(Duration(days: dayIndex)));
+      final weekDayIndex = date.weekday - 1; // 0 = Mon … 6 = Sun
+
+      final habitsForDay = habits
+          .where((h) => h.isActiveOn(date))
+          .where(
+            (h) => h.isDaily || h.weekDays.contains(weekDayIndex),
+          )
+          .map((definition) {
+            final hasDone = hasDoneByKey[
+                  '${definition.id}_${date.millisecondsSinceEpoch}'
+                ] ??
+                false;
+            return HabitModel(
+              id: definition.id,
+              title: definition.title,
+              subtitle: definition.subtitle,
+              category: definition.category,
+              isDaily: definition.isDaily,
+              progress: hasDone ? 1.0 : 0.0,
+            );
+          })
+          .toList();
+
+      result[date] = DaySummary(date: date, habits: habitsForDay);
+    }
+
+    return result;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /// Reads the 7 day-docs for the visible week in parallel and returns a
+  /// `<habitId>_<dateMillis>` → hasDone map. Direct doc lookups don't need a
+  /// composite index, so this works on a fresh project with no index setup.
+  Future<Map<String, bool>> _fetchWeekHasDone(DateTime weekStart) async {
+    final uid = _uid;
+    if (uid == null) return const {};
+
+    final futures = List.generate(7, (i) {
+      final date = _dateOnly(weekStart.add(Duration(days: i)));
+      return _insightsRef.doc(_insightsDocId(uid, date)).get().then(
+            (snap) => MapEntry(date, snap.data()),
+          );
+    });
+
+    final results = await Future.wait(futures);
+
+    final out = <String, bool>{};
+    for (final entry in results) {
+      final date = entry.key;
+      final data = entry.value;
+      if (data == null) continue;
+      final list = data['habits'] as List? ?? const [];
+      for (final raw in list) {
+        if (raw is! Map) continue;
+        final habit = Map<String, dynamic>.from(raw);
+        final habitId = habit['id'] as String? ?? '';
+        final hasDone = habit['hasDone'] as bool? ?? false;
+        if (habitId.isEmpty) continue;
+        out['${habitId}_${date.millisecondsSinceEpoch}'] = hasDone;
+      }
+    }
+    return out;
+  }
+
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  /// Deterministic doc id so repeated toggles upsert a single record per day.
+  static String _insightsDocId(String uid, DateTime date) =>
+      '${uid}_${_dateString(date).replaceAll('-', '')}';
+
+  static String _dateString(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  static int _createdAtMillis(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    String id,
+  ) {
+    final doc = docs.firstWhere(
+      (d) => d.id == id,
+      orElse: () => docs.first,
+    );
+    final ts = doc.data()['createdAt'];
+    if (ts is Timestamp) return ts.millisecondsSinceEpoch;
+    return 0;
+  }
+}
