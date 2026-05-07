@@ -159,7 +159,7 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calendar header  ── "🔥 Daily Streak"  |  "Apr 2026"
+// Calendar header  ── "📅 This Week"  |  "Apr 2026"
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CalendarHeader extends StatelessWidget {
@@ -184,10 +184,10 @@ class _CalendarHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Text('🔥', style: TextStyle(fontSize: 16)),
+            const Text('📅', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 6),
             Text(
-              'Daily Streak',
+              'This Week',
               style: AppTextStyles.semiBold.copyWith(fontSize: 15),
             ),
           ],

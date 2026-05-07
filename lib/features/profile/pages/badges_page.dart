@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
@@ -6,226 +8,53 @@ import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/space.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Badges page — sequential unlocking
+// Badges page
 //
-// Badges unlock one by one in order.
-// Badge N can only be earned after badge N-1 is earned.
+// One coin = one day in the user's current consecutive-day streak. Each
+// badge unlocks at a day-streak milestone. The first one lands at 10 days,
+// then they grow apart so later badges feel earned.
+//
+// Thresholds are static — the user's current coin balance (read from
+// UserBloc) is the only dynamic input.
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ── Simulated user stats ──────────────────────────────────────────────────────
-const _userStreak = 23;
-const _userCheckIns = 142;
-const _userHabits = 6;
-const _userPerfectDays = 4;
 
 class BadgesPage extends StatelessWidget {
   const BadgesPage({super.key});
 
-  // ── 20 badges ordered from easiest → hardest ──────────────────────────────
-  //
-  // Sequential rule: badge N is earned only if badges 1…N-1 are all earned
-  // AND badge N's own requirement is met by the user's stats.
-  //
-  // Ordering logic:
-  //   Badges 1–4   : intro streak milestones (1 → 3 → 7 → 14 days)
-  //   Badges 5–6   : early check-in engagement (10 → 25)
-  //   Badges 7–8   : first habit milestones (1 → 3 habits)
-  //   Badges 9–11  : mid-game streak + check-ins (21 days, 50, 100 check-ins)
-  //   Badge  12    : first perfect day
-  //   Badges 13–14 : habit depth (5 → 8 habits)
-  //   Badges 15–17 : advanced streak (30 → 45 → 60 days)
-  //   Badges 18–19 : perfect-day mastery (3 → 7 perfect days)
-  //   Badge  20    : legend (30 perfect days)
-
-  static final _badges = <_BadgeData>[
-    _BadgeData(
-      emoji: '🌱',
-      name: 'Day One',
-      description: 'Start your streak — show up for just one day.',
-      color: Color(0xFF4CAF50),
-      unit: 'day streak',
-      requiredValue: 1,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '🔥',
-      name: 'On Fire',
-      description: 'Keep the flame alive for 3 days straight.',
-      color: Color(0xFFF97316),
-      unit: 'day streak',
-      requiredValue: 3,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '⚡',
-      name: 'Week Strong',
-      description: 'Seven days in — you\'re building real momentum.',
-      color: Color(0xFFFFB300),
-      unit: 'day streak',
-      requiredValue: 7,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '💪',
-      name: 'Two Weeks In',
-      description: 'Fourteen days of showing up. Habit is forming.',
-      color: Color(0xFF6C4DFF),
-      unit: 'day streak',
-      requiredValue: 14,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '✅',
-      name: 'Getting Real',
-      description: 'Complete 10 check-ins. Consistency is clicking.',
-      color: Color(0xFF26A69A),
-      unit: 'check-ins',
-      requiredValue: 10,
-      currentValue: _userCheckIns,
-    ),
-    _BadgeData(
-      emoji: '🎯',
-      name: 'On Target',
-      description: '25 check-ins done. You\'re dialled in.',
-      color: Color(0xFF1E88E5),
-      unit: 'check-ins',
-      requiredValue: 25,
-      currentValue: _userCheckIns,
-    ),
-    _BadgeData(
-      emoji: '🌿',
-      name: 'First Habit',
-      description: 'You\'ve created and stuck with your first habit.',
-      color: Color(0xFF22C55E),
-      unit: 'active habits',
-      requiredValue: 1,
-      currentValue: _userHabits,
-    ),
-    _BadgeData(
-      emoji: '🌳',
-      name: 'Triple Habit',
-      description: 'Three active habits running at once. Impressive.',
-      color: Color(0xFF00897B),
-      unit: 'active habits',
-      requiredValue: 3,
-      currentValue: _userHabits,
-    ),
-    _BadgeData(
-      emoji: '🌟',
-      name: 'Three Weeks',
-      description: 'A 21-day streak — almost a month of discipline.',
-      color: Color(0xFF9B82E8),
-      unit: 'day streak',
-      requiredValue: 21,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '📚',
-      name: 'Half Century',
-      description: '50 check-ins completed. Building a library of wins.',
-      color: Color(0xFF5C6BC0),
-      unit: 'check-ins',
-      requiredValue: 50,
-      currentValue: _userCheckIns,
-    ),
-    _BadgeData(
-      emoji: '💯',
-      name: 'Century Club',
-      description: '100 check-ins — you\'ve crossed a major milestone.',
-      color: Color(0xFFF97316),
-      unit: 'check-ins',
-      requiredValue: 100,
-      currentValue: _userCheckIns,
-    ),
-    _BadgeData(
-      emoji: '⭐',
-      name: 'Perfect Day',
-      description: 'Every habit completed in a single day. Flawless.',
-      color: Color(0xFFFFB300),
-      unit: 'perfect days',
-      requiredValue: 1,
-      currentValue: _userPerfectDays,
-    ),
-    _BadgeData(
-      emoji: '🌲',
-      name: 'Habit Builder',
-      description: 'Five active habits — you\'re reshaping your lifestyle.',
-      color: Color(0xFF2E7D32),
-      unit: 'active habits',
-      requiredValue: 5,
-      currentValue: _userHabits,
-    ),
-    _BadgeData(
-      emoji: '🏃',
-      name: 'Month Strong',
-      description: 'Thirty days straight. A full month of commitment.',
-      color: Color(0xFFEC407A),
-      unit: 'day streak',
-      requiredValue: 30,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '🦁',
-      name: 'Habit Juggler',
-      description: 'Eight active habits running. You manage it all.',
-      color: Color(0xFFFF8F00),
-      unit: 'active habits',
-      requiredValue: 8,
-      currentValue: _userHabits,
-    ),
-    _BadgeData(
-      emoji: '🚀',
-      name: '45-Day Streak',
-      description: 'Forty-five days of pure discipline. Unstoppable.',
-      color: Color(0xFFE53935),
-      unit: 'day streak',
-      requiredValue: 45,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '🏆',
-      name: 'Grand Champion',
-      description: 'A 60-day streak. You are among the elite.',
-      color: Color(0xFFFFB300),
-      unit: 'day streak',
-      requiredValue: 60,
-      currentValue: _userStreak,
-    ),
-    _BadgeData(
-      emoji: '🌺',
-      name: 'Triple Perfection',
-      description: 'Three perfect days — flawless becomes a pattern.',
-      color: Color(0xFFAB47BC),
-      unit: 'perfect days',
-      requiredValue: 3,
-      currentValue: _userPerfectDays,
-    ),
-    _BadgeData(
-      emoji: '🏅',
-      name: 'Flawless Week',
-      description: 'Seven perfect days. Every single habit, every day.',
-      color: Color(0xFF6C4DFF),
-      unit: 'perfect days',
-      requiredValue: 7,
-      currentValue: _userPerfectDays,
-    ),
-    _BadgeData(
-      emoji: '👑',
-      name: 'Legend',
-      description: 'Thirty perfect days. You have truly mastered habits.',
-      color: Color(0xFFFFB300),
-      unit: 'perfect days',
-      requiredValue: 30,
-      currentValue: _userPerfectDays,
-    ),
+  // ── 20 badges, gated on consecutive-day streak ────────────────────────────
+  static const _badges = <_BadgeData>[
+    _BadgeData(emoji: '🌱', name: 'Ten Days',         description: '10 days in a row. Habit is taking root.',                         color: Color(0xFF4CAF50), threshold: 10),
+    _BadgeData(emoji: '🔥', name: 'Three Weeks',      description: '21 straight days. Momentum is real.',                              color: Color(0xFFF97316), threshold: 21),
+    _BadgeData(emoji: '⚡', name: 'One Month',        description: '30 days unbroken. A full month of showing up.',                    color: Color(0xFFFFB300), threshold: 30),
+    _BadgeData(emoji: '💪', name: 'Six Weeks',        description: '45 days. The hard part is behind you.',                            color: Color(0xFF6C4DFF), threshold: 45),
+    _BadgeData(emoji: '✅', name: 'Two Months',       description: '60 days strong. Habit is the new normal.',                         color: Color(0xFF26A69A), threshold: 60),
+    _BadgeData(emoji: '🎯', name: 'Quarter Master',   description: '90 days — three months without a miss.',                           color: Color(0xFF1E88E5), threshold: 90),
+    _BadgeData(emoji: '🌿', name: 'Steady Spring',    description: '120 days of consistency. Growth is compounding.',                  color: Color(0xFF22C55E), threshold: 120),
+    _BadgeData(emoji: '🌳', name: 'Half Year',        description: '180 days. Half a year of unbroken effort.',                        color: Color(0xFF00897B), threshold: 180),
+    _BadgeData(emoji: '🌟', name: 'Nine Months',      description: '270 days. Most people quit before this.',                          color: Color(0xFF9B82E8), threshold: 270),
+    _BadgeData(emoji: '📚', name: 'One Year',         description: '365 days. A full year, every single day.',                         color: Color(0xFF5C6BC0), threshold: 365),
+    _BadgeData(emoji: '💯', name: '500 Days',         description: '500-day streak. Rare air now.',                                    color: Color(0xFFF97316), threshold: 500),
+    _BadgeData(emoji: '⭐', name: 'Two Years',        description: '730 days unbroken. This is identity, not effort.',                 color: Color(0xFFFFB300), threshold: 730),
+    _BadgeData(emoji: '🌲', name: '1000 Days',        description: 'Four digits of consecutive wins.',                                 color: Color(0xFF2E7D32), threshold: 1000),
+    _BadgeData(emoji: '🏃', name: 'Marathoner',       description: '1,500 days of discipline. Most lifestyles haven\'t lasted this.',  color: Color(0xFFEC407A), threshold: 1500),
+    _BadgeData(emoji: '🦁', name: 'Five Years',       description: '1,825 days — five solid years.',                                   color: Color(0xFFFF8F00), threshold: 1825),
+    _BadgeData(emoji: '🚀', name: '2000 Club',        description: '2,000 days. Few will ever stand here.',                            color: Color(0xFFE53935), threshold: 2000),
+    _BadgeData(emoji: '🏆', name: 'Decade Bound',     description: '2,500 days, one streak. Heading for a decade.',                    color: Color(0xFFFFB300), threshold: 2500),
+    _BadgeData(emoji: '🌺', name: 'In Full Bloom',    description: '3,000 days unbroken. A craft, not a phase.',                       color: Color(0xFFAB47BC), threshold: 3000),
+    _BadgeData(emoji: '🏅', name: 'Hall of Fame',     description: '3,650 days — a full decade of unbroken effort.',                   color: Color(0xFF6C4DFF), threshold: 3650),
+    _BadgeData(emoji: '👑', name: 'Legend',           description: '5,000 days. The streak is the life.',                              color: Color(0xFFFFB300), threshold: 5000),
   ];
 
-  // Sequential earned count: badges 1..N are all earned where N is the first
-  // badge whose requirement is NOT met. Stops at first unmet requirement.
-  static int get _earnedCount {
+  /// Total badge count for the "See all N" link on the profile page.
+  static int get totalCount => _badges.length;
+
+  /// Number of badges earned at [coins].
+  /// Sequential: badges are sorted by threshold ascending, so the count is
+  /// simply how many thresholds the user has crossed.
+  static int earnedCountForCoins(int coins) {
     int count = 0;
     for (final b in _badges) {
-      if (b.currentValue >= b.requiredValue) {
+      if (coins >= b.threshold) {
         count++;
       } else {
         break;
@@ -234,13 +63,13 @@ class BadgesPage extends StatelessWidget {
     return count;
   }
 
-  /// Total number of badges (for the "See all N" label on the profile page).
-  static int get totalCount => _badges.length;
-
-  /// Returns up to [count] earned badge (emoji, name) pairs for use in
-  /// profile page previews.
-  static List<(String, String)> earnedPreviews({int count = 4}) {
-    final earned = _earnedCount;
+  /// Up to [count] earned (emoji, name) pairs for the profile preview row.
+  /// Pulls the live coin balance from [UserBloc] so the preview updates
+  /// the moment a badge is unlocked.
+  static List<(String, String)> earnedPreviews(BuildContext context,
+      {int count = 4}) {
+    final coins = context.read<UserBloc>().state.user?.coins ?? 0;
+    final earned = earnedCountForCoins(coins);
     return _badges
         .take(earned)
         .take(count)
@@ -250,56 +79,65 @@ class BadgesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final earned = _earnedCount;
-    final total = _badges.length;
+    return BlocBuilder<UserBloc, UserState>(
+      buildWhen: (a, b) => a.user?.coins != b.user?.coins,
+      builder: (context, state) {
+        final coins = state.user?.coins ?? 0;
+        final earned = earnedCountForCoins(coins);
+        final total = _badges.length;
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: kWhiteColor,
-        surfaceTintColor: kWhiteColor,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        shadowColor: kBlackColor.withOpacityValue(0.06),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          color: kBlackColor,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Badges',
-          style: AppTextStyles.bold.copyWith(fontSize: 18),
-        ),
-      ),
-      body: CustomScrollView(
-        slivers: [
-          // ── Progress banner ──────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _ProgressBanner(earned: earned, total: total),
-          ),
-
-          // ── Flat sequential badge grid ───────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.78,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => _BadgeCard(
-                  data: _badges[i],
-                  isEarned: i < earned,
-                  isNext: i == earned,
-                ),
-                childCount: total,
-              ),
+        return Scaffold(
+          backgroundColor: bg,
+          appBar: AppBar(
+            backgroundColor: kWhiteColor,
+            surfaceTintColor: kWhiteColor,
+            elevation: 0,
+            scrolledUnderElevation: 0.5,
+            shadowColor: kBlackColor.withOpacityValue(0.06),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              color: kBlackColor,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              'Badges',
+              style: AppTextStyles.bold.copyWith(fontSize: 18),
             ),
           ),
-        ],
-      ),
+          body: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ProgressBanner(
+                  earned: earned,
+                  total: total,
+                  coins: coins,
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                sliver: SliverGrid(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.78,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _BadgeCard(
+                      data: _badges[i],
+                      coins: coins,
+                      isEarned: i < earned,
+                      isNext: i == earned,
+                    ),
+                    childCount: total,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -311,7 +149,13 @@ class BadgesPage extends StatelessWidget {
 class _ProgressBanner extends StatelessWidget {
   final int earned;
   final int total;
-  const _ProgressBanner({required this.earned, required this.total});
+  final int coins;
+
+  const _ProgressBanner({
+    required this.earned,
+    required this.total,
+    required this.coins,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -327,14 +171,14 @@ class _ProgressBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('🏅', style: TextStyle(fontSize: 22)),
+              const Text('🪙', style: TextStyle(fontSize: 22)),
               Space.horizontal(10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$earned of $total badges earned',
+                      '$coins-day streak · $earned of $total badges',
                       style: AppTextStyles.semiBold.copyWith(
                         fontSize: 15,
                         color: purple,
@@ -342,7 +186,7 @@ class _ProgressBanner extends StatelessWidget {
                     ),
                     Space.vertical(2),
                     Text(
-                      'Keep building habits to unlock more!',
+                      'Mark a habit done every day to keep your streak alive.',
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 12,
                         color: purple.withOpacityValue(0.7),
@@ -357,7 +201,7 @@ class _ProgressBanner extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
-              value: earned / total,
+              value: total == 0 ? 0 : earned / total,
               minHeight: 7,
               backgroundColor: purple.withOpacityValue(0.15),
               valueColor: const AlwaysStoppedAnimation(purple),
@@ -375,11 +219,13 @@ class _ProgressBanner extends StatelessWidget {
 
 class _BadgeCard extends StatelessWidget {
   final _BadgeData data;
+  final int coins;
   final bool isEarned;
-  final bool isNext; // the very next badge to unlock
+  final bool isNext;
 
   const _BadgeCard({
     required this.data,
+    required this.coins,
     required this.isEarned,
     required this.isNext,
   });
@@ -391,6 +237,7 @@ class _BadgeCard extends StatelessWidget {
         context,
         body: _BadgeDetailSheet(
           data: data,
+          coins: coins,
           isEarned: isEarned,
           isNext: isNext,
         ),
@@ -403,7 +250,8 @@ class _BadgeCard extends StatelessWidget {
           border: isEarned
               ? Border.all(color: data.color.withOpacityValue(0.4), width: 1.5)
               : isNext
-                  ? Border.all(color: data.color.withOpacityValue(0.6), width: 1.5)
+                  ? Border.all(
+                      color: data.color.withOpacityValue(0.6), width: 1.5)
                   : Border.all(color: border),
           boxShadow: isEarned
               ? [
@@ -418,7 +266,6 @@ class _BadgeCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Emoji circle ─────────────────────────────────────────────
             Stack(
               alignment: Alignment.bottomRight,
               children: [
@@ -459,8 +306,6 @@ class _BadgeCard extends StatelessWidget {
               ],
             ),
             Space.vertical(7),
-
-            // ── Name ─────────────────────────────────────────────────────
             Text(
               data.name,
               textAlign: TextAlign.center,
@@ -476,13 +321,11 @@ class _BadgeCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Space.vertical(6),
-
-            // ── Progress bar (next badge only) ────────────────────────────
             if (isNext) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: data.progress.clamp(0.0, 1.0),
+                  value: data.progressFor(coins).clamp(0.0, 1.0),
                   minHeight: 4,
                   backgroundColor: border,
                   valueColor: AlwaysStoppedAnimation(
@@ -492,7 +335,7 @@ class _BadgeCard extends StatelessWidget {
               ),
               Space.vertical(3),
               Text(
-                '${data.currentValue.clamp(0, data.requiredValue)}/${data.requiredValue} ${data.unit}',
+                '${coins.clamp(0, data.threshold)} / ${data.threshold} days',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 9,
@@ -500,8 +343,6 @@ class _BadgeCard extends StatelessWidget {
                 ),
               ),
             ],
-
-            // ── Earned chip ───────────────────────────────────────────────
             if (isEarned)
               Container(
                 padding:
@@ -518,8 +359,6 @@ class _BadgeCard extends StatelessWidget {
                   ),
                 ),
               ),
-
-            // ── Locked chip ───────────────────────────────────────────────
             if (!isEarned && !isNext)
               Text(
                 'Locked',
@@ -541,25 +380,27 @@ class _BadgeCard extends StatelessWidget {
 
 class _BadgeDetailSheet extends StatelessWidget {
   final _BadgeData data;
+  final int coins;
   final bool isEarned;
   final bool isNext;
 
   const _BadgeDetailSheet({
     required this.data,
+    required this.coins,
     required this.isEarned,
     required this.isNext,
   });
 
   @override
   Widget build(BuildContext context) {
-    final toGo = (data.requiredValue - data.currentValue.clamp(0, data.requiredValue));
+    final progress = data.progressFor(coins).clamp(0.0, 1.0);
+    final toGo = (data.threshold - coins).clamp(0, data.threshold);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Emoji
           Container(
             width: 72,
             height: 72,
@@ -578,7 +419,6 @@ class _BadgeDetailSheet extends StatelessWidget {
             ),
           ),
           Space.vertical(14),
-
           Text(
             data.name,
             style: AppTextStyles.bold.copyWith(fontSize: 20),
@@ -593,13 +433,11 @@ class _BadgeDetailSheet extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           Space.vertical(16),
-
-          // Progress bar — shown for the next badge
           if (isNext) ...[
             Row(
               children: [
                 Text(
-                  '${data.currentValue.clamp(0, data.requiredValue)} / ${data.requiredValue} ${data.unit}',
+                  '${coins.clamp(0, data.threshold)} / ${data.threshold} days',
                   style: AppTextStyles.medium.copyWith(
                     fontSize: 13,
                     color: textSecondary,
@@ -607,7 +445,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '${(data.progress * 100).round()}%',
+                  '${(progress * 100).round()}%',
                   style: AppTextStyles.semiBold.copyWith(
                     fontSize: 13,
                     color: data.color,
@@ -619,7 +457,7 @@ class _BadgeDetailSheet extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: data.progress.clamp(0.0, 1.0),
+                value: progress,
                 minHeight: 8,
                 backgroundColor: border,
                 valueColor: AlwaysStoppedAnimation(data.color),
@@ -627,8 +465,6 @@ class _BadgeDetailSheet extends StatelessWidget {
             ),
             Space.vertical(16),
           ],
-
-          // Status chip
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -661,7 +497,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                   isEarned
                       ? 'Earned'
                       : isNext
-                          ? '$toGo ${data.unit} to go'
+                          ? '$toGo days to go'
                           : 'Unlock previous badges first',
                   style: AppTextStyles.semiBold.copyWith(
                     fontSize: 13,
@@ -690,20 +526,16 @@ class _BadgeData {
   final String name;
   final String description;
   final Color color;
-  final String unit;
-  final int requiredValue;
-  final int currentValue;
+  final int threshold;
 
   const _BadgeData({
     required this.emoji,
     required this.name,
     required this.description,
     required this.color,
-    required this.unit,
-    required this.requiredValue,
-    required this.currentValue,
+    required this.threshold,
   });
 
-  double get progress =>
-      requiredValue == 0 ? 1.0 : currentValue / requiredValue;
+  double progressFor(int coins) =>
+      threshold == 0 ? 1.0 : coins / threshold;
 }

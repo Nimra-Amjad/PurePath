@@ -120,7 +120,10 @@ class _BlocDI extends StatelessWidget {
           ),
         ),
         BlocProvider<HomeBloc>(
-          create: (ctx) => HomeBloc(repository: ctx.read<HomeRepository>()),
+          create: (ctx) => HomeBloc(
+            repository: ctx.read<HomeRepository>(),
+            userRepository: ctx.read<UserRepository>(),
+          ),
         ),
         BlocProvider<ManageHabitsBloc>(
           create: (ctx) =>

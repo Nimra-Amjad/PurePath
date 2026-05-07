@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
@@ -20,9 +21,13 @@ part 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final HomeRepository _repository;
+  final UserRepository _userRepository;
 
-  HomeBloc({required HomeRepository repository})
-    : _repository = repository,
+  HomeBloc({
+    required HomeRepository repository,
+    required UserRepository userRepository,
+  })  : _repository = repository,
+        _userRepository = userRepository,
       super(
         HomeState(
           status: HomeStatus.loading,
@@ -71,6 +76,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ),
       );
     }
+
+    // Refresh the streak once data is loaded. This catches day-rollover
+    // (e.g. user finished day N's habits, kept the app open, and didn't
+    // touch day N+1) and cross-device edits.
+    await _refreshStreak();
   }
 
   /// Selecting a date is instant — no network call needed.
@@ -155,6 +165,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (_) {
       // Non-fatal: the optimistic update stays in place. The user can re-tap
       // to retry if the network was offline.
+    }
+
+    // Recompute the streak from the persisted insights data. This handles
+    // every case correctly without bespoke logic in the bloc:
+    //   • Mark today      → streak grows by one
+    //   • Backfill a day  → streak repairs / extends if it bridges a gap
+    //   • Undo today      → streak drops if today is now empty
+    //   • Skipped a day   → streak resets to wherever the unbroken run ends
+    await _refreshStreak();
+  }
+
+  Future<void> _refreshStreak() async {
+    try {
+      final streak = await _repository.calculateCurrentStreak();
+      await _userRepository.setCoins(streak);
+    } catch (_) {
+      // Non-fatal: the previous streak value stays put.
     }
   }
 

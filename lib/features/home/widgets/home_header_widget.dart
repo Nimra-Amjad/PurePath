@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
@@ -9,31 +11,53 @@ class HomeHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return BlocBuilder<UserBloc, UserState>(
+      buildWhen: (a, b) => a.user != b.user,
+      builder: (context, state) {
+        final firstName = state.user?.firstName.trim() ?? '';
+        final displayName = firstName.isEmpty ? 'there' : firstName;
+        final initial =
+            firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "GOOD MORNING",
-              style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _greeting(),
+                  style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                ),
+                Space.vertical(2),
+                Text(
+                  displayName,
+                  style: AppTextStyles.bold.copyWith(fontSize: 20),
+                ),
+              ],
             ),
-            Space.vertical(2),
-            Text("Ahmad", style: AppTextStyles.bold.copyWith(fontSize: 20)),
+            CircleAvatar(
+              backgroundColor: kPrimaryColor.withOpacityValue(0.8),
+              child: Text(
+                initial,
+                style: AppTextStyles.bold.copyWith(
+                  fontSize: 20,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
           ],
-        ),
-        CircleAvatar(
-          backgroundColor: kPrimaryColor.withOpacityValue(0.8),
-          child: Text(
-            "A",
-            style: AppTextStyles.bold.copyWith(
-              fontSize: 20,
-              color: kWhiteColor,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
+  }
+
+  /// Time-of-day-aware greeting so the home header doesn't always say
+  /// "Good Morning" at 9pm.
+  static String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'GOOD MORNING';
+    if (hour < 17) return 'GOOD AFTERNOON';
+    return 'GOOD EVENING';
   }
 }

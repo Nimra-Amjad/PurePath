@@ -422,6 +422,11 @@ class _CommentTileState extends State<_CommentTile> {
   StreamSubscription<List<ReplyModel>>? _repliesSub;
   List<ReplyModel> _replies = const [];
 
+  String _currentInitial(BuildContext context) {
+    final name = context.read<CommunityBloc>().currentUser?.fullName ?? '';
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+
   void _ensureRepliesSubscribed() {
     if (_repliesSub != null) return;
     _repliesSub = context
@@ -677,12 +682,12 @@ class _CommentTileState extends State<_CommentTile> {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 14,
-                    backgroundColor: Color(0xFF6C4DFF),
+                    backgroundColor: const Color(0xFF6C4DFF),
                     child: Text(
-                      'A',
-                      style: TextStyle(
+                      _currentInitial(context),
+                      style: const TextStyle(
                         color: kWhiteColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

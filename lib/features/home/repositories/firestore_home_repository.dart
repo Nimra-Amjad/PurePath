@@ -210,6 +210,46 @@ class FirestoreHomeRepository implements HomeRepository {
     return result;
   }
 
+  @override
+  Future<int> calculateCurrentStreak() async {
+    final uid = _uid;
+    if (uid == null) return 0;
+
+    final today = _dateOnly(DateTime.now());
+
+    // Anchor: today if it has any completion, else yesterday (grace window).
+    DateTime cursor = today;
+    bool cursorDone = await _isDayCompleted(uid, cursor);
+    if (!cursorDone) {
+      cursor = today.subtract(const Duration(days: 1));
+      cursorDone = await _isDayCompleted(uid, cursor);
+      if (!cursorDone) return 0;
+    }
+
+    // Walk backward day by day, counting consecutive completed days.
+    // The 5000 cap matches the top badge threshold; it's just a safety
+    // bound, not a reachable limit in practice.
+    int streak = 0;
+    while (cursorDone && streak < 5000) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+      cursorDone = await _isDayCompleted(uid, cursor);
+    }
+    return streak;
+  }
+
+  Future<bool> _isDayCompleted(String uid, DateTime date) async {
+    final snap =
+        await _insightsRef.doc(_insightsDocId(uid, date)).get();
+    final data = snap.data();
+    if (data == null) return false;
+    final habits = data['habits'] as List? ?? const [];
+    for (final raw in habits) {
+      if (raw is Map && raw['hasDone'] == true) return true;
+    }
+    return false;
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   /// Reads the 7 day-docs for the visible week in parallel and returns a

@@ -164,6 +164,14 @@ class DummyHomeRepository implements HomeRepository {
     pattern[dayIndex] = progress;
   }
 
+  @override
+  Future<int> calculateCurrentStreak() async {
+    // Dummy repo only stores a single hard-coded week, so we can't compute a
+    // meaningful long-running streak. Return 0 — the real streak only matters
+    // when wired to FirestoreHomeRepository.
+    return 0;
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   /// Mutable copy of [_weeklyProgress] so the dummy repo can persist toggles

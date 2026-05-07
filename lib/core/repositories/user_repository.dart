@@ -71,4 +71,31 @@ class UserRepository {
       return false;
     }
   }
+
+  /// Persists the freshly computed day-streak. The streak itself is derived
+  /// from the insights data via [HomeRepository.calculateCurrentStreak], so
+  /// this method just stores the result and patches the local cache.
+  ///
+  /// Doing it this way means backfilling a previously-missed day correctly
+  /// extends (or repairs) the streak — the recompute is the source of truth.
+  Future<void> setCoins(int coins) async {
+    final uid = firebaseUser?.uid;
+    if (uid == null) return;
+
+    final current = localUser;
+    if (current == null || current.coins == coins) return;
+
+    // Optimistic local update so profile/badges/tier card react instantly.
+    updateLocalUser(current.copyWith(coins: coins));
+
+    try {
+      await FirebaseFirestore.instance
+          .collection(_kUsers)
+          .doc(uid)
+          .update({'coins': coins});
+    } catch (e) {
+      debugPrint('UserRepository.setCoins error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
 }

@@ -47,4 +47,15 @@ abstract class HomeRepository {
     required DateTime date,
     required double progress,
   });
+
+  /// Computes the user's current consecutive-day streak by walking backward
+  /// through the day docs and counting unbroken "completed" days.
+  ///
+  /// A day is "completed" if it has at least one habit with hasDone=true.
+  /// The walk starts at today (or yesterday, if today has no completions yet
+  /// — today is a grace window) and stops at the first non-completed day.
+  /// Backfilling a previously missed day naturally repairs the streak, since
+  /// the result depends only on the persisted data, not on the order of
+  /// toggles.
+  Future<int> calculateCurrentStreak();
 }
