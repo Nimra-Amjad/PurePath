@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/pages/create_post_page.dart';
 import 'package:purepath/features/community/widgets/post_card_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Community page
+//
+// Reads the global [CommunityBloc] (registered in DI).
+// Tab 0 = Feed (every post in the community)
+// Tab 1 = My Posts (filtered by the current user's uid)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CommunityPage extends StatefulWidget {
@@ -21,9 +27,6 @@ class CommunityPage extends StatefulWidget {
 class _CommunityPageState extends State<CommunityPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-
-  final List<PostModel> _allPosts = List.of(dummyPosts);
-  List<PostModel> get _myPosts => _allPosts.where((p) => p.isOwnPost).toList();
 
   @override
   void initState() {
@@ -39,33 +42,107 @@ class _CommunityPageState extends State<CommunityPage>
   }
 
   Future<void> _openCreatePost() async {
-    final result = await Navigator.of(context).push<PostModel>(
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CreatePostPage()),
     );
-    if (result != null && mounted) {
-      setState(() => _allPosts.insert(0, result));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _Header(
-          tabController: _tabController,
-          onCreatePost: _openCreatePost,
-          selectedIndex: _tabController.index,
+    return BlocBuilder<CommunityBloc, CommunityState>(
+      builder: (context, state) {
+        final currentUid = context.select<UserBloc, String?>(
+          (b) => b.state.user?.uid,
+        );
+        final initial = context.select<UserBloc, String>(
+          (b) {
+            final name = b.state.user?.fullName ?? '';
+            return name.isNotEmpty ? name.trim()[0].toUpperCase() : 'A';
+          },
+        );
+
+        return Column(
+          children: [
+            _Header(
+              tabController: _tabController,
+              onCreatePost: _openCreatePost,
+              selectedIndex: _tabController.index,
+              avatarInitial: initial,
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _FeedView(state: state, currentUid: currentUid),
+                  _FeedView(
+                    state: state,
+                    currentUid: currentUid,
+                    onlyMine: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feed view — handles loading / error / empty / loaded states
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FeedView extends StatelessWidget {
+  final CommunityState state;
+  final String? currentUid;
+  final bool onlyMine;
+
+  const _FeedView({
+    required this.state,
+    required this.currentUid,
+    this.onlyMine = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.status == CommunityStatus.loading && state.posts.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: purple),
+      );
+    }
+
+    if (state.status == CommunityStatus.error && state.posts.isEmpty) {
+      return _ErrorView(
+        message: state.errorMessage ?? 'Could not load posts.',
+        onRetry: () =>
+            context.read<CommunityBloc>().add(CommunityRefreshRequested()),
+      );
+    }
+
+    final posts =
+        onlyMine ? state.myPosts(currentUid) : state.posts;
+
+    if (posts.isEmpty) {
+      return _EmptyFeed(
+        label: onlyMine ? "You haven't posted yet" : 'No posts yet',
+      );
+    }
+
+    return RefreshIndicator(
+      color: purple,
+      onRefresh: () async {
+        context.read<CommunityBloc>().add(CommunityRefreshRequested());
+      },
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        itemCount: posts.length,
+        separatorBuilder: (_, __) => Space.vertical(12),
+        itemBuilder: (_, i) => PostCard(
+          post: posts[i],
+          currentUid: currentUid,
         ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _PostFeed(posts: _allPosts),
-              _PostFeed(posts: _myPosts, emptyLabel: "You haven't posted yet"),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -78,11 +155,13 @@ class _Header extends StatelessWidget {
   final TabController tabController;
   final VoidCallback onCreatePost;
   final int selectedIndex;
+  final String avatarInitial;
 
   const _Header({
     required this.tabController,
     required this.onCreatePost,
     required this.selectedIndex,
+    required this.avatarInitial,
   });
 
   @override
@@ -125,7 +204,7 @@ class _Header extends StatelessWidget {
                 radius: 20,
                 backgroundColor: purple.withOpacityValue(0.12),
                 child: Text(
-                  'A',
+                  avatarInitial,
                   style: AppTextStyles.bold.copyWith(
                     fontSize: 16,
                     color: purple,
@@ -314,30 +393,7 @@ class _PillTabSelectorState extends State<_PillTabSelector>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Post feed
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PostFeed extends StatelessWidget {
-  final List<PostModel> posts;
-  final String emptyLabel;
-
-  const _PostFeed({required this.posts, this.emptyLabel = 'No posts yet'});
-
-  @override
-  Widget build(BuildContext context) {
-    if (posts.isEmpty) return _EmptyFeed(label: emptyLabel);
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      itemCount: posts.length,
-      separatorBuilder: (_, __) => Space.vertical(12),
-      itemBuilder: (_, i) => PostCard(post: posts[i]),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty feed placeholder
+// Empty / error placeholders
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyFeed extends StatelessWidget {
@@ -363,6 +419,46 @@ class _EmptyFeed extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: red, size: 44),
+            Space.vertical(12),
+            Text(
+              message,
+              style: AppTextStyles.normal.copyWith(color: textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            Space.vertical(16),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: purple,
+                foregroundColor: kWhiteColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }

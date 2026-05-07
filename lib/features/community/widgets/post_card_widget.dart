@@ -1,55 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
 import 'package:purepath/features/community/pages/post_detail_page.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Post card widget
 //
-// Displays one [PostModel] in the community feed.
-// Like state is managed locally — no BLoC needed for a view-only tab.
-// Tapping opens [PostDetailPage].
+// Pure display: like state and like count come from the [PostModel] itself
+// (kept fresh by [CommunityBloc]'s Firestore stream). Tapping the heart
+// dispatches [CommunityPostLikeToggled].
 // ─────────────────────────────────────────────────────────────────────────────
 
-class PostCard extends StatefulWidget {
+class PostCard extends StatelessWidget {
   final PostModel post;
-  const PostCard({super.key, required this.post});
+  final String? currentUid;
 
-  @override
-  State<PostCard> createState() => _PostCardState();
-}
+  const PostCard({super.key, required this.post, required this.currentUid});
 
-class _PostCardState extends State<PostCard> {
-  late bool _isLiked;
-  late int _likeCount;
-
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = false;
-    _likeCount = widget.post.likeCount;
+  void _toggleLike(BuildContext context) {
+    context.read<CommunityBloc>().add(CommunityPostLikeToggled(post.id));
   }
 
-  void _toggleLike() => setState(() {
-        _isLiked = !_isLiked;
-        _likeCount += _isLiked ? 1 : -1;
-      });
-
-  void _openDetail() => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PostDetailPage(post: widget.post),
-        ),
-      );
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PostDetailPage(post: post),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
+    final isOwn = post.isOwnedBy(currentUid);
+    final isLiked = post.isLikedBy(currentUid);
 
     return GestureDetector(
-      onTap: _openDetail,
+      onTap: () => _openDetail(context),
       child: Container(
         decoration: BoxDecoration(
           color: kWhiteColor,
@@ -70,11 +61,8 @@ class _PostCardState extends State<PostCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Author row ─────────────────────────────────────────
-                  _AuthorRow(post: post),
+                  _AuthorRow(post: post, isOwn: isOwn),
                   Space.vertical(10),
-
-                  // ── Post text ──────────────────────────────────────────
                   Text(
                     post.content,
                     style: AppTextStyles.normal.copyWith(
@@ -88,23 +76,18 @@ class _PostCardState extends State<PostCard> {
                 ],
               ),
             ),
-
-            // ── Image ──────────────────────────────────────────────────
-            if (post.imageUrl != null)
-              _PostImage(url: post.imageUrl!),
-
-            // ── Actions ────────────────────────────────────────────────
+            if (post.imageUrl != null) _PostImage(url: post.imageUrl!),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
               child: Row(
                 children: [
                   _LikeButton(
-                    isLiked: _isLiked,
-                    count: _likeCount,
-                    onTap: _toggleLike,
+                    isLiked: isLiked,
+                    count: post.likeCount,
+                    onTap: () => _toggleLike(context),
                   ),
                   Space.horizontal(16),
-                  _CommentCount(count: post.comments.length),
+                  _CommentCount(count: post.commentCount),
                   const Spacer(),
                   Text(
                     'Read more',
@@ -135,20 +118,22 @@ class _PostCardState extends State<PostCard> {
 
 class _AuthorRow extends StatelessWidget {
   final PostModel post;
-  const _AuthorRow({required this.post});
+  final bool isOwn;
+  const _AuthorRow({required this.post, required this.isOwn});
 
   @override
   Widget build(BuildContext context) {
+    final authorColor = post.authorColor;
     return Row(
       children: [
         CircleAvatar(
           radius: 19,
-          backgroundColor: post.authorColor.withOpacityValue(0.15),
+          backgroundColor: authorColor.withOpacityValue(0.15),
           child: Text(
             post.authorInitial,
             style: AppTextStyles.bold.copyWith(
               fontSize: 15,
-              color: post.authorColor,
+              color: authorColor,
             ),
           ),
         ),
@@ -159,11 +144,14 @@ class _AuthorRow extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
-                    post.authorName,
-                    style: AppTextStyles.semiBold.copyWith(fontSize: 14),
+                  Flexible(
+                    child: Text(
+                      post.authorName,
+                      style: AppTextStyles.semiBold.copyWith(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  if (post.isOwnPost) ...[
+                  if (isOwn) ...[
                     Space.horizontal(6),
                     _YouBadge(),
                   ],
@@ -180,8 +168,78 @@ class _AuthorRow extends StatelessWidget {
             ],
           ),
         ),
+        if (isOwn)
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_horiz_rounded,
+                size: 20, color: textSecondary),
+            onSelected: (v) {
+              if (v == 'delete') {
+                _confirmDelete(context, post.id);
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline_rounded,
+                        size: 18, color: red),
+                    Space.horizontal(8),
+                    Text(
+                      'Delete',
+                      style: AppTextStyles.medium.copyWith(color: red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
       ],
     );
+  }
+
+  void _confirmDelete(BuildContext context, String postId) {
+    showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kWhiteColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete post',
+            style: AppTextStyles.bold.copyWith(fontSize: 18)),
+        content: Text(
+          'This post and all its comments will be permanently removed.',
+          style: AppTextStyles.normal.copyWith(color: textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.medium.copyWith(color: textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: red,
+              foregroundColor: kWhiteColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: AppTextStyles.semiBold.copyWith(color: kWhiteColor),
+            ),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && context.mounted) {
+        context.read<CommunityBloc>().add(CommunityPostDeleted(postId));
+      }
+    });
   }
 }
 

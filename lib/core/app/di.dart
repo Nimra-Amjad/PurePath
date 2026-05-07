@@ -7,6 +7,9 @@ import 'package:purepath/core/providers/firebase_auth_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
+import 'package:purepath/features/community/bloc/community_bloc.dart';
+import 'package:purepath/features/community/repositories/community_repository.dart';
+import 'package:purepath/features/community/repositories/firestore_community_repository.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/repositories/firestore_home_repository.dart';
@@ -90,6 +93,9 @@ class _RepositoryDI extends StatelessWidget {
         RepositoryProvider<HomeRepository>(
           create: (_) => FirestoreHomeRepository(),
         ),
+        RepositoryProvider<CommunityRepository>(
+          create: (_) => FirestoreCommunityRepository(),
+        ),
       ],
       child: child,
     );
@@ -123,6 +129,12 @@ class _BlocDI extends StatelessWidget {
         BlocProvider<InsightsBloc>(
           create: (ctx) =>
               InsightsBloc(repository: ctx.read<HomeRepository>()),
+        ),
+        BlocProvider<CommunityBloc>(
+          create: (ctx) => CommunityBloc(
+            repository: ctx.read<CommunityRepository>(),
+            userRepository: ctx.read<UserRepository>(),
+          )..add(CommunityStarted()),
         ),
       ],
       child: child,

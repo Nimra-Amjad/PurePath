@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/bloc/community_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Create Post page
 //
-// A full-screen compose sheet where the user types a post and optionally
-// attaches an image URL.  Pops with a [PostModel] on submit.
+// Submits a new post via [CommunityBloc] which writes to Firestore.
+// On submit, we wait for the bloc to finish persisting and then pop.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CreatePostPage extends StatefulWidget {
@@ -25,14 +27,15 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final _contentFocus = FocusNode();
 
   bool _showImageField = false;
+  bool _isSubmitting = false;
 
-  bool get _canPost => _contentController.text.trim().isNotEmpty;
+  bool get _canPost =>
+      !_isSubmitting && _contentController.text.trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
     _contentController.addListener(() => setState(() {}));
-    // Auto-focus the text field after the frame is built
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _contentFocus.requestFocus(),
     );
@@ -46,30 +49,38 @@ class _CreatePostPageState extends State<CreatePostPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final content = _contentController.text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty || _isSubmitting) return;
 
     final imageUrl = _imageController.text.trim();
 
-    final newPost = PostModel(
-      id: 'p_${DateTime.now().millisecondsSinceEpoch}',
-      authorName: 'Ahmad',
-      authorInitial: 'A',
-      authorColor: const Color(0xFF6C4DFF),
-      isOwnPost: true,
-      timeAgo: 'Just now',
+    final bloc = context.read<CommunityBloc>();
+    final user = bloc.currentUser;
+    if (user == null || user.uid.isEmpty) {
+      AppSnackBar.error(context, 'Please sign in to post.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    bloc.add(CommunityPostCreated(
       content: content,
       imageUrl: imageUrl.isEmpty ? null : imageUrl,
-      likeCount: 0,
-      comments: const [],
-    );
+    ));
 
-    Navigator.of(context).pop(newPost);
+    if (!mounted) return;
+    AppSnackBar.success(context, 'Post published!');
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.read<CommunityBloc>().currentUser;
+    final fullName = user?.fullName ?? 'You';
+    final initial =
+        fullName.isNotEmpty ? fullName.trim()[0].toUpperCase() : 'A';
+
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
@@ -102,13 +113,22 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(
-                'Post',
-                style: AppTextStyles.semiBold.copyWith(
-                  fontSize: 14,
-                  color: kWhiteColor,
-                ),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: kWhiteColor,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Post',
+                      style: AppTextStyles.semiBold.copyWith(
+                        fontSize: 14,
+                        color: kWhiteColor,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -127,7 +147,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   radius: 22,
                   backgroundColor: purple.withOpacityValue(0.12),
                   child: Text(
-                    'A',
+                    initial,
                     style: AppTextStyles.bold.copyWith(
                       fontSize: 18,
                       color: purple,
@@ -140,7 +160,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ahmad Raza',
+                        fullName,
                         style: AppTextStyles.semiBold.copyWith(fontSize: 15),
                       ),
                       Space.vertical(2),
@@ -183,7 +203,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   height: 1.5,
                 ),
                 decoration: InputDecoration(
-                  hintText: "What's on your mind? Share a habit win, tip, or motivation… 💪",
+                  hintText:
+                      "What's on your mind? Share a habit win, tip, or motivation… 💪",
                   hintStyle: AppTextStyles.normal.copyWith(
                     fontSize: 15,
                     color: textSecondary,
@@ -229,7 +250,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                         Expanded(
                           child: TextField(
                             controller: _imageController,
-                            style: AppTextStyles.normal.copyWith(fontSize: 14),
+                            style:
+                                AppTextStyles.normal.copyWith(fontSize: 14),
                             decoration: InputDecoration(
                               hintText: 'Paste image URL (optional)',
                               hintStyle: AppTextStyles.normal.copyWith(
@@ -258,7 +280,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
             // ── Toolbar ─────────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               decoration: BoxDecoration(
                 color: kWhiteColor,
                 borderRadius: BorderRadius.circular(16),
@@ -282,8 +305,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     label: 'Emoji',
                     onTap: () {
                       _contentController.text += ' 🔥';
-                      _contentController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _contentController.text.length),
+                      _contentController.selection =
+                          TextSelection.fromPosition(
+                        TextPosition(
+                            offset: _contentController.text.length),
                       );
                     },
                   ),
@@ -293,8 +318,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     onTap: () {
                       final sel = _contentController.selection;
                       if (sel.isCollapsed) return;
-                      final selected =
-                          _contentController.text.substring(sel.start, sel.end);
+                      final selected = _contentController.text
+                          .substring(sel.start, sel.end);
                       final newText = _contentController.text
                           .replaceRange(sel.start, sel.end, '**$selected**');
                       _contentController.text = newText;

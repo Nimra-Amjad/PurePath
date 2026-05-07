@@ -1,19 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/repositories/community_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Post detail page
 //
-// Full post at top → comments below.
-// Each comment supports:
-//   • Like / unlike (heart + count)
-//   • Expand / collapse replies
-//   • Type and submit a new reply (stored locally)
-// Each reply also supports like / unlike.
+// Streams comments live from Firestore. New comments and replies are
+// persisted via [CommunityRepository]. Likes are toggled via the same.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PostDetailPage extends StatefulWidget {
@@ -25,58 +28,80 @@ class PostDetailPage extends StatefulWidget {
 }
 
 class _PostDetailPageState extends State<PostDetailPage> {
-  late bool _isLiked;
-  late int _likeCount;
-  late List<CommentModel> _comments;
-
   final TextEditingController _commentCtrl = TextEditingController();
   final FocusNode _commentFocus = FocusNode();
+  bool _submittingComment = false;
+
+  // Local mirror of the comments stream. We hold our own list so the UI
+  // doesn't get rebuilt from scratch every time the stream re-emits — only
+  // newly-added items mount, and existing tiles keep their state thanks to
+  // ValueKey(comment.id).
+  StreamSubscription<List<CommentModel>>? _commentsSub;
+  List<CommentModel>? _comments;
+  bool _commentsLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _isLiked = false;
-    _likeCount = widget.post.likeCount;
-    _comments = List.of(widget.post.comments);
+    // Defer subscription to first frame so context.read works.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _commentsSub = context
+          .read<CommunityRepository>()
+          .watchComments(widget.post.id)
+          .listen((comments) {
+        if (!mounted) return;
+        setState(() {
+          _comments = comments;
+          _commentsLoaded = true;
+        });
+      });
+    });
   }
 
   @override
   void dispose() {
+    _commentsSub?.cancel();
     _commentCtrl.dispose();
     _commentFocus.dispose();
     super.dispose();
   }
 
-  void _toggleLike() => setState(() {
-    _isLiked = !_isLiked;
-    _likeCount += _isLiked ? 1 : -1;
-  });
-
-  void _submitComment() {
+  Future<void> _submitComment() async {
     final text = _commentCtrl.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _comments.insert(
-        0,
-        CommentModel(
-          id: 'c_new_${DateTime.now().millisecondsSinceEpoch}',
-          authorName: 'Ahmad',
-          authorInitial: 'A',
-          authorColor: const Color(0xFF6C4DFF),
-          timeAgo: 'Just now',
-          text: text,
-          likeCount: 0,
-          replies: const [],
-        ),
-      );
-    });
-    _commentCtrl.clear();
-    _commentFocus.unfocus();
+    if (text.isEmpty || _submittingComment) return;
+
+    final bloc = context.read<CommunityBloc>();
+    final user = bloc.currentUser;
+    if (user == null || user.uid.isEmpty) {
+      AppSnackBar.error(context, 'Please sign in to comment.');
+      return;
+    }
+
+    setState(() => _submittingComment = true);
+    try {
+      await context.read<CommunityRepository>().addComment(
+            postId: widget.post.id,
+            userId: user.uid,
+            authorName: user.fullName,
+            authorImgUrl: user.imgUrl,
+            text: text,
+          );
+      _commentCtrl.clear();
+      _commentFocus.unfocus();
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Could not post comment.');
+    } finally {
+      if (mounted) setState(() => _submittingComment = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
+    final currentUid = context.select<UserBloc, String?>(
+      (b) => b.state.user?.uid,
+    );
 
     return Scaffold(
       backgroundColor: bg,
@@ -94,71 +119,105 @@ class _PostDetailPageState extends State<PostDetailPage> {
         title: Text('Post', style: AppTextStyles.bold.copyWith(fontSize: 18)),
       ),
 
-      // ── Sticky comment input bar ─────────────────────────────────────────
       bottomNavigationBar: _CommentInputBar(
         controller: _commentCtrl,
         focusNode: _commentFocus,
         onSubmit: _submitComment,
+        submitting: _submittingComment,
       ),
 
-      body: CustomScrollView(
-        slivers: [
-          // ── Full post ────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _FullPost(
-              post: post,
-              isLiked: _isLiked,
-              likeCount: _likeCount,
-              onLikeTap: _toggleLike,
-            ),
-          ),
+      body: BlocBuilder<CommunityBloc, CommunityState>(
+        // Pull the always-current PostModel from the bloc so likes/counts stay
+        // fresh while the user is on this page.
+        builder: (context, state) {
+          final post = state.posts.firstWhere(
+            (p) => p.id == widget.post.id,
+            orElse: () => widget.post,
+          );
 
-          // ── Comments header ──────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-              child: Row(
-                children: [
-                  Text(
-                    'Comments',
-                    style: AppTextStyles.semiBold.copyWith(fontSize: 16),
+          final comments = _comments ?? const <CommentModel>[];
+
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _FullPost(
+                  post: post,
+                  isLiked: post.isLikedBy(currentUid),
+                  onLikeTap: () => context
+                      .read<CommunityBloc>()
+                      .add(CommunityPostLikeToggled(post.id)),
+                ),
+              ),
+
+              // ── Comments header (live count) ─────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Comments',
+                        style:
+                            AppTextStyles.semiBold.copyWith(fontSize: 16),
+                      ),
+                      Space.horizontal(8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: purple.withOpacityValue(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${comments.length}',
+                          style: AppTextStyles.semiBold.copyWith(
+                            fontSize: 12,
+                            color: purple,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Space.horizontal(8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: purple.withOpacityValue(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_comments.length}',
-                      style: AppTextStyles.semiBold.copyWith(
-                        fontSize: 12,
+                ),
+              ),
+
+              // ── Comments list ────────────────────────────────────────────
+              if (!_commentsLoaded)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: CircularProgressIndicator(
                         color: purple,
+                        strokeWidth: 2,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                )
+              else if (comments.isEmpty)
+                const SliverToBoxAdapter(child: _EmptyComments())
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) {
+                      final c = comments[i];
+                      return _CommentTile(
+                        // Stable key → existing tiles keep their state and
+                        // don't get torn down when a new comment is inserted.
+                        key: ValueKey(c.id),
+                        postId: post.id,
+                        comment: c,
+                        currentUid: currentUid,
+                      );
+                    },
+                    childCount: comments.length,
+                  ),
+                ),
 
-          // ── Comments list ────────────────────────────────────────────────
-          if (_comments.isEmpty)
-            const SliverToBoxAdapter(child: _EmptyComments())
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => _CommentTile(comment: _comments[i]),
-                childCount: _comments.length,
-              ),
-            ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          );
+        },
       ),
     );
   }
@@ -171,18 +230,19 @@ class _PostDetailPageState extends State<PostDetailPage> {
 class _FullPost extends StatelessWidget {
   final PostModel post;
   final bool isLiked;
-  final int likeCount;
   final VoidCallback onLikeTap;
 
   const _FullPost({
     required this.post,
     required this.isLiked,
-    required this.likeCount,
     required this.onLikeTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = context.select<UserBloc, String?>(
+      (b) => b.state.user?.uid,
+    );
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -222,13 +282,16 @@ class _FullPost extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            post.authorName,
-                            style: AppTextStyles.semiBold.copyWith(
-                              fontSize: 15,
+                          Flexible(
+                            child: Text(
+                              post.authorName,
+                              style: AppTextStyles.semiBold.copyWith(
+                                fontSize: 15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (post.isOwnPost) ...[
+                          if (post.isOwnedBy(currentUid)) ...[
                             Space.horizontal(6),
                             _YouBadge(),
                           ],
@@ -249,7 +312,6 @@ class _FullPost extends StatelessWidget {
             ),
           ),
 
-          // Content (full, no truncation)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: Text(
@@ -262,7 +324,6 @@ class _FullPost extends StatelessWidget {
             ),
           ),
 
-          // Image
           if (post.imageUrl != null) ...[
             Space.vertical(12),
             ClipRRect(
@@ -292,7 +353,6 @@ class _FullPost extends StatelessWidget {
             ),
           ],
 
-          // Actions — likes only (comment count is shown in the section below)
           Padding(
             padding: EdgeInsets.fromLTRB(
               14,
@@ -314,7 +374,7 @@ class _FullPost extends StatelessWidget {
                   ),
                   Space.horizontal(5),
                   Text(
-                    '$likeCount likes',
+                    '${post.likeCount} likes',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 13,
                       color: isLiked ? red : textSecondary,
@@ -335,67 +395,111 @@ class _FullPost extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CommentTile extends StatefulWidget {
+  final String postId;
   final CommentModel comment;
-  const _CommentTile({required this.comment});
+  final String? currentUid;
+
+  const _CommentTile({
+    super.key,
+    required this.postId,
+    required this.comment,
+    required this.currentUid,
+  });
 
   @override
   State<_CommentTile> createState() => _CommentTileState();
 }
 
 class _CommentTileState extends State<_CommentTile> {
-  late bool _isLiked;
-  late int _likeCount;
   bool _showReplies = false;
   bool _showReplyInput = false;
-  late List<ReplyModel> _replies;
+  bool _submittingReply = false;
   final TextEditingController _replyController = TextEditingController();
   final FocusNode _replyFocus = FocusNode();
 
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = false;
-    _likeCount = widget.comment.likeCount;
-    _replies = List.from(widget.comment.replies);
+  // Local mirror of the replies stream for this comment. Subscribed lazily
+  // the first time the user opens the replies — keeps idle comments cheap.
+  StreamSubscription<List<ReplyModel>>? _repliesSub;
+  List<ReplyModel> _replies = const [];
+
+  void _ensureRepliesSubscribed() {
+    if (_repliesSub != null) return;
+    _repliesSub = context
+        .read<CommunityRepository>()
+        .watchReplies(postId: widget.postId, commentId: widget.comment.id)
+        .listen((replies) {
+      if (!mounted) return;
+      setState(() => _replies = replies);
+    });
   }
 
   @override
   void dispose() {
+    _repliesSub?.cancel();
     _replyController.dispose();
     _replyFocus.dispose();
     super.dispose();
   }
 
-  void _toggleLike() => setState(() {
-    _isLiked = !_isLiked;
-    _likeCount += _isLiked ? 1 : -1;
-  });
+  void _toggleLike() {
+    final user = context.read<CommunityBloc>().currentUser;
+    if (user == null || user.uid.isEmpty) return;
+    context.read<CommunityRepository>().toggleCommentLike(
+          postId: widget.postId,
+          commentId: widget.comment.id,
+          userId: user.uid,
+        );
+  }
 
-  void _submitReply() {
+  Future<void> _submitReply() async {
     final text = _replyController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _submittingReply) return;
 
-    setState(() {
-      _replies.add(
-        ReplyModel(
-          id: 'r_new_${DateTime.now().millisecondsSinceEpoch}',
-          authorName: 'Ahmad',
-          authorInitial: 'A',
-          authorColor: const Color(0xFF6C4DFF),
-          timeAgo: 'Just now',
-          text: text,
-          likeCount: 0,
-        ),
-      );
-      _showReplies = true;
-      _showReplyInput = false;
+    final bloc = context.read<CommunityBloc>();
+    final user = bloc.currentUser;
+    if (user == null || user.uid.isEmpty) {
+      AppSnackBar.error(context, 'Please sign in to reply.');
+      return;
+    }
+
+    setState(() => _submittingReply = true);
+    try {
+      // Make sure we're subscribed before the new reply lands so the stream
+      // emission updates the local list without an extra fetch.
+      _ensureRepliesSubscribed();
+      await context.read<CommunityRepository>().addReply(
+            postId: widget.postId,
+            commentId: widget.comment.id,
+            userId: user.uid,
+            authorName: user.fullName,
+            authorImgUrl: user.imgUrl,
+            text: text,
+          );
       _replyController.clear();
-    });
-    _replyFocus.unfocus();
+      setState(() {
+        _showReplies = true;
+        _showReplyInput = false;
+      });
+      _replyFocus.unfocus();
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Could not post reply.');
+    } finally {
+      if (mounted) setState(() => _submittingReply = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = widget.comment;
+    final isLiked = c.isLikedBy(widget.currentUid);
+
+    // Subscribe to replies as soon as the comment has any (so the count
+    // stays live) or when the user expands them.
+    if (c.replyCount > 0 || _showReplies) {
+      _ensureRepliesSubscribed();
+    }
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       decoration: BoxDecoration(
@@ -416,14 +520,12 @@ class _CommentTileState extends State<_CommentTile> {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: widget.comment.authorColor.withOpacityValue(
-                    0.15,
-                  ),
+                  backgroundColor: c.authorColor.withOpacityValue(0.15),
                   child: Text(
-                    widget.comment.authorInitial,
+                    c.authorInitial,
                     style: AppTextStyles.semiBold.copyWith(
                       fontSize: 12,
-                      color: widget.comment.authorColor,
+                      color: c.authorColor,
                     ),
                   ),
                 ),
@@ -434,15 +536,18 @@ class _CommentTileState extends State<_CommentTile> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            widget.comment.authorName,
-                            style: AppTextStyles.semiBold.copyWith(
-                              fontSize: 13,
+                          Flexible(
+                            child: Text(
+                              c.authorName,
+                              style: AppTextStyles.semiBold.copyWith(
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const Spacer(),
                           Text(
-                            widget.comment.timeAgo,
+                            c.timeAgo,
                             style: AppTextStyles.normal.copyWith(
                               fontSize: 11,
                               color: textSecondary,
@@ -452,7 +557,7 @@ class _CommentTileState extends State<_CommentTile> {
                       ),
                       Space.vertical(4),
                       Text(
-                        widget.comment.text,
+                        c.text,
                         style: AppTextStyles.normal.copyWith(
                           fontSize: 13,
                           height: 1.5,
@@ -466,29 +571,28 @@ class _CommentTileState extends State<_CommentTile> {
             ),
           ),
 
-          // ── Comment actions (like + reply) ─────────────────────────────
+          // ── Comment actions (like + reply + replies toggle) ────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
             child: Row(
               children: [
-                // Like
                 GestureDetector(
                   onTap: _toggleLike,
                   child: Row(
                     children: [
                       Icon(
-                        _isLiked
+                        isLiked
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         size: 16,
-                        color: _isLiked ? red : textSecondary,
+                        color: isLiked ? red : textSecondary,
                       ),
                       Space.horizontal(4),
                       Text(
-                        '$_likeCount',
+                        '${c.likeCount}',
                         style: AppTextStyles.medium.copyWith(
                           fontSize: 12,
-                          color: _isLiked ? red : textSecondary,
+                          color: isLiked ? red : textSecondary,
                         ),
                       ),
                     ],
@@ -496,7 +600,6 @@ class _CommentTileState extends State<_CommentTile> {
                 ),
                 Space.horizontal(16),
 
-                // Reply button
                 GestureDetector(
                   onTap: () => setState(() {
                     _showReplyInput = !_showReplyInput;
@@ -517,8 +620,7 @@ class _CommentTileState extends State<_CommentTile> {
                   ),
                 ),
 
-                // Show/hide replies toggle
-                if (_replies.isNotEmpty) ...[
+                if (c.replyCount > 0) ...[
                   const Spacer(),
                   GestureDetector(
                     onTap: () => setState(() => _showReplies = !_showReplies),
@@ -527,7 +629,7 @@ class _CommentTileState extends State<_CommentTile> {
                         Text(
                           _showReplies
                               ? 'Hide replies'
-                              : '${_replies.length} ${_replies.length == 1 ? 'reply' : 'replies'}',
+                              : '${c.replyCount} ${c.replyCount == 1 ? 'reply' : 'replies'}',
                           style: AppTextStyles.medium.copyWith(
                             fontSize: 12,
                             color: purple,
@@ -549,13 +651,22 @@ class _CommentTileState extends State<_CommentTile> {
             ),
           ),
 
-          // ── Replies list ───────────────────────────────────────────────
+          // ── Replies ────────────────────────────────────────────────────
           if (_showReplies && _replies.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(left: 40, right: 14, bottom: 10),
+              margin:
+                  const EdgeInsets.only(left: 40, right: 14, bottom: 10),
               child: Column(
                 children: _replies
-                    .map((reply) => _ReplyTile(reply: reply))
+                    .map((r) => _ReplyTile(
+                          // Stable key → existing reply tiles don't rebuild
+                          // when a new reply is appended.
+                          key: ValueKey(r.id),
+                          postId: widget.postId,
+                          commentId: c.id,
+                          reply: r,
+                          currentUid: widget.currentUid,
+                        ))
                     .toList(),
               ),
             ),
@@ -603,11 +714,20 @@ class _CommentTileState extends State<_CommentTile> {
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
-                          icon: const Icon(
-                            Icons.send_rounded,
-                            size: 18,
-                            color: purple,
-                          ),
+                          icon: _submittingReply
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: purple,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.send_rounded,
+                                  size: 18,
+                                  color: purple,
+                                ),
                           onPressed: _submitReply,
                         ),
                       ),
@@ -627,38 +747,39 @@ class _CommentTileState extends State<_CommentTile> {
 // Reply tile — indented, with its own like toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ReplyTile extends StatefulWidget {
+class _ReplyTile extends StatelessWidget {
+  final String postId;
+  final String commentId;
   final ReplyModel reply;
-  const _ReplyTile({required this.reply});
+  final String? currentUid;
 
-  @override
-  State<_ReplyTile> createState() => _ReplyTileState();
-}
-
-class _ReplyTileState extends State<_ReplyTile> {
-  late bool _isLiked;
-  late int _likeCount;
-
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = false;
-    _likeCount = widget.reply.likeCount;
-  }
-
-  void _toggleLike() => setState(() {
-    _isLiked = !_isLiked;
-    _likeCount += _isLiked ? 1 : -1;
+  const _ReplyTile({
+    super.key,
+    required this.postId,
+    required this.commentId,
+    required this.reply,
+    required this.currentUid,
   });
+
+  void _toggleLike(BuildContext context) {
+    final user = context.read<CommunityBloc>().currentUser;
+    if (user == null || user.uid.isEmpty) return;
+    context.read<CommunityRepository>().toggleReplyLike(
+          postId: postId,
+          commentId: commentId,
+          replyId: reply.id,
+          userId: user.uid,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isLiked = reply.isLikedBy(currentUid);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Indent line
           Container(
             width: 1.5,
             height: 50,
@@ -668,33 +789,34 @@ class _ReplyTileState extends State<_ReplyTile> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-
           CircleAvatar(
             radius: 13,
-            backgroundColor: widget.reply.authorColor.withOpacityValue(0.15),
+            backgroundColor: reply.authorColor.withOpacityValue(0.15),
             child: Text(
-              widget.reply.authorInitial,
+              reply.authorInitial,
               style: AppTextStyles.semiBold.copyWith(
                 fontSize: 10,
-                color: widget.reply.authorColor,
+                color: reply.authorColor,
               ),
             ),
           ),
           Space.horizontal(8),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
-                      widget.reply.authorName,
-                      style: AppTextStyles.semiBold.copyWith(fontSize: 12),
+                    Flexible(
+                      child: Text(
+                        reply.authorName,
+                        style: AppTextStyles.semiBold.copyWith(fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const Spacer(),
                     Text(
-                      widget.reply.timeAgo,
+                      reply.timeAgo,
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 10,
                         color: textSecondary,
@@ -704,7 +826,7 @@ class _ReplyTileState extends State<_ReplyTile> {
                 ),
                 Space.vertical(3),
                 Text(
-                  widget.reply.text,
+                  reply.text,
                   style: AppTextStyles.normal.copyWith(
                     fontSize: 12,
                     height: 1.5,
@@ -712,25 +834,24 @@ class _ReplyTileState extends State<_ReplyTile> {
                   ),
                 ),
                 Space.vertical(5),
-                // Like button
                 GestureDetector(
-                  onTap: _toggleLike,
+                  onTap: () => _toggleLike(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _isLiked
+                        isLiked
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         size: 13,
-                        color: _isLiked ? red : textSecondary,
+                        color: isLiked ? red : textSecondary,
                       ),
                       Space.horizontal(3),
                       Text(
-                        '$_likeCount',
+                        '${reply.likeCount}',
                         style: AppTextStyles.medium.copyWith(
                           fontSize: 11,
-                          color: _isLiked ? red : textSecondary,
+                          color: isLiked ? red : textSecondary,
                         ),
                       ),
                     ],
@@ -753,11 +874,13 @@ class _CommentInputBar extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onSubmit;
+  final bool submitting;
 
   const _CommentInputBar({
     required this.controller,
     required this.focusNode,
     required this.onSubmit,
+    required this.submitting,
   });
 
   @override
@@ -776,8 +899,13 @@ class _CommentInputBarState extends State<_CommentInputBar> {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final user = context.read<CommunityBloc>().currentUser;
+    final initial =
+        (user?.fullName.isNotEmpty ?? false) ? user!.fullName[0].toUpperCase() : 'A';
+
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 10, 16, (bottom > 0 ? bottom : 24) + 10),
+      padding:
+          EdgeInsets.fromLTRB(16, 10, 16, (bottom > 0 ? bottom : 24) + 10),
       decoration: BoxDecoration(
         color: kWhiteColor,
         boxShadow: [
@@ -789,15 +917,13 @@ class _CommentInputBarState extends State<_CommentInputBar> {
         ],
       ),
       child: Row(
-        // crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Avatar
-          const CircleAvatar(
+          CircleAvatar(
             radius: 18,
-            backgroundColor: Color(0xFF6C4DFF),
+            backgroundColor: const Color(0xFF6C4DFF),
             child: Text(
-              'A',
-              style: TextStyle(
+              initial,
+              style: const TextStyle(
                 color: kWhiteColor,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -805,8 +931,6 @@ class _CommentInputBarState extends State<_CommentInputBar> {
             ),
           ),
           Space.horizontal(10),
-
-          // Input field
           Expanded(
             child: Container(
               constraints: const BoxConstraints(maxHeight: 120),
@@ -846,8 +970,6 @@ class _CommentInputBarState extends State<_CommentInputBar> {
                       onSubmitted: (_) => widget.onSubmit(),
                     ),
                   ),
-
-                  // Send button — only visible when there's text
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 180),
                     transitionBuilder: (child, anim) => ScaleTransition(
@@ -857,14 +979,25 @@ class _CommentInputBarState extends State<_CommentInputBar> {
                     child: _hasText
                         ? Padding(
                             key: const ValueKey('send'),
-                            padding: const EdgeInsets.only(right: 6, bottom: 4),
+                            padding:
+                                const EdgeInsets.only(right: 6, bottom: 4),
                             child: IconButton(
-                              onPressed: widget.onSubmit,
-                              icon: const Icon(
-                                Icons.send_rounded,
-                                size: 20,
-                                color: purple,
-                              ),
+                              onPressed:
+                                  widget.submitting ? null : widget.onSubmit,
+                              icon: widget.submitting
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: purple,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.send_rounded,
+                                      size: 20,
+                                      color: purple,
+                                    ),
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.all(6),
                             ),
