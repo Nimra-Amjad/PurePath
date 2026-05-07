@@ -68,15 +68,25 @@ class FirestoreHomeRepository implements HomeRepository {
 
     final query = await _habitsRef.where('userId', isEqualTo: uid).get();
 
+    // Build the habits list and a side-map of createdAt millis in one pass.
+    // Doing the lookup inline (instead of calling firstWhere/orElse later)
+    // sidesteps a Firestore typing quirk: the static type is
+    // `QueryDocumentSnapshot<Map<String, dynamic>>` but the runtime type is
+    // the package-private `_JsonQueryDocumentSnapshot`, which makes
+    // `orElse: () => docs.first` fail its subtype check at runtime.
+    final createdAtById = <String, int>{};
     final habits = query.docs.map((doc) {
-      final data = {...doc.data(), 'id': doc.id};
-      return HabitDefinition.fromMap(data);
+      final raw = doc.data();
+      final ts = raw['createdAt'];
+      createdAtById[doc.id] =
+          ts is Timestamp ? ts.millisecondsSinceEpoch : 0;
+      return HabitDefinition.fromMap({...raw, 'id': doc.id});
     }).toList();
 
     // Sort by createdAt client-side so older habits appear first.
     habits.sort((a, b) {
-      final ta = _createdAtMillis(query.docs, a.id);
-      final tb = _createdAtMillis(query.docs, b.id);
+      final ta = createdAtById[a.id] ?? 0;
+      final tb = createdAtById[b.id] ?? 0;
       return ta.compareTo(tb);
     });
 
@@ -155,7 +165,17 @@ class FirestoreHomeRepository implements HomeRepository {
     DateTime weekStart,
   ) async {
     final habits = await getAllHabits();
-    final hasDoneByKey = await _fetchWeekHasDone(weekStart);
+
+    // Completion data is best-effort: if Firestore rules don't allow reads
+    // on `insights`, or the network blips, we still want to render the
+    // habits list (just with everything unchecked) instead of erroring out
+    // the entire home page.
+    Map<String, bool> hasDoneByKey;
+    try {
+      hasDoneByKey = await _fetchWeekHasDone(weekStart);
+    } catch (_) {
+      hasDoneByKey = const {};
+    }
 
     final result = <DateTime, DaySummary>{};
 
@@ -239,16 +259,4 @@ class FirestoreHomeRepository implements HomeRepository {
     return '$y-$m-$d';
   }
 
-  static int _createdAtMillis(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-    String id,
-  ) {
-    final doc = docs.firstWhere(
-      (d) => d.id == id,
-      orElse: () => docs.first,
-    );
-    final ts = doc.data()['createdAt'];
-    if (ts is Timestamp) return ts.millisecondsSinceEpoch;
-    return 0;
-  }
 }
