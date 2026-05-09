@@ -60,116 +60,120 @@ class _LoginPageState extends State<LoginPage> {
             key: _formKey,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SvgPicture.asset(Assets.svgLogoSmall),
-                  Space.vertical(20),
-                  Text(
-                    'Welcome Back',
-                    style: AppTextStyles.bold.copyWith(
-                      color: kPrimaryColor,
-                      fontSize: 35,
-                    ),
-                  ),
-                  Text(
-                    'Login to access you account',
-                    style: AppTextStyles.normal.copyWith(
-                      color: kBlackColor,
-                      fontSize: 20,
-                    ),
-                  ),
-                  Space.vertical(30),
-                  CustomTextField(
-                    hintText: "Email",
-                    controller: _emailTextController,
-                    prefix: SvgPicture.asset(
-                      Assets.svgEmailIcon,
-                      colorFilter: colorFilter(color: kPrimaryColor),
-                    ),
-                    validator: (value) {
-                      return Validators.email(value);
-                    },
-                  ),
-                  Space.vertical(16),
-                  CustomTextField(
-                    hintText: "Password",
-                    controller: _passwordTextController,
-                    obscureText: hidePassword,
-                    validator: (value) {
-                      return Validators.password(value);
-                    },
-                    prefix: SvgPicture.asset(
-                      Assets.svgLockIcon,
-                      colorFilter: colorFilter(color: kPrimaryColor),
-                    ),
-                    suffix: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          hidePassword = !hidePassword;
-                        });
-                      },
-                      child: SvgPicture.asset(
-                        hidePassword
-                            ? Assets.svgEyeCloseIcon
-                            : Assets.svgEyeOpenIcon,
-                        colorFilter: colorFilter(color: kPrimaryColor),
-                      ),
-                    ),
-                  ),
-                  Space.vertical(30),
-                  PrimaryButton(
-                    text: "Login",
-                    // inactive: true,
-                    isLoading: state is AuthLoading,
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        context.read<UserBloc>().add(
-                          LoginRequested(
-                            email: _emailTextController.text.trim(),
-                            password: _passwordTextController.text.trim(),
-                          ),
-                        ); 
-                      }
-                    },
-                  ),
-                  Space.vertical(30),
-                  GestureDetector(
-                    onTap: () {
-                      context.push(AppRoute.signup.path);
-                    },
-                    child: ColoredBox(
-                      color: kTransparentColor,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 5,
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(Assets.svgLogoSmall),
+                      Space.vertical(20),
+                      Text(
+                        'Welcome Back',
+                        style: AppTextStyles.bold.copyWith(
+                          color: kPrimaryColor,
+                          fontSize: 35,
                         ),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            text: "Don't have an account? ",
-                            style: AppTextStyles.medium.copyWith(
-                              color: kBlackColor,
-                              fontSize: 14,
-                              letterSpacing: 0.2,
+                      ),
+                      Text(
+                        'Login to access you account',
+                        style: AppTextStyles.normal.copyWith(
+                          color: kBlackColor,
+                          fontSize: 20,
+                        ),
+                      ),
+                      Space.vertical(30),
+                      CustomTextField(
+                        hintText: "Email",
+                        controller: _emailTextController,
+                        prefix: SvgPicture.asset(
+                          Assets.svgEmailIcon,
+                          colorFilter: colorFilter(color: kPrimaryColor),
+                        ),
+                        validator: (value) {
+                          return Validators.email(value);
+                        },
+                      ),
+                      Space.vertical(16),
+                      CustomTextField(
+                        hintText: "Password",
+                        controller: _passwordTextController,
+                        obscureText: hidePassword,
+                        validator: (value) {
+                          return Validators.password(value);
+                        },
+                        prefix: SvgPicture.asset(
+                          Assets.svgLockIcon,
+                          colorFilter: colorFilter(color: kPrimaryColor),
+                        ),
+                        suffix: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              hidePassword = !hidePassword;
+                            });
+                          },
+                          child: SvgPicture.asset(
+                            hidePassword
+                                ? Assets.svgEyeCloseIcon
+                                : Assets.svgEyeOpenIcon,
+                            colorFilter: colorFilter(color: kPrimaryColor),
+                          ),
+                        ),
+                      ),
+                      Space.vertical(30),
+                      PrimaryButton(
+                        text: "Login",
+                        // inactive: true,
+                        isLoading: state is AuthLoading,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<UserBloc>().add(
+                              LoginRequested(
+                                email: _emailTextController.text.trim(),
+                                password: _passwordTextController.text.trim(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      Space.vertical(30),
+                      GestureDetector(
+                        onTap: () {
+                          context.push(AppRoute.signup.path);
+                        },
+                        child: ColoredBox(
+                          color: kTransparentColor,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 5,
                             ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: "Sign up",
-                                style: AppTextStyles.semiBold.copyWith(
-                                  color: kPrimaryColor,
+                            child: RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                text: "Don't have an account? ",
+                                style: AppTextStyles.medium.copyWith(
+                                  color: kBlackColor,
                                   fontSize: 14,
                                   letterSpacing: 0.2,
                                 ),
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: "Sign up",
+                                    style: AppTextStyles.semiBold.copyWith(
+                                      color: kPrimaryColor,
+                                      fontSize: 14,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );

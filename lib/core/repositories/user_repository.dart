@@ -72,6 +72,71 @@ class UserRepository {
     }
   }
 
+  /// Permanently deletes everything in Firestore that belongs to the current
+  /// user: their `users` doc, every `habits` doc they own, every per-day
+  /// `insights` doc, and every community post they authored (along with the
+  /// post's nested comments + replies subcollections).
+  ///
+  /// Comments and replies the user wrote on *other people's* posts are left
+  /// in place — walking every post in the database to find them would be
+  /// expensive, and they're effectively orphaned (no auth account left to
+  /// link back to). Their author name will simply persist as a tombstone.
+  ///
+  /// Must be called while the user is still authenticated; once the auth
+  /// account is deleted, security rules typically block follow-up writes.
+  Future<void> deleteAllUserData() async {
+    final uid = firebaseUser?.uid;
+    if (uid == null) return;
+
+    final db = FirebaseFirestore.instance;
+
+    // ── Top-level collections owned by uid ────────────────────────────────
+    Future<void> deleteOwned(String collection) async {
+      final snap =
+          await db.collection(collection).where('userId', isEqualTo: uid).get();
+      for (final doc in snap.docs) {
+        await doc.reference.delete();
+      }
+    }
+
+    await deleteOwned('habits');
+    await deleteOwned('insights');
+
+    // ── Community posts (subcollections need explicit cascade) ────────────
+    final posts = await db
+        .collection('community')
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (final postDoc in posts.docs) {
+      final comments = await postDoc.reference.collection('comments').get();
+      for (final commentDoc in comments.docs) {
+        final replies =
+            await commentDoc.reference.collection('replies').get();
+        for (final replyDoc in replies.docs) {
+          await replyDoc.reference.delete();
+        }
+        await commentDoc.reference.delete();
+      }
+      await postDoc.reference.delete();
+    }
+
+    // ── User profile doc (delete last so the field-based queries above
+    //    still have an authenticated context to run) ────────────────────────
+    await db.collection(_kUsers).doc(uid).delete();
+  }
+
+  /// Renames the current user. Updates Firestore + local cache so anything
+  /// listening to `UserBloc` (profile header, home greeting, post avatars)
+  /// reflects the change immediately.
+  Future<bool> updateFullName(String fullName) async {
+    final ok = await updateUserDocument({'fullName': fullName});
+    final current = localUser;
+    if (ok && current != null) {
+      updateLocalUser(current.copyWith(fullName: fullName));
+    }
+    return ok;
+  }
+
   /// Persists the freshly computed day-streak. The streak itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.

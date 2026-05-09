@@ -24,4 +24,18 @@ class FirebaseAuthRepository {
   );
 
   Future<void> logout() => firebaseAuthProvider.logout();
+
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) =>
+      firebaseAuthProvider.updatePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+  Future<void> reauthenticate(String password) =>
+      firebaseAuthProvider.reauthenticate(password);
+
+  Future<void> deleteAccount() => firebaseAuthProvider.deleteAccount();
 }

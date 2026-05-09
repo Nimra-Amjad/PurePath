@@ -48,131 +48,133 @@ class _SignupPageState extends State<SignupPage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(Assets.svgLogoSmall),
-                    Space.vertical(20),
-                    Text(
-                      'Get Started Now',
-                      style: AppTextStyles.bold.copyWith(
-                        color: kPrimaryColor,
-                        fontSize: 35,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(Assets.svgLogoSmall),
+                      Space.vertical(20),
+                      Text(
+                        'Get Started Now',
+                        style: AppTextStyles.bold.copyWith(
+                          color: kPrimaryColor,
+                          fontSize: 35,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Create an account',
-                      style: AppTextStyles.normal.copyWith(
-                        color: kBlackColor,
-                        fontSize: 20,
+                      Text(
+                        'Create an account',
+                        style: AppTextStyles.normal.copyWith(
+                          color: kBlackColor,
+                          fontSize: 20,
+                        ),
                       ),
-                    ),
-                    Space.vertical(26),
-                    CustomTextField(
-                      hintText: "Full Name",
-                      controller: _fullNameTextController,
-                      textCapitalization: TextCapitalization.words,
-                      inputFormatters: [CapitalizeWordsFormatter()],
-                      validator: (value) {
-                        return Validators.userName(value);
-                      },
-
-                      prefix: SvgPicture.asset(
-                        Assets.svgUserIcon,
-                        colorFilter: colorFilter(color: kPrimaryColor),
-                      ),
-                    ),
-                    Space.vertical(16),
-                    CustomTextField(
-                      hintText: "Email",
-                      controller: _emailTextController,
-                      prefix: SvgPicture.asset(
-                        Assets.svgEmailIcon,
-                        colorFilter: colorFilter(color: kPrimaryColor),
-                      ),
-                      validator: (value) {
-                        return Validators.email(value);
-                      },
-                    ),
-                    Space.vertical(16),
-                    CustomTextField(
-                      hintText: "Password",
-                      controller: _passwordTextController,
-                      obscureText: hidePassword,
-                      validator: (value) {
-                        return Validators.password(value);
-                      },
-                      prefix: SvgPicture.asset(
-                        Assets.svgLockIcon,
-                        colorFilter: colorFilter(color: kPrimaryColor),
-                      ),
-                      suffix: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            hidePassword = !hidePassword;
-                          });
+                      Space.vertical(26),
+                      CustomTextField(
+                        hintText: "Full Name",
+                        controller: _fullNameTextController,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [CapitalizeWordsFormatter()],
+                        validator: (value) {
+                          return Validators.userName(value);
                         },
-                        child: SvgPicture.asset(
-                          hidePassword
-                              ? Assets.svgEyeCloseIcon
-                              : Assets.svgEyeOpenIcon,
+
+                        prefix: SvgPicture.asset(
+                          Assets.svgUserIcon,
                           colorFilter: colorFilter(color: kPrimaryColor),
                         ),
                       ),
-                    ),
-                    Space.vertical(30),
-                    PrimaryButton(
-                      text: "Sign up",
-                      isLoading: state is AuthLoading,
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          context.read<UserBloc>().add(
-                            SignupRequested(
-                              fullName: _fullNameTextController.text.trim(),
-                              email: _emailTextController.text.trim(),
-                              password: _passwordTextController.text.trim(),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    Space.vertical(30),
-                    GestureDetector(
-                      onTap: () {
-                        context.push(AppRoute.login.path);
-                      },
-                      child: ColoredBox(
-                        color: kTransparentColor,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 5,
+                      Space.vertical(16),
+                      CustomTextField(
+                        hintText: "Email",
+                        controller: _emailTextController,
+                        prefix: SvgPicture.asset(
+                          Assets.svgEmailIcon,
+                          colorFilter: colorFilter(color: kPrimaryColor),
+                        ),
+                        validator: (value) {
+                          return Validators.email(value);
+                        },
+                      ),
+                      Space.vertical(16),
+                      CustomTextField(
+                        hintText: "Password",
+                        controller: _passwordTextController,
+                        obscureText: hidePassword,
+                        validator: (value) {
+                          return Validators.password(value);
+                        },
+                        prefix: SvgPicture.asset(
+                          Assets.svgLockIcon,
+                          colorFilter: colorFilter(color: kPrimaryColor),
+                        ),
+                        suffix: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              hidePassword = !hidePassword;
+                            });
+                          },
+                          child: SvgPicture.asset(
+                            hidePassword
+                                ? Assets.svgEyeCloseIcon
+                                : Assets.svgEyeOpenIcon,
+                            colorFilter: colorFilter(color: kPrimaryColor),
                           ),
-                          child: RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
-                              text: "Don't have an account? ",
-                              style: AppTextStyles.medium.copyWith(
-                                color: kBlackColor,
-                                fontSize: 14,
-                                letterSpacing: 0.2,
+                        ),
+                      ),
+                      Space.vertical(30),
+                      PrimaryButton(
+                        text: "Sign up",
+                        isLoading: state is AuthLoading,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<UserBloc>().add(
+                              SignupRequested(
+                                fullName: _fullNameTextController.text.trim(),
+                                email: _emailTextController.text.trim(),
+                                password: _passwordTextController.text.trim(),
                               ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: "Login",
-                                  style: AppTextStyles.semiBold.copyWith(
-                                    color: kPrimaryColor,
-                                    fontSize: 14,
-                                    letterSpacing: 0.2,
-                                  ),
+                            );
+                          }
+                        },
+                      ),
+                      Space.vertical(30),
+                      GestureDetector(
+                        onTap: () {
+                          context.push(AppRoute.login.path);
+                        },
+                        child: ColoredBox(
+                          color: kTransparentColor,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 5,
+                            ),
+                            child: RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                text: "Don't have an account? ",
+                                style: AppTextStyles.medium.copyWith(
+                                  color: kBlackColor,
+                                  fontSize: 14,
+                                  letterSpacing: 0.2,
                                 ),
-                              ],
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: "Login",
+                                    style: AppTextStyles.semiBold.copyWith(
+                                      color: kPrimaryColor,
+                                      fontSize: 14,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
