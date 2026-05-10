@@ -13,6 +13,7 @@ import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/custom_vertical_divider.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
 import 'package:purepath/features/profile/pages/reminders_page.dart';
 
@@ -33,6 +34,7 @@ class ProfilePage extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
+      context.read<NotificationBloc>().add(const CancelAllHabitNotifications());
       context.read<UserBloc>().add(LogoutRequested());
       context.go(AppRoute.login.path);
     }

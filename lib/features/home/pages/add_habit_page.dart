@@ -11,6 +11,7 @@ import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Habit Page
@@ -145,6 +146,9 @@ class _AddHabitPageState extends State<AddHabitPage> {
     context.read<HomeBloc>().add(HomeStarted());
     context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    // Re-schedule reminders so the new habit's reminderTime is honored.
+    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
 
     AppSnackBar.success(context, 'Habit created successfully!');
     Navigator.of(context).pop();

@@ -10,6 +10,7 @@ import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Home page
@@ -31,6 +32,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeStarted());
+    // Sync reminders for the current user. The NotificationBloc fires this
+    // once at app start too, but at that moment auth may not have settled yet
+    // and getAllHabits() would return an empty list.
+    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
   }
 
   @override

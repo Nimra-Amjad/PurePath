@@ -7,6 +7,7 @@ import 'package:purepath/core/providers/firebase_auth_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
+import 'package:purepath/core/services/notification_service.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/repositories/community_repository.dart';
 import 'package:purepath/features/community/repositories/firestore_community_repository.dart';
@@ -15,6 +16,7 @@ import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/repositories/firestore_home_repository.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DI  (Dependency Injection)
@@ -62,6 +64,9 @@ class _ProviderDI extends StatelessWidget {
         RepositoryProvider<UserProvider>(
           create: (_) => UserProvider(),
           dispose: (p) => p.dispose(),
+        ),
+        RepositoryProvider<NotificationService>(
+          create: (_) => NotificationService(),
         ),
       ],
       child: child,
@@ -138,6 +143,13 @@ class _BlocDI extends StatelessWidget {
             repository: ctx.read<CommunityRepository>(),
             userRepository: ctx.read<UserRepository>(),
           )..add(CommunityStarted()),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (ctx) => NotificationBloc(
+            notificationService: ctx.read<NotificationService>(),
+            homeRepository: ctx.read<HomeRepository>(),
+            userRepository: ctx.read<UserRepository>(),
+          )..add(const InitializeNotifications()),
         ),
       ],
       child: child,

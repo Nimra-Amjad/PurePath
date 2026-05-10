@@ -11,6 +11,7 @@ import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Edit Habit Page
@@ -130,6 +131,9 @@ class _EditHabitPageState extends State<EditHabitPage> {
     context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
     context.read<HomeBloc>().add(HomeStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    // Re-schedule reminders so the edited reminderTime is honored.
+    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
 
     AppSnackBar.success(context, 'Habit updated successfully!');
     Navigator.of(context).pop();

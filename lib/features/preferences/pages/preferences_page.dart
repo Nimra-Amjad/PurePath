@@ -7,6 +7,7 @@ import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
 import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
@@ -58,6 +59,17 @@ class _PreferencesPageState extends State<PreferencesPage> {
             notificationsEnabled: notificationsEnabled,
           ),
         );
+
+    // Sync OS-level schedules with the user's choice. SaveOnboardingData
+    // updates the local user model synchronously before the Firestore write,
+    // so by the time these events run, NotificationBloc reads the new flag.
+    final notificationBloc = context.read<NotificationBloc>();
+    if (notificationsEnabled) {
+      notificationBloc.add(const RescheduleHabitNotifications());
+    } else {
+      notificationBloc.add(const CancelAllHabitNotifications());
+    }
+
     context.push(AppRoute.welcome.path);
   }
 

@@ -11,6 +11,7 @@ import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Manage habits page
@@ -137,6 +138,9 @@ class _LoadedView extends StatelessWidget {
     context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
     context.read<HomeBloc>().add(HomeStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
+
+    // Wipe and re-schedule so the deleted habit no longer fires reminders.
+    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
 
     AppSnackBar.success(context, 'Habit deleted successfully!');
   }

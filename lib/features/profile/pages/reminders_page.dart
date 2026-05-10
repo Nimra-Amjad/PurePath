@@ -7,6 +7,7 @@ import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reminders page
@@ -27,6 +28,16 @@ class RemindersPage extends StatelessWidget {
     // Optimistic update so the switch animates instantly.
     repo.updateLocalUser(user.copyWith(notificationsEnabled: value));
 
+    // Reflect the new master toggle in OS-level schedules right away. The
+    // bloc reads the just-updated localUser, so reschedule when on / cancel
+    // when off — keeps the OS schedules in sync with the toggle.
+    final notificationBloc = context.read<NotificationBloc>();
+    if (value) {
+      notificationBloc.add(const RescheduleHabitNotifications());
+    } else {
+      notificationBloc.add(const CancelAllHabitNotifications());
+    }
+
     final ok =
         await repo.updateUserDocument({'notificationsEnabled': value});
 
@@ -34,6 +45,11 @@ class RemindersPage extends StatelessWidget {
     if (!ok) {
       // Revert on failure.
       repo.updateLocalUser(user);
+      if (value) {
+        notificationBloc.add(const CancelAllHabitNotifications());
+      } else {
+        notificationBloc.add(const RescheduleHabitNotifications());
+      }
       AppSnackBar.error(context, 'Could not update reminders. Please try again.');
     }
   }
