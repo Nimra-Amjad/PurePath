@@ -32,10 +32,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeStarted());
-    // Sync reminders for the current user. The NotificationBloc fires this
-    // once at app start too, but at that moment auth may not have settled yet
-    // and getAllHabits() would return an empty list.
-    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
+    // Sync reminders for the current user. NotificationBloc also fires this
+    // once at app start, but auth may not have settled yet at that point —
+    // getAllHabits() would return an empty list. Re-syncing on home mount
+    // covers fresh-login and post-onboarding cases.
+    context.read<NotificationBloc>().add(const HabitNotificationsSynced());
   }
 
   @override

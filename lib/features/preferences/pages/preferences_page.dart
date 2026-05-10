@@ -51,24 +51,20 @@ class _PreferencesPageState extends State<PreferencesPage> {
   }
 
   void _finish({required bool notificationsEnabled}) {
-    // Fire-and-forget: BLoC saves to Firestore in background while we navigate.
+    // Persist goal + challenge + onboarding completion via UserBloc.
     context.read<UserBloc>().add(
           SaveOnboardingData(
             goal: _selectedGoal,
             challenge: _selectedChallenge,
-            notificationsEnabled: notificationsEnabled,
           ),
         );
 
-    // Sync OS-level schedules with the user's choice. SaveOnboardingData
-    // updates the local user model synchronously before the Firestore write,
-    // so by the time these events run, NotificationBloc reads the new flag.
-    final notificationBloc = context.read<NotificationBloc>();
-    if (notificationsEnabled) {
-      notificationBloc.add(const RescheduleHabitNotifications());
-    } else {
-      notificationBloc.add(const CancelAllHabitNotifications());
-    }
+    // Hand the master-toggle decision to the notification bloc — it owns
+    // the OS schedule + Firestore flag end-to-end. Fire-and-forget: the
+    // user keeps moving while it works in the background.
+    context
+        .read<NotificationBloc>()
+        .add(NotificationToggled(enabled: notificationsEnabled));
 
     context.push(AppRoute.welcome.path);
   }

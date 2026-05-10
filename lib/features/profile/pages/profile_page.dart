@@ -34,7 +34,7 @@ class ProfilePage extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      context.read<NotificationBloc>().add(const CancelAllHabitNotifications());
+      context.read<NotificationBloc>().add(const NotificationCleared());
       context.read<UserBloc>().add(LogoutRequested());
       context.go(AppRoute.login.path);
     }

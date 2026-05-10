@@ -35,19 +35,16 @@ class LoadUser extends UserEvent {
 
 // ── Onboarding ────────────────────────────────────────────────────────────────
 
-/// Fired when the user finishes the preference steps.
-/// Saves goal, challenge, and notification preference to Firestore
-/// and marks onboardingStatus as completed.
+/// Fired when the user finishes the preference steps. Saves goal +
+/// challenge to Firestore and marks `onboardingStatus` as completed.
+///
+/// The notifications master toggle is owned by [NotificationBloc] —
+/// `preferences_page` dispatches that event in parallel with this one.
 class SaveOnboardingData extends UserEvent {
   final String goal;
   final String challenge;
-  final bool notificationsEnabled;
 
-  SaveOnboardingData({
-    required this.goal,
-    required this.challenge,
-    required this.notificationsEnabled,
-  });
+  SaveOnboardingData({required this.goal, required this.challenge});
 }
 
 // ── Internal stream sync ──────────────────────────────────────────────────────

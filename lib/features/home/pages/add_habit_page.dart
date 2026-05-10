@@ -147,8 +147,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
     context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
 
-    // Re-schedule reminders so the new habit's reminderTime is honored.
-    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
+    // Re-sync OS reminders so the new habit's reminderTime is honored.
+    context.read<NotificationBloc>().add(const HabitNotificationsSynced());
 
     AppSnackBar.success(context, 'Habit created successfully!');
     Navigator.of(context).pop();

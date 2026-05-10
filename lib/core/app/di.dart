@@ -149,7 +149,7 @@ class _BlocDI extends StatelessWidget {
             notificationService: ctx.read<NotificationService>(),
             homeRepository: ctx.read<HomeRepository>(),
             userRepository: ctx.read<UserRepository>(),
-          )..add(const InitializeNotifications()),
+          )..add(const NotificationStarted()),
         ),
       ],
       child: child,

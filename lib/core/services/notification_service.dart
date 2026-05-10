@@ -9,85 +9,57 @@ import 'package:timezone/timezone.dart' as tz;
 // ─────────────────────────────────────────────────────────────────────────────
 // NotificationService
 //
-// Wraps `flutter_local_notifications` and exposes habit-aware helpers:
-//   • initializePlatformNotifications() — sets up plugin + channels + tz
-//   • requestNotificationPermission()   — asks the OS once on app start
-//   • scheduleHabitNotifications(...)   — schedules reminders for every habit
-//                                         that has a non-empty reminderTime
-//   • cancelAllHabitNotifications()     — wipes every scheduled habit reminder
+// Thin wrapper around `flutter_local_notifications` that exposes the only
+// three things the rest of the app needs:
 //
-// Notification ids are derived from the habit id so reschedules upsert
-// rather than producing duplicates.
+//   1. initialize()          — set up the plugin, channel, and timezone
+//   2. requestPermission()   — ask the OS once at app start
+//   3. scheduleHabits(...)   — replace every scheduled habit reminder with
+//                              the latest list (cancel-then-schedule)
+//   4. cancelAll()           — wipe everything (logout, master toggle off)
+//
+// Everything below those four entry points is private.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class NotificationService {
-  final _localNotifications = FlutterLocalNotificationsPlugin();
-
-  static const String _habitChannelId = 'habit_reminders';
-  static const String _habitChannelName = 'Habit Reminders';
-  static const String _habitChannelDescription =
+  static const String _channelId = 'habit_reminders';
+  static const String _channelName = 'Habit Reminders';
+  static const String _channelDescription =
       'Notifications for your daily and weekly habits';
 
-  bool isInitialized = false;
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
+
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
   // ── Setup ──────────────────────────────────────────────────────────────────
 
-  Future<void> initializePlatformNotifications() async {
+  /// Initializes the plugin once. Subsequent calls are no-ops.
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
     try {
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-
-      const iosInit = DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      );
-
-      const initSettings = InitializationSettings(
-        android: androidInit,
-        iOS: iosInit,
-      );
-
       tz.initializeTimeZones();
       tz.setLocalLocation(tz.local);
 
-      await _createHabitChannel();
+      await _plugin.initialize(_initSettings());
+      await _createChannel();
 
-      final result = await _localNotifications.initialize(initSettings);
-
-      isInitialized = result ?? false;
-      debugPrint('NotificationService initialized: $isInitialized');
+      _isInitialized = true;
+      debugPrint('NotificationService initialized');
     } catch (e) {
-      debugPrint('Error initializing NotificationService: $e');
+      debugPrint('NotificationService.initialize error: $e');
     }
   }
 
-  Future<void> _createHabitChannel() async {
-    try {
-      const channel = AndroidNotificationChannel(
-        _habitChannelId,
-        _habitChannelName,
-        description: _habitChannelDescription,
-        importance: Importance.high,
-        playSound: true,
-        enableVibration: true,
-      );
-
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
-    } catch (e) {
-      debugPrint('Error creating habit channel: $e');
-    }
-  }
-
-  // ── Permissions ────────────────────────────────────────────────────────────
-
-  Future<bool> requestNotificationPermission() async {
+  /// Asks the OS for permission to post notifications. Safe to call multiple
+  /// times — the OS dialog is shown the first time and the cached answer is
+  /// returned thereafter.
+  Future<bool> requestPermission() async {
     try {
       if (Platform.isIOS) {
-        final ios = _localNotifications
+        final ios = _plugin
             .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin
             >();
@@ -97,67 +69,72 @@ class NotificationService {
           sound: true,
         );
         return granted ?? false;
-      } else if (Platform.isAndroid) {
-        final android = _localNotifications
+      }
+
+      if (Platform.isAndroid) {
+        final android = _plugin
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
+        // Android 13+ requires runtime permission for notifications.
         final granted = await android?.requestNotificationsPermission();
-        // Also ask for exact alarm permission on Android 12+, best-effort.
+        // Android 12+ requires a separate grant for exact alarms used by
+        // zonedSchedule. Best-effort — older OSes silently no-op.
         await android?.requestExactAlarmsPermission();
         return granted ?? true;
       }
+
       return true;
     } catch (e) {
-      debugPrint('Error requesting notification permission: $e');
+      debugPrint('NotificationService.requestPermission error: $e');
       return false;
     }
   }
 
   // ── Scheduling ─────────────────────────────────────────────────────────────
 
-  /// Schedules a recurring reminder for every habit with a non-empty
-  /// [HabitDefinition.reminderTime]. Daily habits fire every day at the
-  /// reminder time; weekly habits fire on each selected weekday.
-  ///
-  /// Cancels any previously scheduled habit reminders first so callers can
-  /// safely call this whenever the habit list changes.
-  Future<void> scheduleHabitNotifications(List<HabitDefinition> habits) async {
-    if (!isInitialized) {
-      await initializePlatformNotifications();
-    }
+  /// Replaces every scheduled habit reminder with one entry per habit that
+  /// has a non-empty `reminderTime`. Daily habits fire every day; weekly
+  /// habits fire on each selected weekday. Habits without a reminderTime are
+  /// silently skipped.
+  Future<void> scheduleHabits(List<HabitDefinition> habits) async {
+    if (!_isInitialized) await initialize();
 
-    await cancelAllHabitNotifications();
+    await cancelAll();
 
     for (final habit in habits) {
-      if (habit.reminderTime.trim().isEmpty) continue;
-      final time = _parseReminderTime(habit.reminderTime);
+      final time = _parseTime(habit.reminderTime);
       if (time == null) continue;
 
       try {
         if (habit.isDaily) {
-          await _scheduleDailyHabit(habit: habit, time: time);
+          await _scheduleDaily(habit, time);
         } else {
-          await _scheduleWeeklyHabit(habit: habit, time: time);
+          await _scheduleWeekly(habit, time);
         }
       } catch (e) {
-        debugPrint('Error scheduling notification for ${habit.title}: $e');
+        debugPrint('Failed to schedule "${habit.title}": $e');
       }
     }
   }
 
-  Future<void> _scheduleDailyHabit({
-    required HabitDefinition habit,
-    required TimeOfDay time,
-  }) async {
-    final scheduled = _nextInstanceOfTime(time);
-    final id = _baseIdForHabit(habit.id);
+  /// Cancels every scheduled notification this app owns.
+  Future<void> cancelAll() async {
+    try {
+      await _plugin.cancelAll();
+    } catch (e) {
+      debugPrint('NotificationService.cancelAll error: $e');
+    }
+  }
 
-    await _localNotifications.zonedSchedule(
-      id,
+  // ── Internals: scheduling ──────────────────────────────────────────────────
+
+  Future<void> _scheduleDaily(HabitDefinition habit, TimeOfDay time) {
+    return _plugin.zonedSchedule(
+      _idFor(habit.id),
       'Time for ${habit.title}',
-      _bodyForHabit(habit),
-      scheduled,
+      _bodyFor(habit),
+      _nextInstanceOfTime(time),
       _details(),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
@@ -167,21 +144,15 @@ class NotificationService {
     );
   }
 
-  Future<void> _scheduleWeeklyHabit({
-    required HabitDefinition habit,
-    required TimeOfDay time,
-  }) async {
-    // weekDays uses 0=Mon … 6=Sun; DateTime.weekday uses 1=Mon … 7=Sun.
+  Future<void> _scheduleWeekly(HabitDefinition habit, TimeOfDay time) async {
+    // weekDays: 0 = Mon … 6 = Sun. DateTime.weekday: 1 = Mon … 7 = Sun.
     for (final dayIndex in habit.weekDays) {
       final weekday = dayIndex + 1;
-      final scheduled = _nextInstanceOfWeekday(weekday, time);
-      final id = _baseIdForHabit(habit.id) + dayIndex;
-
-      await _localNotifications.zonedSchedule(
-        id,
+      await _plugin.zonedSchedule(
+        _idFor(habit.id, dayIndex),
         'Time for ${habit.title}',
-        _bodyForHabit(habit),
-        scheduled,
+        _bodyFor(habit),
+        _nextInstanceOfWeekday(weekday, time),
         _details(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
@@ -192,76 +163,95 @@ class NotificationService {
     }
   }
 
-  // ── Cancellation ───────────────────────────────────────────────────────────
+  // ── Internals: configuration ───────────────────────────────────────────────
 
-  Future<void> cancelAllHabitNotifications() async {
-    try {
-      await _localNotifications.cancelAll();
-    } catch (e) {
-      debugPrint('Error cancelling habit notifications: $e');
-    }
+  InitializationSettings _initSettings() {
+    return const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        // We request permission explicitly via [requestPermission] so the
+        // user-facing prompt fires at a deliberate moment, not on plugin init.
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+    );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  NotificationDetails _details() {
-    const android = AndroidNotificationDetails(
-      _habitChannelId,
-      _habitChannelName,
-      channelDescription: _habitChannelDescription,
+  Future<void> _createChannel() async {
+    const channel = AndroidNotificationChannel(
+      _channelId,
+      _channelName,
+      description: _channelDescription,
       importance: Importance.high,
-      priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      color: Color(0xFF9B82E8),
     );
-    const ios = DarwinNotificationDetails(
-      presentSound: true,
-      presentAlert: true,
-      presentBadge: true,
+
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(channel);
+  }
+
+  NotificationDetails _details() {
+    return const NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        color: Color(0xFF9B82E8),
+      ),
+      iOS: DarwinNotificationDetails(
+        presentSound: true,
+        presentAlert: true,
+        presentBadge: true,
+      ),
     );
-    return const NotificationDetails(android: android, iOS: ios);
   }
 
-  String _bodyForHabit(HabitDefinition habit) {
-    if (habit.goal.trim().isNotEmpty) {
-      return 'Goal: ${habit.goal}';
-    }
-    return 'Tap to mark it as done.';
+  String _bodyFor(HabitDefinition habit) {
+    final goal = habit.goal.trim();
+    return goal.isNotEmpty ? 'Goal: $goal' : 'Tap to mark it as done.';
   }
 
-  /// Maps an arbitrary habit doc id to a stable positive 31-bit int so the
-  /// underlying scheduler can identify it for cancel/reschedule.
-  /// Weekly habits add their weekday index (0..6) on top, so we leave a
-  /// 7-slot gap by multiplying the base by 8.
-  int _baseIdForHabit(String habitId) {
-    final hash = habitId.hashCode & 0x0FFFFFFF; // keep it positive
-    return hash * 8;
+  // ── Internals: helpers ─────────────────────────────────────────────────────
+
+  /// Maps a Firestore habit id to a stable positive 31-bit int used by the
+  /// platform scheduler. Weekly habits add their weekday index (0..6) on
+  /// top; the base is multiplied by 8 to leave room for that offset.
+  int _idFor(String habitId, [int weekdayOffset = 0]) {
+    final base = (habitId.hashCode & 0x0FFFFFFF) * 8;
+    return base + weekdayOffset;
   }
 
-  /// Parses strings produced by [TimeOfDay.format], e.g. "7:30 AM" or "19:30".
-  TimeOfDay? _parseReminderTime(String raw) {
+  /// Parses strings produced by [TimeOfDay.format], which may be 12-hour
+  /// ("7:30 AM") or 24-hour ("19:30") depending on the device locale.
+  TimeOfDay? _parseTime(String raw) {
     final value = raw.trim();
     if (value.isEmpty) return null;
 
-    // 12-hour with AM/PM
     final ampm = RegExp(
       r'^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$',
     ).firstMatch(value);
     if (ampm != null) {
-      var hour = int.tryParse(ampm.group(1) ?? '') ?? 0;
-      final minute = int.tryParse(ampm.group(2) ?? '') ?? 0;
+      var hour = int.tryParse(ampm.group(1)!) ?? 0;
+      final minute = int.tryParse(ampm.group(2)!) ?? 0;
       final isPm = ampm.group(3)!.toUpperCase() == 'PM';
       if (hour == 12) hour = 0;
       if (isPm) hour += 12;
       return TimeOfDay(hour: hour, minute: minute);
     }
 
-    // 24-hour
     final h24 = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value);
     if (h24 != null) {
-      final hour = int.tryParse(h24.group(1) ?? '') ?? 0;
-      final minute = int.tryParse(h24.group(2) ?? '') ?? 0;
+      final hour = int.tryParse(h24.group(1)!) ?? 0;
+      final minute = int.tryParse(h24.group(2)!) ?? 0;
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
       return TimeOfDay(hour: hour, minute: minute);
     }
@@ -272,16 +262,16 @@ class NotificationService {
   /// Builds the next absolute moment that matches [time] in the device's
   /// local clock.
   ///
-  /// `tz.local` defaults to UTC unless [flutter_timezone] (or similar) sets
-  /// the IANA name. Constructing the schedule directly with `tz.local`
-  /// values would treat the user's "7:30 PM" as 7:30 PM UTC. Instead we
-  /// build a *local* `DateTime` (which Dart anchors to the device's clock)
-  /// and let `tz.TZDateTime.from` convert it to the right absolute instant.
+  /// `tz.local` defaults to UTC unless the IANA name is set externally.
+  /// Constructing the schedule directly from `tz.local` values would treat
+  /// "7:30 PM" as UTC. Building a local `DateTime` first and converting via
+  /// `tz.TZDateTime.from` produces the correct absolute instant for the
+  /// device's wall clock regardless of what `tz.local` is.
   tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
     final now = DateTime.now();
-    final localScheduled =
+    final local =
         DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    var scheduled = tz.TZDateTime.from(localScheduled, tz.local);
+    var scheduled = tz.TZDateTime.from(local, tz.local);
     final nowTz = tz.TZDateTime.now(tz.local);
     if (!scheduled.isAfter(nowTz)) {
       scheduled = scheduled.add(const Duration(days: 1));

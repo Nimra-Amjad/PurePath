@@ -137,6 +137,26 @@ class UserRepository {
     return ok;
   }
 
+  /// Flips the user's "notifications enabled" master switch. Mirrors the
+  /// optimistic-update pattern used by [setCoins] / [updateFullName]:
+  ///   1. Update the local cache so any listener (profile tab, notification
+  ///      bloc) reacts instantly.
+  ///   2. Patch Firestore.
+  ///   3. Revert on failure so the UI doesn't lie.
+  Future<bool> setNotificationsEnabled(bool enabled) async {
+    final current = localUser;
+    if (current == null) return false;
+    if (current.notificationsEnabled == enabled) return true;
+
+    updateLocalUser(current.copyWith(notificationsEnabled: enabled));
+
+    final ok = await updateUserDocument({'notificationsEnabled': enabled});
+    if (!ok) {
+      updateLocalUser(current);
+    }
+    return ok;
+  }
+
   /// Persists the freshly computed day-streak. The streak itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.

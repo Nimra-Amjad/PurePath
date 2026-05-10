@@ -173,24 +173,20 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       final fbUser = userRepository.firebaseUser;
       final currentUser = userRepository.localUser;
 
-      // Update the local model FIRST so any widget (e.g. NotificationBloc
-      // reading the master toggle, profile tab reading the flag) sees the
-      // user's choice before the Firestore round-trip completes. This
-      // matters because the preferences page dispatches notification events
-      // right after this one — they need to read the new flag, not the
-      // pre-onboarding default.
+      // Update the local model FIRST so any listener (profile tab, home
+      // greeting) sees the new preferences before the Firestore round-trip
+      // completes. The `notificationsEnabled` flag is *not* set here —
+      // NotificationBloc owns that field end-to-end via NotificationToggled.
       final updatedUser = (currentUser ?? UserModel.empty()).copyWith(
         onboardingStatus: OnboardingStatus.completed,
         goal: event.goal,
         challenge: event.challenge,
-        notificationsEnabled: event.notificationsEnabled,
       );
       userRepository.updateLocalUser(updatedUser);
 
       await userRepository.updateUserDocument({
         'goal': event.goal,
         'challenge': event.challenge,
-        'notificationsEnabled': event.notificationsEnabled,
         'onboardingStatus': OnboardingStatus.completed.toValue(),
       });
 

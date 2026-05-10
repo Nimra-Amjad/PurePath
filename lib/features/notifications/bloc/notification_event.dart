@@ -8,21 +8,28 @@ sealed class NotificationEvent {
   const NotificationEvent();
 }
 
-/// Fired once on app start. Initializes the platform plugin and asks the OS
-/// for notification permission.
-final class InitializeNotifications extends NotificationEvent {
-  const InitializeNotifications();
+/// Fired once on app start. Initializes the plugin, asks for OS permission,
+/// then syncs schedules with the user's current master-toggle value.
+final class NotificationStarted extends NotificationEvent {
+  const NotificationStarted();
 }
 
-/// Re-schedules reminders for the supplied habits, or for every habit in the
-/// repository when [habits] is null. Called after any add / update / delete
-/// and once the home screen finishes its first load.
-final class RescheduleHabitNotifications extends NotificationEvent {
+/// Flips the master "reminders on/off" switch. Persists the value to the
+/// user document and schedules or cancels OS reminders accordingly.
+final class NotificationToggled extends NotificationEvent {
+  final bool enabled;
+  const NotificationToggled({required this.enabled});
+}
+
+/// Re-syncs the OS schedules with the current habit list. Fired after a
+/// habit is added, edited, or deleted. Pass [habits] to skip the repository
+/// fetch when the caller already has them on hand.
+final class HabitNotificationsSynced extends NotificationEvent {
   final List<HabitDefinition>? habits;
-  const RescheduleHabitNotifications({this.habits});
+  const HabitNotificationsSynced({this.habits});
 }
 
-/// Wipes every scheduled habit reminder. Used on logout.
-final class CancelAllHabitNotifications extends NotificationEvent {
-  const CancelAllHabitNotifications();
+/// Wipes every scheduled notification this app owns. Used on logout.
+final class NotificationCleared extends NotificationEvent {
+  const NotificationCleared();
 }

@@ -139,8 +139,8 @@ class _LoadedView extends StatelessWidget {
     context.read<HomeBloc>().add(HomeStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
 
-    // Wipe and re-schedule so the deleted habit no longer fires reminders.
-    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
+    // Re-sync so the deleted habit no longer fires reminders.
+    context.read<NotificationBloc>().add(const HabitNotificationsSynced());
 
     AppSnackBar.success(context, 'Habit deleted successfully!');
   }

@@ -4,7 +4,6 @@ import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
-import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
@@ -12,86 +11,64 @@ import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Reminders page
 //
-// One master toggle that mirrors `user.notificationsEnabled`. Flipping it
-// patches the Firestore user doc and updates the local UserBloc cache so
-// other screens that read this flag react immediately.
+// One master switch that mirrors `user.notificationsEnabled`. Flipping it
+// dispatches [NotificationToggled] — the bloc handles persistence and OS
+// schedule sync. The page stays purely presentational.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class RemindersPage extends StatelessWidget {
   const RemindersPage({super.key});
 
-  Future<void> _toggle(BuildContext context, bool value) async {
-    final repo = context.read<UserRepository>();
-    final user = repo.localUser;
-    if (user == null) return;
-
-    // Optimistic update so the switch animates instantly.
-    repo.updateLocalUser(user.copyWith(notificationsEnabled: value));
-
-    // Reflect the new master toggle in OS-level schedules right away. The
-    // bloc reads the just-updated localUser, so reschedule when on / cancel
-    // when off — keeps the OS schedules in sync with the toggle.
-    final notificationBloc = context.read<NotificationBloc>();
-    if (value) {
-      notificationBloc.add(const RescheduleHabitNotifications());
-    } else {
-      notificationBloc.add(const CancelAllHabitNotifications());
-    }
-
-    final ok =
-        await repo.updateUserDocument({'notificationsEnabled': value});
-
-    if (!context.mounted) return;
-    if (!ok) {
-      // Revert on failure.
-      repo.updateLocalUser(user);
-      if (value) {
-        notificationBloc.add(const CancelAllHabitNotifications());
-      } else {
-        notificationBloc.add(const RescheduleHabitNotifications());
-      }
-      AppSnackBar.error(context, 'Could not update reminders. Please try again.');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: kWhiteColor,
-        surfaceTintColor: kWhiteColor,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        shadowColor: kBlackColor.withOpacityValue(0.06),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          color: kBlackColor,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Reminders',
-          style: AppTextStyles.bold.copyWith(fontSize: 18),
+      appBar: _buildAppBar(context),
+      body: BlocListener<NotificationBloc, NotificationState>(
+        listenWhen: (a, b) =>
+            a.errorMessage != b.errorMessage && b.errorMessage != null,
+        listener: (context, state) {
+          AppSnackBar.error(context, state.errorMessage!);
+        },
+        child: BlocBuilder<UserBloc, UserState>(
+          buildWhen: (a, b) =>
+              a.user?.notificationsEnabled != b.user?.notificationsEnabled,
+          builder: (context, state) {
+            final enabled = state.user?.notificationsEnabled ?? false;
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _ToggleCard(
+                  isEnabled: enabled,
+                  onChanged: (value) => context
+                      .read<NotificationBloc>()
+                      .add(NotificationToggled(enabled: value)),
+                ),
+                Space.vertical(16),
+                _InfoCard(enabled: enabled),
+              ],
+            );
+          },
         ),
       ),
-      body: BlocBuilder<UserBloc, UserState>(
-        buildWhen: (a, b) =>
-            a.user?.notificationsEnabled != b.user?.notificationsEnabled,
-        builder: (context, state) {
-          final enabled = state.user?.notificationsEnabled ?? false;
+    );
+  }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _ToggleCard(
-                isEnabled: enabled,
-                onChanged: (val) => _toggle(context, val),
-              ),
-              Space.vertical(16),
-              _InfoCard(enabled: enabled),
-            ],
-          );
-        },
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: kWhiteColor,
+      surfaceTintColor: kWhiteColor,
+      elevation: 0,
+      scrolledUnderElevation: 0.5,
+      shadowColor: kBlackColor.withOpacityValue(0.06),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        color: kBlackColor,
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: Text(
+        'Reminders',
+        style: AppTextStyles.bold.copyWith(fontSize: 18),
       ),
     );
   }
@@ -117,45 +94,9 @@ class _ToggleCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: isEnabled
-                  ? purple.withOpacityValue(0.18)
-                  : kGreyColor.withOpacityValue(0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isEnabled
-                  ? Icons.notifications_active_rounded
-                  : Icons.notifications_off_rounded,
-              color: isEnabled ? purple : textSecondary,
-              size: 22,
-            ),
-          ),
+          _icon(),
           Space.horizontal(14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Habit Reminders',
-                  style: AppTextStyles.semiBold.copyWith(fontSize: 15),
-                ),
-                Space.vertical(2),
-                Text(
-                  isEnabled
-                      ? 'You\'ll get a daily nudge'
-                      : 'Reminders are off',
-                  style: AppTextStyles.normal.copyWith(
-                    fontSize: 12,
-                    color: textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: _labels()),
           Switch(
             value: isEnabled,
             onChanged: onChanged,
@@ -164,6 +105,46 @@ class _ToggleCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _icon() {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? purple.withOpacityValue(0.18)
+            : kGreyColor.withOpacityValue(0.18),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        isEnabled
+            ? Icons.notifications_active_rounded
+            : Icons.notifications_off_rounded,
+        color: isEnabled ? purple : textSecondary,
+        size: 22,
+      ),
+    );
+  }
+
+  Widget _labels() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Habit Reminders',
+          style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+        ),
+        Space.vertical(2),
+        Text(
+          isEnabled ? "You'll get a daily nudge" : 'Reminders are off',
+          style: AppTextStyles.normal.copyWith(
+            fontSize: 12,
+            color: textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -193,9 +174,9 @@ class _InfoCard extends StatelessWidget {
           Expanded(
             child: Text(
               enabled
-                  ? 'We\'ll remind you to check off your habits so your '
+                  ? "We'll remind you to check off your habits so your "
                       'streak stays alive.'
-                  : 'Turn reminders on and we\'ll send you a friendly nudge '
+                  : "Turn reminders on and we'll send you a friendly nudge "
                       'so you never miss a day.',
               style: AppTextStyles.normal.copyWith(
                 fontSize: 12,

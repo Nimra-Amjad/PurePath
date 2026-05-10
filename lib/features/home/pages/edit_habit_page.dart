@@ -132,8 +132,8 @@ class _EditHabitPageState extends State<EditHabitPage> {
     context.read<HomeBloc>().add(HomeStarted());
     context.read<InsightsBloc>().add(InsightsRefreshRequested());
 
-    // Re-schedule reminders so the edited reminderTime is honored.
-    context.read<NotificationBloc>().add(const RescheduleHabitNotifications());
+    // Re-sync OS reminders so the edited reminderTime is honored.
+    context.read<NotificationBloc>().add(const HabitNotificationsSynced());
 
     AppSnackBar.success(context, 'Habit updated successfully!');
     Navigator.of(context).pop();

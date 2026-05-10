@@ -9,101 +9,161 @@ part 'notification_event.dart';
 part 'notification_state.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NotificationBloc
+// Notification BLoC
 //
-// Owns the notification lifecycle for the whole app:
+// The single owner of the notifications feature. Pages don't talk to the
+// service or to Firestore directly — they dispatch one of four events:
 //
-//   • InitializeNotifications — runs once at app start, sets up the plugin
-//     and asks for OS-level permission.
-//   • RescheduleHabitNotifications — re-schedules a reminder for every habit
-//     that has a non-empty reminderTime. Triggered after add / update / delete
-//     and after the home screen first loads habits.
-//   • CancelAllHabitNotifications — wipes every scheduled reminder (e.g. on
-//     logout).
+//   • NotificationStarted        — fires once at app start
+//   • NotificationToggled        — flips the master "reminders on/off" switch
+//                                  (used by profile + onboarding)
+//   • HabitNotificationsSynced   — re-syncs OS schedules after add/edit/delete
+//   • NotificationCleared        — wipes everything (used on logout)
 //
-// The bloc itself stays thin — the heavy lifting lives in [NotificationService].
+// The bloc owns three responsibilities:
+//   1. Plugin lifecycle    — initialize + permission via NotificationService.
+//   2. Master toggle       — write to UserRepository (local + Firestore).
+//   3. Schedule sync       — replace OS schedules from the latest habit list,
+//                            but only when the master toggle is on.
+//
+// Pattern mirrors PurePath's other BLoCs (HomeBloc, ManageHabitsBloc):
+// a single state class with a status enum + copyWith.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc({
-    required this.notificationService,
-    required this.homeRepository,
-    required this.userRepository,
-  }) : super(const NotificationInitial()) {
-    on<InitializeNotifications>(_onInitialize);
-    on<RescheduleHabitNotifications>(_onReschedule);
-    on<CancelAllHabitNotifications>(_onCancelAll);
+    required NotificationService notificationService,
+    required HomeRepository homeRepository,
+    required UserRepository userRepository,
+  })  : _service = notificationService,
+        _homeRepository = homeRepository,
+        _userRepository = userRepository,
+        super(const NotificationState()) {
+    on<NotificationStarted>(_onStarted);
+    on<NotificationToggled>(_onToggled);
+    on<HabitNotificationsSynced>(_onSynced);
+    on<NotificationCleared>(_onCleared);
   }
 
-  final NotificationService notificationService;
-  final HomeRepository homeRepository;
-  final UserRepository userRepository;
+  final NotificationService _service;
+  final HomeRepository _homeRepository;
+  final UserRepository _userRepository;
 
-  /// Honors the user-level master toggle stored on [UserModel]. When the user
-  /// flips it off in profile/onboarding we should stop scheduling regardless
-  /// of per-habit reminderTime values. Defaults to false until the user has
-  /// completed onboarding so we don't fire reminders for users who never
-  /// opted in.
-  bool get _masterEnabled =>
-      userRepository.localUser?.notificationsEnabled ?? false;
+  /// Reads the master switch from the local user model, defaulting to false
+  /// so users who haven't completed onboarding don't get reminders.
+  bool get _isMasterEnabled =>
+      _userRepository.localUser?.notificationsEnabled ?? false;
 
-  Future<void> _onInitialize(
-    InitializeNotifications event,
+  // ── Event handlers ────────────────────────────────────────────────────────
+
+  /// Initializes the plugin, asks for OS permission, then syncs schedules
+  /// with the user's master toggle. Called once at app start.
+  Future<void> _onStarted(
+    NotificationStarted event,
     Emitter<NotificationState> emit,
   ) async {
-    try {
-      if (!notificationService.isInitialized) {
-        await notificationService.initializePlatformNotifications();
-      }
-      final granted = await notificationService.requestNotificationPermission();
-      emit(NotificationReady(permissionGranted: granted));
+    emit(state.copyWith(status: NotificationStatus.loading));
 
-      if (granted) {
-        // After permission is granted, sync any existing habit reminders so
-        // newly installed users (or fresh logins) immediately have their
-        // schedules in place without waiting for an add/edit.
-        add(RescheduleHabitNotifications());
+    try {
+      await _service.initialize();
+      final granted = await _service.requestPermission();
+
+      // If permission is denied or the master is off, make sure no stale
+      // schedules survive from a previous session.
+      if (!granted || !_isMasterEnabled) {
+        await _service.cancelAll();
+      } else {
+        final habits = await _homeRepository.getAllHabits();
+        await _service.scheduleHabits(habits);
       }
+
+      emit(state.copyWith(
+        status: NotificationStatus.ready,
+        isPermissionGranted: granted,
+        isMasterEnabled: _isMasterEnabled,
+      ));
     } catch (e) {
-      debugPrint('NotificationBloc.initialize error: $e');
-      emit(NotificationFailure(message: e.toString()));
+      debugPrint('NotificationBloc.started error: $e');
+      emit(state.copyWith(
+        status: NotificationStatus.failure,
+        errorMessage: 'Could not set up reminders.',
+      ));
     }
   }
 
-  Future<void> _onReschedule(
-    RescheduleHabitNotifications event,
+  /// Flips the master switch end-to-end:
+  ///   1. Persist to the user document (local + Firestore).
+  ///   2. Schedule or cancel OS reminders accordingly.
+  ///
+  /// Called by both the profile reminders page and the onboarding flow.
+  Future<void> _onToggled(
+    NotificationToggled event,
     Emitter<NotificationState> emit,
   ) async {
-    try {
-      // If the user has the master switch off, wipe any leftover schedules
-      // and stop. This keeps the profile toggle and the actual OS-level
-      // schedules consistent — a stale reminder from before they disabled
-      // would otherwise still fire.
-      if (!_masterEnabled) {
-        await notificationService.cancelAllHabitNotifications();
-        emit(NotificationReady(permissionGranted: state.permissionGranted));
-        return;
-      }
+    emit(state.copyWith(status: NotificationStatus.loading));
 
-      final habits = event.habits ?? await homeRepository.getAllHabits();
-      await notificationService.scheduleHabitNotifications(habits);
-      emit(NotificationReady(permissionGranted: state.permissionGranted));
+    try {
+      final ok = await _userRepository.setNotificationsEnabled(event.enabled);
+
+      if (event.enabled) {
+        // Make sure the OS will let us actually post — if the user denied
+        // permission earlier, asking again surfaces the system prompt.
+        final granted = state.isPermissionGranted ||
+            await _service.requestPermission();
+        if (granted) {
+          final habits = await _homeRepository.getAllHabits();
+          await _service.scheduleHabits(habits);
+        }
+        emit(state.copyWith(
+          status: ok ? NotificationStatus.ready : NotificationStatus.failure,
+          isPermissionGranted: granted,
+          isMasterEnabled: event.enabled,
+          errorMessage: ok ? null : 'Could not save your preference.',
+        ));
+      } else {
+        await _service.cancelAll();
+        emit(state.copyWith(
+          status: ok ? NotificationStatus.ready : NotificationStatus.failure,
+          isMasterEnabled: event.enabled,
+          errorMessage: ok ? null : 'Could not save your preference.',
+        ));
+      }
     } catch (e) {
-      debugPrint('NotificationBloc.reschedule error: $e');
-      // Silent failure — don't block the UI; the user can retry by
-      // adding/editing a habit.
+      debugPrint('NotificationBloc.toggled error: $e');
+      emit(state.copyWith(
+        status: NotificationStatus.failure,
+        errorMessage: 'Could not update reminders.',
+      ));
     }
   }
 
-  Future<void> _onCancelAll(
-    CancelAllHabitNotifications event,
+  /// Re-syncs the OS schedules with the latest habit list. Called after a
+  /// habit is added, edited, or deleted. No-op if the master is off — the
+  /// stale schedules were already wiped when the master was switched off.
+  Future<void> _onSynced(
+    HabitNotificationsSynced event,
     Emitter<NotificationState> emit,
   ) async {
+    if (!_isMasterEnabled) return;
+
     try {
-      await notificationService.cancelAllHabitNotifications();
-      emit(NotificationReady(permissionGranted: state.permissionGranted));
+      final habits = event.habits ?? await _homeRepository.getAllHabits();
+      await _service.scheduleHabits(habits);
+      emit(state.copyWith(status: NotificationStatus.ready));
     } catch (e) {
-      debugPrint('NotificationBloc.cancelAll error: $e');
+      // Silent failure — pages already showed the success snackbar for the
+      // CRUD action; surfacing a second error here would be noisy.
+      debugPrint('NotificationBloc.synced error: $e');
     }
+  }
+
+  /// Wipes every scheduled notification this app owns. Used on logout so a
+  /// signed-out device doesn't keep firing reminders for a user who's gone.
+  Future<void> _onCleared(
+    NotificationCleared event,
+    Emitter<NotificationState> emit,
+  ) async {
+    await _service.cancelAll();
+    emit(state.copyWith(isMasterEnabled: false));
   }
 }
