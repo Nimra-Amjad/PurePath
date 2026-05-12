@@ -42,9 +42,7 @@ class _CommunityPageState extends State<CommunityPage>
   }
 
   Future<void> _openCreatePost() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const CreatePostPage()),
-    );
+    await CreatePostSheet.show(context);
   }
 
   @override
