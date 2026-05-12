@@ -207,12 +207,49 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _mapError(Object e) {
-    final msg = e.toString();
-    if (msg.contains('user-not-found')) return 'No user found with this email.';
-    if (msg.contains('wrong-password')) return 'Incorrect password.';
-    if (msg.contains('email-already-in-use')) return 'Email already registered.';
-    if (msg.contains('weak-password')) return 'Password is too weak.';
-    return 'Something went wrong. Please try again.';
+    final code = e is FirebaseAuthException ? e.code : e.toString();
+
+    switch (code) {
+      // ── Login errors ──────────────────────────────────────────────────────
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      // Flutter Firebase SDK v5+ merges wrong-password + user-not-found
+      case 'invalid-credential':
+        return 'Email or password is incorrect.';
+      case 'user-disabled':
+        return 'This account has been disabled. Contact support.';
+      case 'too-many-requests':
+        return 'Too many failed attempts. Try again later.';
+
+      // ── Signup errors ─────────────────────────────────────────────────────
+      case 'email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+
+      // ── Shared / format errors ────────────────────────────────────────────
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'network-request-failed':
+        return 'No internet connection. Check your network and retry.';
+      case 'operation-not-allowed':
+        return 'Sign-in method not enabled. Contact support.';
+
+      default:
+        // Fall back to code string check for unexpected wrapped exceptions
+        final msg = e.toString();
+        if (msg.contains('user-not-found')) return 'No account found with this email.';
+        if (msg.contains('wrong-password')) return 'Incorrect password. Please try again.';
+        if (msg.contains('invalid-credential')) return 'Email or password is incorrect.';
+        if (msg.contains('email-already-in-use')) return 'An account already exists with this email.';
+        if (msg.contains('weak-password')) return 'Password is too weak. Use at least 6 characters.';
+        if (msg.contains('invalid-email')) return 'Please enter a valid email address.';
+        if (msg.contains('too-many-requests')) return 'Too many failed attempts. Try again later.';
+        if (msg.contains('network-request-failed')) return 'No internet connection. Check your network and retry.';
+        return 'Something went wrong. Please try again.';
+    }
   }
 
   @override

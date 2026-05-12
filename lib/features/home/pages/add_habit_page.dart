@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -157,18 +158,72 @@ class _AddHabitPageState extends State<AddHabitPage> {
   // ── Time picker ────────────────────────────────────────────────────────────
 
   Future<void> _pickReminderTime() async {
-    final picked = await showTimePicker(
+    final now = DateTime.now();
+    DateTime tempPicked = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) => Theme(
-        data: Theme.of(
-          context,
-        ).copyWith(colorScheme: const ColorScheme.light(primary: purple)),
-        child: child!,
+      backgroundColor: kWhiteColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with Cancel / Done
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(false),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyles.medium.copyWith(
+                          fontSize: 15,
+                          color: kDarkGreyColor,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Reminder Time',
+                      style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(true),
+                      child: Text(
+                        'Done',
+                        style: AppTextStyles.semiBold.copyWith(
+                          fontSize: 15,
+                          color: purple,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              SizedBox(
+                height: 220,
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: tempPicked,
+                  use24hFormat: false,
+                  onDateTimeChanged: (value) => tempPicked = value,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
-    if (picked != null && mounted) {
-      setState(() => _reminderController.text = picked.format(context));
+
+    if (confirmed == true && mounted) {
+      final timeOfDay = TimeOfDay.fromDateTime(tempPicked);
+      setState(() => _reminderController.text = timeOfDay.format(context));
     }
   }
 
