@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 const kPrimaryColor = Color(0xFF041F5D);
-const kBlackColor = Color(0xFF000000);
-const kLightGreyColor = Color.fromARGB(255, 241, 241, 241);
 const kGreyColor = Color(0xffBDBDBD);
-const kWhiteColor = Color(0xFFFFFFFF);
 const kDarkGreyColor = Color(0xFF1E1E1E);
 const kLightYellowColor = Color(0xFFF5E0BE);
 const kTransparentColor = Colors.transparent;
@@ -30,3 +27,12 @@ const textPrimary = Color(0xFF111827);
 const textSecondary = Color(0xFF6B7280);
 const border = Color(0xFFE5E7EB);
 const bg = Color(0xFFF9FAFB);
+
+///-------------------New Color---------------------
+const kScaffoldColor = Color(0xFF111111);
+const kWhiteColor = Color(0xFFFFFFFF);
+const kBlackColor = Color(0xFF000000);
+const kPrimaryGreenColor = Color(0xFFCFE36E);
+const kPrimaryGreyColor = Color(0xFF495057);
+const kSecondaryGreyColor = Color(0xFF6c757d);
+const kLightGreyColor = Color(0xFFadb5bd);

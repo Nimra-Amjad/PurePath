@@ -20,7 +20,7 @@ class PrimaryButton extends StatelessWidget {
     this.height = 44,
     this.prefixIcon,
     this.postfixIcon,
-    this.textFontWeight = FontWeight.w500,
+    this.textFontWeight = FontWeight.w600,
     this.textFontSize = 16,
     this.isSpaceBetween = false,
     this.isMainAxisSizeMin = false,
@@ -62,7 +62,7 @@ class PrimaryButton extends StatelessWidget {
           pressedOpacity: 0.4,
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(borderRadius),
-          color: buttonColor ?? kPrimaryColor,
+          color: buttonColor ?? kPrimaryGreenColor,
           disabledColor: buttonColor != null
               ? buttonColor!.withValues(alpha: buttonOpacity)
               : kGreyColor.withOpacityValue(0.5),
@@ -133,7 +133,7 @@ class PrimaryButton extends StatelessWidget {
                           textColor ??
                           (inactive
                               ? kBlackColor.withOpacityValue(0.4)
-                              : kWhiteColor),
+                              : kBlackColor),
                     ),
                   ),
                 ),

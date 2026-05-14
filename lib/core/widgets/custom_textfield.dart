@@ -50,12 +50,12 @@ class CustomTextField extends StatelessWidget {
       maxLines: maxLines,
       readOnly: readOnly,
       onTap: onTap,
-      cursorColor: kBlackColor,
+      cursorColor: kSecondaryGreyColor,
       inputFormatters: inputFormatters ?? [],
-      style: TextStyle(color: kBlackColor.withOpacityValue(0.8)),
+      style: TextStyle(color: kLightGreyColor.withOpacityValue(0.8)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: kBlackColor.withOpacityValue(0.4)),
+        hintStyle: TextStyle(color: kLightGreyColor.withOpacityValue(0.4)),
         labelText: labelText,
         prefixIcon: prefix != null
             ? Padding(padding: const EdgeInsets.all(10.0), child: prefix)
@@ -70,19 +70,19 @@ class CustomTextField extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: kPrimaryColor),
+          borderSide: BorderSide(color: kSecondaryGreyColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+          borderSide: const BorderSide(color: kSecondaryGreyColor),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: kRedColor, width: 2),
+          borderSide: const BorderSide(color: kSecondaryGreyColor),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: kRedColor),
+          borderSide: const BorderSide(color: kSecondaryGreyColor),
         ),
       ),
     );

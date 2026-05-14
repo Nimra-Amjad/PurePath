@@ -33,7 +33,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedUp) {
@@ -65,8 +65,8 @@ class _SignupPageState extends State<SignupPage> {
                         child: Text(
                           'Get Started Now',
                           style: AppTextStyles.bold.copyWith(
-                            color: kPrimaryColor,
-                            fontSize: 35,
+                            color: kWhiteColor,
+                            fontSize: 24,
                           ),
                         ),
                       ),
@@ -75,7 +75,7 @@ class _SignupPageState extends State<SignupPage> {
                         child: Text(
                           'Create an account',
                           style: AppTextStyles.normal.copyWith(
-                            color: kBlackColor,
+                            color: kWhiteColor,
                             fontSize: 20,
                           ),
                         ),
@@ -93,7 +93,7 @@ class _SignupPageState extends State<SignupPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgUserIcon,
-                            colorFilter: colorFilter(color: kPrimaryColor),
+                            colorFilter: colorFilter(color: kWhiteColor),
                           ),
                         ),
                       ),
@@ -105,7 +105,7 @@ class _SignupPageState extends State<SignupPage> {
                           controller: _emailTextController,
                           prefix: SvgPicture.asset(
                             Assets.svgEmailIcon,
-                            colorFilter: colorFilter(color: kPrimaryColor),
+                            colorFilter: colorFilter(color: kWhiteColor),
                           ),
                           validator: (value) {
                             return Validators.email(value);
@@ -124,7 +124,7 @@ class _SignupPageState extends State<SignupPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgLockIcon,
-                            colorFilter: colorFilter(color: kPrimaryColor),
+                            colorFilter: colorFilter(color: kWhiteColor),
                           ),
                           suffix: GestureDetector(
                             onTap: () {
@@ -136,7 +136,7 @@ class _SignupPageState extends State<SignupPage> {
                               hidePassword
                                   ? Assets.svgEyeCloseIcon
                                   : Assets.svgEyeOpenIcon,
-                              colorFilter: colorFilter(color: kPrimaryColor),
+                              colorFilter: colorFilter(color: kWhiteColor),
                             ),
                           ),
                         ),
@@ -151,11 +151,9 @@ class _SignupPageState extends State<SignupPage> {
                             if (_formKey.currentState!.validate()) {
                               context.read<UserBloc>().add(
                                 SignupRequested(
-                                  fullName:
-                                      _fullNameTextController.text.trim(),
+                                  fullName: _fullNameTextController.text.trim(),
                                   email: _emailTextController.text.trim(),
-                                  password:
-                                      _passwordTextController.text.trim(),
+                                  password: _passwordTextController.text.trim(),
                                 ),
                               );
                             }
@@ -181,7 +179,7 @@ class _SignupPageState extends State<SignupPage> {
                                 text: TextSpan(
                                   text: "Don't have an account? ",
                                   style: AppTextStyles.medium.copyWith(
-                                    color: kBlackColor,
+                                    color: kWhiteColor,
                                     fontSize: 14,
                                     letterSpacing: 0.2,
                                   ),
@@ -189,7 +187,7 @@ class _SignupPageState extends State<SignupPage> {
                                     TextSpan(
                                       text: "Login",
                                       style: AppTextStyles.semiBold.copyWith(
-                                        color: kPrimaryColor,
+                                        color: kSecondaryGreyColor,
                                         fontSize: 14,
                                         letterSpacing: 0.2,
                                       ),

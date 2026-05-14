@@ -40,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedIn) {
@@ -76,19 +76,20 @@ class _LoginPageState extends State<LoginPage> {
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 80),
                         child: Text(
-                          'Welcome Back',
+                          'Welcome To PurePath',
                           style: AppTextStyles.bold.copyWith(
-                            color: kPrimaryColor,
-                            fontSize: 35,
+                            color: kWhiteColor,
+                            fontSize: 24,
                           ),
                         ),
                       ),
+                      Space.vertical(6),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 140),
                         child: Text(
-                          'Login to access you account',
-                          style: AppTextStyles.normal.copyWith(
-                            color: kBlackColor,
+                          'Login Now!',
+                          style: AppTextStyles.bold.copyWith(
+                            color: kWhiteColor,
                             fontSize: 20,
                           ),
                         ),
@@ -101,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailTextController,
                           prefix: SvgPicture.asset(
                             Assets.svgEmailIcon,
-                            colorFilter: colorFilter(color: kPrimaryColor),
+                            colorFilter: colorFilter(color: kWhiteColor),
                           ),
                           validator: (value) {
                             return Validators.email(value);
@@ -120,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgLockIcon,
-                            colorFilter: colorFilter(color: kPrimaryColor),
+                            colorFilter: colorFilter(color: kWhiteColor),
                           ),
                           suffix: GestureDetector(
                             onTap: () {
@@ -132,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                               hidePassword
                                   ? Assets.svgEyeCloseIcon
                                   : Assets.svgEyeOpenIcon,
-                              colorFilter: colorFilter(color: kPrimaryColor),
+                              colorFilter: colorFilter(color: kWhiteColor),
                             ),
                           ),
                         ),
@@ -148,8 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                               context.read<UserBloc>().add(
                                 LoginRequested(
                                   email: _emailTextController.text.trim(),
-                                  password:
-                                      _passwordTextController.text.trim(),
+                                  password: _passwordTextController.text.trim(),
                                 ),
                               );
                             }
@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                                 text: TextSpan(
                                   text: "Don't have an account? ",
                                   style: AppTextStyles.medium.copyWith(
-                                    color: kBlackColor,
+                                    color: kWhiteColor,
                                     fontSize: 14,
                                     letterSpacing: 0.2,
                                   ),
@@ -183,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                                     TextSpan(
                                       text: "Sign up",
                                       style: AppTextStyles.semiBold.copyWith(
-                                        color: kPrimaryColor,
+                                        color: kSecondaryGreyColor,
                                         fontSize: 14,
                                         letterSpacing: 0.2,
                                       ),
