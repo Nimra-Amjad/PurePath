@@ -5,7 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
+import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
@@ -102,8 +105,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
     setState(() {
       _categoryError = _selectedCategory == null;
       _weekDayError = !_isDaily && _selectedWeekDays.isEmpty;
-      _dateRangeError =
-          _endDate != null && _endDate!.isBefore(_startDate);
+      _dateRangeError = _endDate != null && _endDate!.isBefore(_startDate);
     });
 
     final formValid = _formKey.currentState!.validate();
@@ -159,66 +161,46 @@ class _AddHabitPageState extends State<AddHabitPage> {
 
   Future<void> _pickReminderTime() async {
     final now = DateTime.now();
-    DateTime tempPicked = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    DateTime tempPicked = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
 
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: kWhiteColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    final confirmed = await AppBottomSheet.show<bool>(
+      context,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Reminder Time',
+                style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+              ),
+            ),
+            Space.vertical(8),
+            SizedBox(
+              height: 220,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: tempPicked,
+                use24hFormat: false,
+                onDateTimeChanged: (value) => tempPicked = value,
+              ),
+            ),
+            Space.vertical(8),
+            PrimaryButton(
+              text: "Add Time",
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            Space.vertical(32),
+          ],
+        ),
       ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with Cancel / Done
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(ctx).pop(false),
-                      child: Text(
-                        'Cancel',
-                        style: AppTextStyles.medium.copyWith(
-                          fontSize: 15,
-                          color: kDarkGreyColor,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Reminder Time',
-                      style: AppTextStyles.semiBold.copyWith(fontSize: 15),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(ctx).pop(true),
-                      child: Text(
-                        'Done',
-                        style: AppTextStyles.semiBold.copyWith(
-                          fontSize: 15,
-                          color: purple,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              SizedBox(
-                height: 220,
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.time,
-                  initialDateTime: tempPicked,
-                  use24hFormat: false,
-                  onDateTimeChanged: (value) => tempPicked = value,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
 
     if (confirmed == true && mounted) {
@@ -505,9 +487,11 @@ class _AddHabitPageState extends State<AddHabitPage> {
                   date: _startDate,
                   onTap: () async {
                     final picked = await _pickDate(
+                      title: 'Start Date',
                       initial: _startDate,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 365)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365),
+                      ),
                     );
                     if (picked != null) {
                       setState(() {
@@ -526,6 +510,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
                   hint: 'No end date',
                   onTap: () async {
                     final picked = await _pickDate(
+                      title: 'End Date',
                       initial: _endDate ?? _startDate,
                       firstDate: _startDate,
                     );
@@ -553,21 +538,54 @@ class _AddHabitPageState extends State<AddHabitPage> {
   }
 
   Future<DateTime?> _pickDate({
+    required String title,
     required DateTime initial,
     required DateTime firstDate,
   }) async {
-    return showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: firstDate,
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: purple),
+    final lastDate = DateTime.now().add(const Duration(days: 365 * 5));
+    DateTime tempPicked = initial.isBefore(firstDate)
+        ? firstDate
+        : (initial.isAfter(lastDate) ? lastDate : initial);
+
+    final confirmed = await AppBottomSheet.show<bool>(
+      context,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+              ),
+            ),
+            Space.vertical(8),
+            SizedBox(
+              height: 220,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.date,
+                initialDateTime: tempPicked,
+                minimumDate: firstDate,
+                maximumDate: lastDate,
+                onDateTimeChanged: (value) => tempPicked = value,
+              ),
+            ),
+            Space.vertical(8),
+            PrimaryButton(
+              text: "Set Date",
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            Space.vertical(32),
+          ],
         ),
-        child: child!,
       ),
     );
+
+    if (confirmed == true) {
+      return DateTime(tempPicked.year, tempPicked.month, tempPicked.day);
+    }
+    return null;
   }
 
   // ── Section: Goal & Reminder ───────────────────────────────────────────────
@@ -650,7 +668,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
       ),
     );
   }
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -717,8 +734,18 @@ class _DateField extends StatelessWidget {
 
   String _format(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
