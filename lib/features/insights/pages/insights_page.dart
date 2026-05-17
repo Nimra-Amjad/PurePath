@@ -51,7 +51,9 @@ class _InsightsView extends StatelessWidget {
         }
 
         if (state.status == InsightsStatus.error) {
-          return _ErrorView(message: state.errorMessage ?? 'Something went wrong.');
+          return _ErrorView(
+            message: state.errorMessage ?? 'Something went wrong.',
+          );
         }
 
         return _LoadedView(state: state);
@@ -78,9 +80,7 @@ class _LoadedView extends StatelessWidget {
 
   void _onNextWeek(BuildContext context) {
     context.read<InsightsBloc>().add(
-      InsightsWeekChanged(
-        state.visibleWeekStart.add(const Duration(days: 7)),
-      ),
+      InsightsWeekChanged(state.visibleWeekStart.add(const Duration(days: 7))),
     );
   }
 
@@ -97,7 +97,10 @@ class _LoadedView extends StatelessWidget {
           // ── Page title ───────────────────────────────────────────────────
           Text(
             'Insights',
-            style: AppTextStyles.semiBold.copyWith(fontSize: 24),
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 24,
+              color: kWhiteColor,
+            ),
           ),
           Space.vertical(20),
 
@@ -145,9 +148,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: purple),
-    );
+    return const Center(child: CircularProgressIndicator(color: purple));
   }
 }
 

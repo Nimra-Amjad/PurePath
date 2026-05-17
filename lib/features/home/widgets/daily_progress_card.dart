@@ -22,23 +22,20 @@ class DailyProgressCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withOpacityValue(0.05),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: kBlackColor.withOpacityValue(0.05), blurRadius: 10),
         ],
       ),
       child: Row(
         children: [
           SizedBox(
-            height: 70,
-            width: 70,
+            height: 100,
+            width: 100,
             child: CircularProgressIndicator(
               value: summary.overallProgress,
-              strokeWidth: 8,
+              strokeWidth: 6,
               color: purple,
               backgroundColor: lightPurple,
             ),
@@ -49,16 +46,19 @@ class DailyProgressCard extends StatelessWidget {
             children: [
               Text(
                 "TODAY'S PROGRESS",
-                style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                style: AppTextStyles.normal.copyWith(color: kWhiteColor),
               ),
               Space.vertical(6),
               Text(
                 '${summary.completedCount} of ${summary.totalCount}',
-                style: AppTextStyles.bold.copyWith(fontSize: 22),
+                style: AppTextStyles.bold.copyWith(
+                  fontSize: 22,
+                  color: kWhiteColor,
+                ),
               ),
               Text(
                 'habits completed',
-                style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                style: AppTextStyles.normal.copyWith(color: kWhiteColor),
               ),
             ],
           ),

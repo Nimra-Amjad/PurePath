@@ -38,37 +38,35 @@ class NotificationView extends StatelessWidget {
         ),
         Space.vertical(16),
         ..._benefits.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: kWhiteColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: kGreyColor.withOpacityValue(0.5)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: item.color.withOpacityValue(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: EdgeInsets.all(8),
-                    child: Icon(item.icon, color: item.color, size: 18),
+          (item) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: kContainerColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: kGreyColor.withOpacityValue(0.5)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: item.color.withOpacityValue(0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  Space.horizontal(12),
-                  Expanded(
-                    child: Text(
-                      item.text,
-                      style: AppTextStyles.normal.copyWith(
-                        fontSize: 14,
-                        color: kBlackColor.withOpacityValue(0.84),
-                      ),
+                  padding: EdgeInsets.all(8),
+                  child: Icon(item.icon, color: item.color, size: 18),
+                ),
+                Space.horizontal(12),
+                Expanded(
+                  child: Text(
+                    item.text,
+                    style: AppTextStyles.normal.copyWith(
+                      fontSize: 14,
+                      color: kWhiteColor,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
+import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
 
 class TopTitleWidget extends StatelessWidget {
@@ -18,13 +19,16 @@ class TopTitleWidget extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTextStyles.bold.copyWith(fontSize: 24),
+          style: AppTextStyles.bold.copyWith(fontSize: 24, color: kWhiteColor),
           textAlign: TextAlign.center,
         ),
         Space.vertical(8),
         Text(
           subtitle,
-          style: AppTextStyles.normal.copyWith(fontSize: 14),
+          style: AppTextStyles.normal.copyWith(
+            fontSize: 14,
+            color: kLightGreyColor,
+          ),
           textAlign: TextAlign.center,
         ),
       ],

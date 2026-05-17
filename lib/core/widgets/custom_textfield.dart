@@ -49,11 +49,14 @@ class CustomTextField extends StatelessWidget {
       onChanged: onChanged,
       maxLines: maxLines,
       readOnly: readOnly,
+
       onTap: onTap,
       cursorColor: kSecondaryGreyColor,
       inputFormatters: inputFormatters ?? [],
       style: TextStyle(color: kLightGreyColor.withOpacityValue(0.8)),
       decoration: InputDecoration(
+        fillColor: kContainerColorContrast,
+        filled: true,
         hintText: hintText,
         hintStyle: TextStyle(color: kLightGreyColor.withOpacityValue(0.4)),
         labelText: labelText,

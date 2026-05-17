@@ -29,13 +29,13 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? kPrimaryColor
+                ? kSecondaryGreyColor
                 : kGreyColor.withOpacityValue(0.5),
-            width: isSelected ? 1.6 : 1,
+            width: isSelected ? 1.2 : 1,
           ),
         ),
         child: Row(
@@ -48,7 +48,7 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
                     title,
                     style: AppTextStyles.normal.copyWith(
                       fontSize: 14,
-                      color: kBlackColor,
+                      color: kWhiteColor,
                     ),
                   ),
                   if (subtitle != null && subtitle!.isNotEmpty) ...[
@@ -57,7 +57,7 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
                       subtitle!,
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 12,
-                        color: kBlackColor.withOpacityValue(0.65),
+                        color: kWhiteColor.withOpacityValue(0.65),
                       ),
                     ),
                   ],
@@ -68,7 +68,7 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? kPrimaryColor : kGreyColor,
+                  color: isSelected ? kDarkGreenColor : kGreyColor,
                   width: 1.5,
                 ),
               ),
@@ -76,7 +76,7 @@ class CustomSingleSelectionWidget<T> extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? kPrimaryColor : kTransparentColor,
+                  color: isSelected ? kDarkGreenColor : kTransparentColor,
                 ),
                 padding: EdgeInsets.all(8),
               ),

@@ -52,12 +52,10 @@ class _CommunityPageState extends State<CommunityPage>
         final currentUid = context.select<UserBloc, String?>(
           (b) => b.state.user?.uid,
         );
-        final initial = context.select<UserBloc, String>(
-          (b) {
-            final name = b.state.user?.fullName ?? '';
-            return name.isNotEmpty ? name.trim()[0].toUpperCase() : 'A';
-          },
-        );
+        final initial = context.select<UserBloc, String>((b) {
+          final name = b.state.user?.fullName ?? '';
+          return name.isNotEmpty ? name.trim()[0].toUpperCase() : 'A';
+        });
 
         return Column(
           children: [
@@ -105,9 +103,7 @@ class _FeedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.status == CommunityStatus.loading && state.posts.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: purple),
-      );
+      return const Center(child: CircularProgressIndicator(color: purple));
     }
 
     if (state.status == CommunityStatus.error && state.posts.isEmpty) {
@@ -118,8 +114,7 @@ class _FeedView extends StatelessWidget {
       );
     }
 
-    final posts =
-        onlyMine ? state.myPosts(currentUid) : state.posts;
+    final posts = onlyMine ? state.myPosts(currentUid) : state.posts;
 
     if (posts.isEmpty) {
       return _EmptyFeed(
@@ -128,7 +123,7 @@ class _FeedView extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      color: purple,
+      color: kWhiteColor,
       onRefresh: () async {
         context.read<CommunityBloc>().add(CommunityRefreshRequested());
       },
@@ -136,10 +131,7 @@ class _FeedView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         itemCount: posts.length,
         separatorBuilder: (_, __) => Space.vertical(12),
-        itemBuilder: (_, i) => PostCard(
-          post: posts[i],
-          currentUid: currentUid,
-        ),
+        itemBuilder: (_, i) => PostCard(post: posts[i], currentUid: currentUid),
       ),
     );
   }
@@ -164,19 +156,20 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: kWhiteColor,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Title row ───────────────────────────────────────────────────
           Row(
             children: [
               Expanded(
                 child: Text(
                   'Community',
-                  style: AppTextStyles.bold.copyWith(fontSize: 24),
+                  style: AppTextStyles.bold.copyWith(
+                    fontSize: 24,
+                    color: kWhiteColor,
+                  ),
                 ),
               ),
               // Compose button
@@ -186,26 +179,13 @@ class _Header extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: purple.withOpacityValue(0.1),
+                    color: kContainerColor,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.edit_rounded,
                     size: 18,
-                    color: purple,
-                  ),
-                ),
-              ),
-              Space.horizontal(10),
-              // Avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: purple.withOpacityValue(0.12),
-                child: Text(
-                  avatarInitial,
-                  style: AppTextStyles.bold.copyWith(
-                    fontSize: 16,
-                    color: purple,
+                    color: kWhiteColor,
                   ),
                 ),
               ),
@@ -304,7 +284,7 @@ class _PillTabSelectorState extends State<_PillTabSelector>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       decoration: BoxDecoration(
-        color: kLightGreyColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -334,12 +314,12 @@ class _PillTabSelectorState extends State<_PillTabSelector>
                       ? EdgeInsets.zero
                       : const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: isSelected ? purple : Colors.transparent,
+                    color: isSelected ? kDarkGreenColor : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: purple.withOpacityValue(0.35),
+                              color: kDarkGreenColor.withOpacityValue(0.35),
                               blurRadius: 14,
                               offset: const Offset(0, 4),
                             ),

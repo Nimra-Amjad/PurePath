@@ -16,8 +16,7 @@ class HomeHeaderWidget extends StatelessWidget {
       builder: (context, state) {
         final firstName = state.user?.firstName.trim() ?? '';
         final displayName = firstName.isEmpty ? 'there' : firstName;
-        final initial =
-            firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
+        final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -27,17 +26,20 @@ class HomeHeaderWidget extends StatelessWidget {
               children: [
                 Text(
                   _greeting(),
-                  style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                  style: AppTextStyles.normal.copyWith(color: kWhiteColor),
                 ),
                 Space.vertical(2),
                 Text(
                   displayName,
-                  style: AppTextStyles.bold.copyWith(fontSize: 20),
+                  style: AppTextStyles.bold.copyWith(
+                    fontSize: 20,
+                    color: kWhiteColor,
+                  ),
                 ),
               ],
             ),
             CircleAvatar(
-              backgroundColor: kPrimaryColor.withOpacityValue(0.8),
+              backgroundColor: kContainerColor,
               child: Text(
                 initial,
                 style: AppTextStyles.bold.copyWith(

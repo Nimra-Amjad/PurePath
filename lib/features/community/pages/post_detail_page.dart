@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
@@ -50,12 +52,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
           .read<CommunityRepository>()
           .watchComments(widget.post.id)
           .listen((comments) {
-        if (!mounted) return;
-        setState(() {
-          _comments = comments;
-          _commentsLoaded = true;
-        });
-      });
+            if (!mounted) return;
+            setState(() {
+              _comments = comments;
+              _commentsLoaded = true;
+            });
+          });
     });
   }
 
@@ -81,12 +83,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
     setState(() => _submittingComment = true);
     try {
       await context.read<CommunityRepository>().addComment(
-            postId: widget.post.id,
-            userId: user.uid,
-            authorName: user.fullName,
-            authorImgUrl: user.imgUrl,
-            text: text,
-          );
+        postId: widget.post.id,
+        userId: user.uid,
+        authorName: user.fullName,
+        authorImgUrl: user.imgUrl,
+        text: text,
+      );
       _commentCtrl.clear();
       _commentFocus.unfocus();
     } catch (_) {
@@ -104,19 +106,18 @@ class _PostDetailPageState extends State<PostDetailPage> {
     );
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: kScaffoldColor,
       appBar: AppBar(
-        backgroundColor: kWhiteColor,
-        surfaceTintColor: kWhiteColor,
+        backgroundColor: kScaffoldColor,
+        surfaceTintColor: kScaffoldColor,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         shadowColor: kBlackColor.withOpacityValue(0.08),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          color: kBlackColor,
-          onPressed: () => Navigator.of(context).pop(),
+        leading: CustomBackButton(onTap: context.pop),
+        title: Text(
+          'Post',
+          style: AppTextStyles.bold.copyWith(fontSize: 18, color: kWhiteColor),
         ),
-        title: Text('Post', style: AppTextStyles.bold.copyWith(fontSize: 18)),
       ),
 
       bottomNavigationBar: _CommentInputBar(
@@ -143,9 +144,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 child: _FullPost(
                   post: post,
                   isLiked: post.isLikedBy(currentUid),
-                  onLikeTap: () => context
-                      .read<CommunityBloc>()
-                      .add(CommunityPostLikeToggled(post.id)),
+                  onLikeTap: () => context.read<CommunityBloc>().add(
+                    CommunityPostLikeToggled(post.id),
+                  ),
                 ),
               ),
 
@@ -157,22 +158,26 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     children: [
                       Text(
                         'Comments',
-                        style:
-                            AppTextStyles.semiBold.copyWith(fontSize: 16),
+                        style: AppTextStyles.semiBold.copyWith(
+                          fontSize: 16,
+                          color: kWhiteColor,
+                        ),
                       ),
                       Space.horizontal(8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: purple.withOpacityValue(0.1),
+                          color: kContainerColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${comments.length}',
                           style: AppTextStyles.semiBold.copyWith(
                             fontSize: 12,
-                            color: purple,
+                            color: kWhiteColor,
                           ),
                         ),
                       ),
@@ -188,7 +193,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: purple,
+                        color: kWhiteColor,
                         strokeWidth: 2,
                       ),
                     ),
@@ -198,20 +203,17 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 const SliverToBoxAdapter(child: _EmptyComments())
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) {
-                      final c = comments[i];
-                      return _CommentTile(
-                        // Stable key → existing tiles keep their state and
-                        // don't get torn down when a new comment is inserted.
-                        key: ValueKey(c.id),
-                        postId: post.id,
-                        comment: c,
-                        currentUid: currentUid,
-                      );
-                    },
-                    childCount: comments.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((_, i) {
+                    final c = comments[i];
+                    return _CommentTile(
+                      // Stable key → existing tiles keep their state and
+                      // don't get torn down when a new comment is inserted.
+                      key: ValueKey(c.id),
+                      postId: post.id,
+                      comment: c,
+                      currentUid: currentUid,
+                    );
+                  }, childCount: comments.length),
                 ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -246,15 +248,9 @@ class _FullPost extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withOpacityValue(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: kPrimaryGreyColor, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,6 +283,7 @@ class _FullPost extends StatelessWidget {
                               post.authorName,
                               style: AppTextStyles.semiBold.copyWith(
                                 fontSize: 15,
+                                color: kWhiteColor,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -302,7 +299,7 @@ class _FullPost extends StatelessWidget {
                         post.timeAgo,
                         style: AppTextStyles.normal.copyWith(
                           fontSize: 12,
-                          color: textSecondary,
+                          color: kLightGreyColor,
                         ),
                       ),
                     ],
@@ -319,7 +316,7 @@ class _FullPost extends StatelessWidget {
               style: AppTextStyles.normal.copyWith(
                 fontSize: 15,
                 height: 1.65,
-                color: const Color(0xFF374151),
+                color: kWhiteColor,
               ),
             ),
           ),
@@ -370,14 +367,14 @@ class _FullPost extends StatelessWidget {
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
                     size: 20,
-                    color: isLiked ? red : textSecondary,
+                    color: isLiked ? red : kSecondaryGreyColor,
                   ),
                   Space.horizontal(5),
                   Text(
                     '${post.likeCount} likes',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 13,
-                      color: isLiked ? red : textSecondary,
+                      color: isLiked ? red : kSecondaryGreyColor,
                     ),
                   ),
                 ],
@@ -433,9 +430,9 @@ class _CommentTileState extends State<_CommentTile> {
         .read<CommunityRepository>()
         .watchReplies(postId: widget.postId, commentId: widget.comment.id)
         .listen((replies) {
-      if (!mounted) return;
-      setState(() => _replies = replies);
-    });
+          if (!mounted) return;
+          setState(() => _replies = replies);
+        });
   }
 
   @override
@@ -450,10 +447,10 @@ class _CommentTileState extends State<_CommentTile> {
     final user = context.read<CommunityBloc>().currentUser;
     if (user == null || user.uid.isEmpty) return;
     context.read<CommunityRepository>().toggleCommentLike(
-          postId: widget.postId,
-          commentId: widget.comment.id,
-          userId: user.uid,
-        );
+      postId: widget.postId,
+      commentId: widget.comment.id,
+      userId: user.uid,
+    );
   }
 
   Future<void> _submitReply() async {
@@ -473,13 +470,13 @@ class _CommentTileState extends State<_CommentTile> {
       // emission updates the local list without an extra fetch.
       _ensureRepliesSubscribed();
       await context.read<CommunityRepository>().addReply(
-            postId: widget.postId,
-            commentId: widget.comment.id,
-            userId: user.uid,
-            authorName: user.fullName,
-            authorImgUrl: user.imgUrl,
-            text: text,
-          );
+        postId: widget.postId,
+        commentId: widget.comment.id,
+        userId: user.uid,
+        authorName: user.fullName,
+        authorImgUrl: user.imgUrl,
+        text: text,
+      );
       _replyController.clear();
       setState(() {
         _showReplies = true;
@@ -555,7 +552,7 @@ class _CommentTileState extends State<_CommentTile> {
                             c.timeAgo,
                             style: AppTextStyles.normal.copyWith(
                               fontSize: 11,
-                              color: textSecondary,
+                              color: kSecondaryGreyColor,
                             ),
                           ),
                         ],
@@ -590,14 +587,14 @@ class _CommentTileState extends State<_CommentTile> {
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         size: 16,
-                        color: isLiked ? red : textSecondary,
+                        color: isLiked ? red : kSecondaryGreyColor,
                       ),
                       Space.horizontal(4),
                       Text(
                         '${c.likeCount}',
                         style: AppTextStyles.medium.copyWith(
                           fontSize: 12,
-                          color: isLiked ? red : textSecondary,
+                          color: isLiked ? red : kSecondaryGreyColor,
                         ),
                       ),
                     ],
@@ -620,7 +617,7 @@ class _CommentTileState extends State<_CommentTile> {
                     'Reply',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 12,
-                      color: _showReplyInput ? purple : textSecondary,
+                      color: _showReplyInput ? purple : kSecondaryGreyColor,
                     ),
                   ),
                 ),
@@ -659,19 +656,20 @@ class _CommentTileState extends State<_CommentTile> {
           // ── Replies ────────────────────────────────────────────────────
           if (_showReplies && _replies.isNotEmpty)
             Container(
-              margin:
-                  const EdgeInsets.only(left: 40, right: 14, bottom: 10),
+              margin: const EdgeInsets.only(left: 40, right: 14, bottom: 10),
               child: Column(
                 children: _replies
-                    .map((r) => _ReplyTile(
-                          // Stable key → existing reply tiles don't rebuild
-                          // when a new reply is appended.
-                          key: ValueKey(r.id),
-                          postId: widget.postId,
-                          commentId: c.id,
-                          reply: r,
-                          currentUid: widget.currentUid,
-                        ))
+                    .map(
+                      (r) => _ReplyTile(
+                        // Stable key → existing reply tiles don't rebuild
+                        // when a new reply is appended.
+                        key: ValueKey(r.id),
+                        postId: widget.postId,
+                        commentId: c.id,
+                        reply: r,
+                        currentUid: widget.currentUid,
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -706,7 +704,7 @@ class _CommentTileState extends State<_CommentTile> {
                         hintText: 'Write a reply…',
                         hintStyle: AppTextStyles.normal.copyWith(
                           fontSize: 13,
-                          color: textSecondary,
+                          color: kSecondaryGreyColor,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -770,11 +768,11 @@ class _ReplyTile extends StatelessWidget {
     final user = context.read<CommunityBloc>().currentUser;
     if (user == null || user.uid.isEmpty) return;
     context.read<CommunityRepository>().toggleReplyLike(
-          postId: postId,
-          commentId: commentId,
-          replyId: reply.id,
-          userId: user.uid,
-        );
+      postId: postId,
+      commentId: commentId,
+      replyId: reply.id,
+      userId: user.uid,
+    );
   }
 
   @override
@@ -824,7 +822,7 @@ class _ReplyTile extends StatelessWidget {
                       reply.timeAgo,
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 10,
-                        color: textSecondary,
+                        color: kSecondaryGreyColor,
                       ),
                     ),
                   ],
@@ -849,14 +847,14 @@ class _ReplyTile extends StatelessWidget {
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         size: 13,
-                        color: isLiked ? red : textSecondary,
+                        color: isLiked ? red : kSecondaryGreyColor,
                       ),
                       Space.horizontal(3),
                       Text(
                         '${reply.likeCount}',
                         style: AppTextStyles.medium.copyWith(
                           fontSize: 11,
-                          color: isLiked ? red : textSecondary,
+                          color: isLiked ? red : kSecondaryGreyColor,
                         ),
                       ),
                     ],
@@ -905,31 +903,22 @@ class _CommentInputBarState extends State<_CommentInputBar> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     final user = context.read<CommunityBloc>().currentUser;
-    final initial =
-        (user?.fullName.isNotEmpty ?? false) ? user!.fullName[0].toUpperCase() : 'A';
+    final initial = (user?.fullName.isNotEmpty ?? false)
+        ? user!.fullName[0].toUpperCase()
+        : 'A';
 
     return Container(
-      padding:
-          EdgeInsets.fromLTRB(16, 10, 16, (bottom > 0 ? bottom : 24) + 10),
-      decoration: BoxDecoration(
-        color: kWhiteColor,
-        boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withOpacityValue(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, (bottom > 0 ? bottom : 24) + 10),
+      decoration: BoxDecoration(color: kContainerColor),
       child: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFF6C4DFF),
+            backgroundColor: kLightGreyColor,
             child: Text(
               initial,
               style: const TextStyle(
-                color: kWhiteColor,
+                color: kBlackColor,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
@@ -940,14 +929,8 @@ class _CommentInputBarState extends State<_CommentInputBar> {
             child: Container(
               constraints: const BoxConstraints(maxHeight: 120),
               decoration: BoxDecoration(
-                color: bg,
+                color: kPrimaryGreyColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: widget.focusNode.hasFocus
-                      ? purple.withOpacityValue(0.4)
-                      : border,
-                  width: 1.2,
-                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -956,6 +939,7 @@ class _CommentInputBarState extends State<_CommentInputBar> {
                     child: TextField(
                       controller: widget.controller,
                       focusNode: widget.focusNode,
+                      cursorColor: kWhiteColor,
                       maxLines: null,
                       textCapitalization: TextCapitalization.sentences,
                       style: AppTextStyles.normal.copyWith(fontSize: 14),
@@ -964,7 +948,7 @@ class _CommentInputBarState extends State<_CommentInputBar> {
                         hintText: 'Add a comment…',
                         hintStyle: AppTextStyles.normal.copyWith(
                           fontSize: 14,
-                          color: textSecondary,
+                          color: kWhiteColor,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -984,24 +968,24 @@ class _CommentInputBarState extends State<_CommentInputBar> {
                     child: _hasText
                         ? Padding(
                             key: const ValueKey('send'),
-                            padding:
-                                const EdgeInsets.only(right: 6, bottom: 4),
+                            padding: const EdgeInsets.only(right: 6, bottom: 4),
                             child: IconButton(
-                              onPressed:
-                                  widget.submitting ? null : widget.onSubmit,
+                              onPressed: widget.submitting
+                                  ? null
+                                  : widget.onSubmit,
                               icon: widget.submitting
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: purple,
+                                        color: kWhiteColor,
                                       ),
                                     )
                                   : const Icon(
                                       Icons.send_rounded,
                                       size: 20,
-                                      color: purple,
+                                      color: kWhiteColor,
                                     ),
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.all(6),
@@ -1055,7 +1039,7 @@ class _EmptyComments extends StatelessWidget {
             'No comments yet',
             style: AppTextStyles.medium.copyWith(
               fontSize: 14,
-              color: textSecondary,
+              color: kSecondaryGreyColor,
             ),
           ),
         ],

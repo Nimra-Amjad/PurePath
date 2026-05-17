@@ -27,11 +27,9 @@ class PostCard extends StatelessWidget {
   }
 
   void _openDetail(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PostDetailPage(post: post),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => PostDetailPage(post: post)));
   }
 
   @override
@@ -43,15 +41,9 @@ class PostCard extends StatelessWidget {
       onTap: () => _openDetail(context),
       child: Container(
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: kBlackColor.withOpacityValue(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: kPrimaryGreyColor, width: 0.8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +60,7 @@ class PostCard extends StatelessWidget {
                     style: AppTextStyles.normal.copyWith(
                       fontSize: 14,
                       height: 1.6,
-                      color: const Color(0xFF374151),
+                      color: kWhiteColor,
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -93,14 +85,14 @@ class PostCard extends StatelessWidget {
                     'Read more',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 12,
-                      color: purple,
+                      color: kLightGreenColor,
                     ),
                   ),
                   Space.horizontal(2),
                   const Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 10,
-                    color: purple,
+                    color: kLightGreenColor,
                   ),
                 ],
               ),
@@ -147,14 +139,14 @@ class _AuthorRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       post.authorName,
-                      style: AppTextStyles.semiBold.copyWith(fontSize: 14),
+                      style: AppTextStyles.semiBold.copyWith(
+                        fontSize: 14,
+                        color: kWhiteColor,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (isOwn) ...[
-                    Space.horizontal(6),
-                    _YouBadge(),
-                  ],
+                  if (isOwn) ...[Space.horizontal(6), _YouBadge()],
                 ],
               ),
               Space.vertical(1),
@@ -162,7 +154,7 @@ class _AuthorRow extends StatelessWidget {
                 post.timeAgo,
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 12,
-                  color: textSecondary,
+                  color: kLightGreyColor,
                 ),
               ),
             ],
@@ -170,8 +162,11 @@ class _AuthorRow extends StatelessWidget {
         ),
         if (isOwn)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz_rounded,
-                size: 20, color: textSecondary),
+            icon: const Icon(
+              Icons.more_horiz_rounded,
+              size: 20,
+              color: kSecondaryGreyColor,
+            ),
             onSelected: (v) {
               if (v == 'delete') {
                 _confirmDelete(context, post.id);
@@ -182,8 +177,11 @@ class _AuthorRow extends StatelessWidget {
                 value: 'delete',
                 child: Row(
                   children: [
-                    const Icon(Icons.delete_outline_rounded,
-                        size: 18, color: red),
+                    const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: red,
+                    ),
                     Space.horizontal(8),
                     Text(
                       'Delete',
@@ -204,18 +202,20 @@ class _AuthorRow extends StatelessWidget {
       builder: (_) => AlertDialog(
         backgroundColor: kWhiteColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete post',
-            style: AppTextStyles.bold.copyWith(fontSize: 18)),
+        title: Text(
+          'Delete post',
+          style: AppTextStyles.bold.copyWith(fontSize: 18),
+        ),
         content: Text(
           'This post and all its comments will be permanently removed.',
-          style: AppTextStyles.normal.copyWith(color: textSecondary),
+          style: AppTextStyles.normal.copyWith(color: kSecondaryGreyColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.medium.copyWith(color: textSecondary),
+              style: AppTextStyles.medium.copyWith(color: kSecondaryGreyColor),
             ),
           ),
           ElevatedButton(
@@ -316,14 +316,14 @@ class _LikeButton extends StatelessWidget {
           Icon(
             isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
             size: 19,
-            color: isLiked ? red : textSecondary,
+            color: isLiked ? red : kSecondaryGreyColor,
           ),
           Space.horizontal(4),
           Text(
             '$count',
             style: AppTextStyles.medium.copyWith(
               fontSize: 13,
-              color: isLiked ? red : textSecondary,
+              color: isLiked ? red : kSecondaryGreyColor,
             ),
           ),
         ],
@@ -343,14 +343,14 @@ class _CommentCount extends StatelessWidget {
         Icon(
           Icons.chat_bubble_outline_rounded,
           size: 17,
-          color: textSecondary,
+          color: kSecondaryGreyColor,
         ),
         Space.horizontal(4),
         Text(
           '$count',
           style: AppTextStyles.medium.copyWith(
             fontSize: 13,
-            color: textSecondary,
+            color: kSecondaryGreyColor,
           ),
         ),
       ],

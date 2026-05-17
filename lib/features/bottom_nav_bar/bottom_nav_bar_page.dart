@@ -30,7 +30,7 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       body: SafeArea(
         child: IndexedStack(
           index: _index,
@@ -46,14 +46,18 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
       floatingActionButton: _index == 0
           ? FloatingActionButton(
               onPressed: () => AppRoute.addHabit.push(context),
-              backgroundColor: purple,
+              backgroundColor: kPrimaryGreenColor,
               shape: const CircleBorder(),
-              child: const Icon(Icons.add_rounded, color: kWhiteColor, size: 28),
+              child: const Icon(
+                Icons.add_rounded,
+                color: kBlackColor,
+                size: 28,
+              ),
             )
           : null,
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kScaffoldColor,
           boxShadow: [
             BoxShadow(
               color: kBlackColor.withValues(alpha: 0.06),
@@ -76,9 +80,9 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
               onTap: (i) => setState(() => _index = i),
               type: BottomNavigationBarType.fixed,
               elevation: 0,
-              backgroundColor: kWhiteColor,
-              selectedItemColor: kPrimaryColor,
-              unselectedItemColor: kBlackColor.withValues(alpha: 0.45),
+              backgroundColor: kScaffoldColor,
+              selectedItemColor: kPrimaryGreenColor,
+              unselectedItemColor: kSecondaryGreyColor,
               selectedLabelStyle: AppTextStyles.medium.copyWith(fontSize: 12),
               unselectedLabelStyle: AppTextStyles.normal.copyWith(fontSize: 12),
               items: [
@@ -86,13 +90,13 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
                   BottomNavigationBarItem(
                     icon: SvgPicture.asset(
                       tab.icon,
-                      colorFilter: colorFilter(color: kGreyColor),
+                      colorFilter: colorFilter(color: kLightGreyColor),
                       width: 30,
                       height: 30,
                     ),
                     activeIcon: SvgPicture.asset(
                       tab.icon,
-                      colorFilter: colorFilter(color: kPrimaryColor),
+                      colorFilter: colorFilter(color: kPrimaryGreenColor),
                       width: 30,
                       height: 30,
                     ),
@@ -113,4 +117,3 @@ class _HomeTab {
   final String label;
   final String icon;
 }
-

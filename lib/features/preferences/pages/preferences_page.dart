@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
@@ -34,10 +34,10 @@ class _PreferencesPageState extends State<PreferencesPage> {
   // NotificationView is stateless — the button itself captures allow/skip.
 
   List<Widget> get _steps => [
-        GoalView(onGoalChanged: (v) => _selectedGoal = v),
-        ChallengeView(onChallengeChanged: (v) => _selectedChallenge = v),
-        const NotificationView(),
-      ];
+    GoalView(onGoalChanged: (v) => _selectedGoal = v),
+    ChallengeView(onChallengeChanged: (v) => _selectedChallenge = v),
+    const NotificationView(),
+  ];
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
@@ -53,18 +53,15 @@ class _PreferencesPageState extends State<PreferencesPage> {
   void _finish({required bool notificationsEnabled}) {
     // Persist goal + challenge + onboarding completion via UserBloc.
     context.read<UserBloc>().add(
-          SaveOnboardingData(
-            goal: _selectedGoal,
-            challenge: _selectedChallenge,
-          ),
-        );
+      SaveOnboardingData(goal: _selectedGoal, challenge: _selectedChallenge),
+    );
 
     // Hand the master-toggle decision to the notification bloc — it owns
     // the OS schedule + Firestore flag end-to-end. Fire-and-forget: the
     // user keeps moving while it works in the background.
-    context
-        .read<NotificationBloc>()
-        .add(NotificationToggled(enabled: notificationsEnabled));
+    context.read<NotificationBloc>().add(
+      NotificationToggled(enabled: notificationsEnabled),
+    );
 
     context.push(AppRoute.welcome.path);
   }
@@ -89,7 +86,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
     final steps = _steps; // evaluated once per build
 
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -99,32 +96,8 @@ class _PreferencesPageState extends State<PreferencesPage> {
               child: Row(
                 children: [
                   _currentStep == 0
-                      ? const SizedBox(width: 40, height: 40)
-                      : GestureDetector(
-                          onTap: _back,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: kWhiteColor,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kBlackColor.withOpacityValue(0.2),
-                                  blurRadius: 2,
-                                  spreadRadius: 0,
-                                  blurStyle: BlurStyle.outer,
-                                  offset: const Offset(0, 0),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.chevron_left,
-                              size: 22,
-                              color: kDarkGreyColor,
-                            ),
-                          ),
-                        ),
+                      ? const SizedBox(width: 35, height: 35)
+                      : CustomBackButton(onTap: _back),
                   Space.horizontal(16),
                   Expanded(
                     child: ClipRRect(
@@ -142,14 +115,17 @@ class _PreferencesPageState extends State<PreferencesPage> {
                             height: 6,
                             child: Stack(
                               children: [
-                                Container(color: kLightYellowColor),
+                                Container(color: kLightGreyColor),
                                 FractionallySizedBox(
                                   widthFactor: value.clamp(0.0, 1.0),
                                   alignment: Alignment.centerLeft,
                                   child: Container(
                                     decoration: const BoxDecoration(
                                       gradient: LinearGradient(
-                                        colors: [kPinkColor, kPrimaryColor],
+                                        colors: [
+                                          kLightGreenColor,
+                                          kDarkGreenColor,
+                                        ],
                                       ),
                                     ),
                                   ),

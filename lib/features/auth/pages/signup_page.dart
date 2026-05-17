@@ -93,7 +93,9 @@ class _SignupPageState extends State<SignupPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgUserIcon,
-                            colorFilter: colorFilter(color: kWhiteColor),
+                            colorFilter: colorFilter(
+                              color: kSecondaryGreyColor,
+                            ),
                           ),
                         ),
                       ),
@@ -105,7 +107,9 @@ class _SignupPageState extends State<SignupPage> {
                           controller: _emailTextController,
                           prefix: SvgPicture.asset(
                             Assets.svgEmailIcon,
-                            colorFilter: colorFilter(color: kWhiteColor),
+                            colorFilter: colorFilter(
+                              color: kSecondaryGreyColor,
+                            ),
                           ),
                           validator: (value) {
                             return Validators.email(value);
@@ -124,7 +128,9 @@ class _SignupPageState extends State<SignupPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgLockIcon,
-                            colorFilter: colorFilter(color: kWhiteColor),
+                            colorFilter: colorFilter(
+                              color: kSecondaryGreyColor,
+                            ),
                           ),
                           suffix: GestureDetector(
                             onTap: () {
@@ -136,7 +142,9 @@ class _SignupPageState extends State<SignupPage> {
                               hidePassword
                                   ? Assets.svgEyeCloseIcon
                                   : Assets.svgEyeOpenIcon,
-                              colorFilter: colorFilter(color: kWhiteColor),
+                              colorFilter: colorFilter(
+                                color: kSecondaryGreyColor,
+                              ),
                             ),
                           ),
                         ),

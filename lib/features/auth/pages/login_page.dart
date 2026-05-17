@@ -102,7 +102,9 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailTextController,
                           prefix: SvgPicture.asset(
                             Assets.svgEmailIcon,
-                            colorFilter: colorFilter(color: kWhiteColor),
+                            colorFilter: colorFilter(
+                              color: kSecondaryGreyColor,
+                            ),
                           ),
                           validator: (value) {
                             return Validators.email(value);
@@ -121,7 +123,9 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           prefix: SvgPicture.asset(
                             Assets.svgLockIcon,
-                            colorFilter: colorFilter(color: kWhiteColor),
+                            colorFilter: colorFilter(
+                              color: kSecondaryGreyColor,
+                            ),
                           ),
                           suffix: GestureDetector(
                             onTap: () {
@@ -133,7 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                               hidePassword
                                   ? Assets.svgEyeCloseIcon
                                   : Assets.svgEyeOpenIcon,
-                              colorFilter: colorFilter(color: kWhiteColor),
+                              colorFilter: colorFilter(
+                                color: kSecondaryGreyColor,
+                              ),
                             ),
                           ),
                         ),

@@ -25,13 +25,10 @@ class BarChartWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withOpacityValue(0.06),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: kBlackColor.withOpacityValue(0.06), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -39,15 +36,16 @@ class BarChartWidget extends StatelessWidget {
         children: [
           Text(
             'Weekly Overview',
-            style: AppTextStyles.semiBold.copyWith(fontSize: 14),
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 14,
+              color: kWhiteColor,
+            ),
           ),
-          Space.vertical(16),
+          Space.vertical(8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: summaries
-                .map((day) => _BarItem(summary: day))
-                .toList(),
+            children: summaries.map((day) => _BarItem(summary: day)).toList(),
           ),
         ],
       ),
@@ -74,7 +72,9 @@ class _BarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = summary.overallProgress;
     final dayLabel = DateFormat('EEE').format(summary.date).toUpperCase();
-    final barColor = _isToday ? purple : purple.withOpacityValue(0.45);
+    final barColor = _isToday
+        ? kDarkGreenColor
+        : kLightGreenColor.withOpacityValue(0.5);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -99,7 +99,7 @@ class _BarItem extends StatelessWidget {
               Container(
                 width: 36,
                 decoration: BoxDecoration(
-                  color: kLightGreyColor,
+                  color: kPrimaryGreyColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -125,7 +125,9 @@ class _BarItem extends StatelessWidget {
           dayLabel,
           style: AppTextStyles.normal.copyWith(
             fontSize: 11,
-            color: _isToday ? purple : textSecondary,
+            color: _isToday
+                ? kDarkGreenColor
+                : kLightGreenColor.withOpacityValue(0.5),
             fontWeight: _isToday ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

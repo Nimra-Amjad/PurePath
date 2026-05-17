@@ -1,35 +1,22 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/features/home/models/day_summary.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Training Calendar
 //
-// A PURE UI widget — it knows nothing about BLoC or business logic.
-// All it does:
-//   • Render 7 day-tiles for the current page (week)
-//   • Draw a circular arc showing habit-completion progress per day
-//   • Highlight the selected date with a purple border
-//   • Allow swiping between weeks
-//   • Fire callbacks when the user taps a day or swipes to a new week
-//
-// The parent (HomePage) is responsible for:
-//   • Providing [weekData] and [selectedDate] from the BLoC state
-//   • Dispatching events back to the BLoC via the callbacks
+// A PURE UI widget — no BLoC or business logic.
+//   • Renders 7 pill-shaped day tiles for the visible week
+//   • Highlights the selected date with a filled green pill
+//   • Supports infinite swiping between weeks (future weeks blocked)
+//   • Fires callbacks when a day is tapped or the week changes
 // ─────────────────────────────────────────────────────────────────────────────
 
 class TrainingCalendar extends StatefulWidget {
-  /// Habit summaries keyed by date-only DateTime (time = midnight).
-  /// Comes directly from HomeState.weekData.
-  final Map<DateTime, DaySummary> weekData;
-
   /// The currently selected date. Comes from HomeState.selectedDate.
   final DateTime selectedDate;
 
-  /// The Monday of the week that the calendar should show as "visible".
+  /// The Monday of the week the calendar should show as "visible".
   /// Used to derive the month label in the header.
   final DateTime visibleWeekStart;
 
@@ -42,7 +29,6 @@ class TrainingCalendar extends StatefulWidget {
 
   const TrainingCalendar({
     super.key,
-    required this.weekData,
     required this.selectedDate,
     required this.visibleWeekStart,
     required this.onDateSelected,
@@ -82,16 +68,13 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
     return thisMonday.add(Duration(days: (page - _centerPage) * 7));
   }
 
-  /// Builds 7 [DayTileData] entries for the week starting on [monday].
+  /// Builds 7 [_DayTileData] entries for the week starting on [monday].
   List<_DayTileData> _buildTiles(DateTime monday) {
     return List.generate(7, (i) {
       final date = _dateOnly(monday.add(Duration(days: i)));
-      final summary = widget.weekData[date];
       return _DayTileData(
         date: date,
-        progress: summary?.overallProgress ?? 0.0,
         isSelected: DateUtils.isSameDay(date, widget.selectedDate),
-        isToday: DateUtils.isSameDay(date, DateTime.now()),
         isFuture: date.isAfter(_dateOnly(DateTime.now())),
       );
     });
@@ -104,15 +87,8 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -121,7 +97,7 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
           const SizedBox(height: 14),
           // Fixed height prevents the card from resizing when a tile is selected.
           SizedBox(
-            height: 78,
+            height: 80,
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (page) {
@@ -168,14 +144,21 @@ class _CalendarHeader extends StatelessWidget {
   const _CalendarHeader({required this.weekStart});
 
   static const _monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
-  // Shows the month of the week's Monday — so a week spanning March/April
-  // correctly shows "Mar 2026" if Monday is in March.
-  String get _label =>
-      '${_monthNames[weekStart.month - 1]} ${weekStart.year}';
+  String get _label => '${_monthNames[weekStart.month - 1]} ${weekStart.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +171,10 @@ class _CalendarHeader extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               'This Week',
-              style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+              style: AppTextStyles.semiBold.copyWith(
+                fontSize: 15,
+                color: kWhiteColor,
+              ),
             ),
           ],
         ),
@@ -196,7 +182,7 @@ class _CalendarHeader extends StatelessWidget {
           _label,
           style: AppTextStyles.normal.copyWith(
             fontSize: 13,
-            color: kBlackColor.withValues(alpha: 0.4),
+            color: kWhiteColor,
           ),
         ),
       ],
@@ -205,27 +191,23 @@ class _CalendarHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Day tile data  ── plain data class, no Flutter dependency
+// Day tile data
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DayTileData {
   final DateTime date;
-  final double progress; // 0.0 – 1.0
   final bool isSelected;
-  final bool isToday;
   final bool isFuture;
 
   const _DayTileData({
     required this.date,
-    required this.progress,
     required this.isSelected,
-    required this.isToday,
     required this.isFuture,
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Day tile  ── one circle in the calendar row
+// Day tile  ── pill with day-name on top and date number below
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DayTile extends StatelessWidget {
@@ -240,65 +222,46 @@ class _DayTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Highlight today or selected date with purple text.
-    final bool highlight = data.isSelected || data.isToday;
-    final String dayLabel = _dayLabels[data.date.weekday - 1];
+    final dayLabel = _dayLabels[data.date.weekday - 1];
+    final opacity = data.isFuture ? 0.4 : 1.0;
+    final isSelected = data.isSelected;
 
-    // Future dates are shown at reduced opacity so they look inactive.
-    final double opacity = data.isFuture ? 0.35 : 1.0;
+    final foreground = isSelected ? kBlackColor : kWhiteColor;
 
     return GestureDetector(
-      onTap: onTap, // null → gesture is ignored automatically
+      onTap: onTap,
       child: Opacity(
         opacity: opacity,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          // Constant padding keeps the PageView height stable.
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-          decoration: data.isSelected
-              ? BoxDecoration(
-                  color: lightPurple,
-                  border: Border.all(color: purple, width: 1.5),
-                  borderRadius: BorderRadius.circular(16),
-                )
-              : BoxDecoration(
-                  color: Colors.transparent,
-                  border: Border.all(color: Colors.transparent, width: 1.5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? kPrimaryGreenColor : kTransparentColor,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isSelected
+                  ? kPrimaryGreenColor
+                  : kLightGreyColor.withValues(alpha: 0.45),
+              width: 1,
+            ),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Circle with arc progress border
-              SizedBox(
-                width: 36,
-                height: 36,
-                child: CustomPaint(
-                  painter: _ArcPainter(
-                    progress: data.progress,
-                    isFuture: data.isFuture,
-                    // Show lightPurple fill only when today and NOT selected
-                    // (selected tiles already have the container background).
-                    showTodayFill: data.isToday && !data.isSelected,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${data.date.day}',
-                      style: AppTextStyles.medium.copyWith(
-                        fontSize: 13,
-                        color: highlight ? purple : kBlackColor,
-                      ),
-                    ),
-                  ),
+              Text(
+                dayLabel,
+                style: AppTextStyles.medium.copyWith(
+                  fontSize: 12,
+                  color: foreground,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                dayLabel,
-                style: AppTextStyles.normal.copyWith(
-                  fontSize: 11,
-                  color: highlight ? purple : kGreyColor,
+                '${data.date.day}',
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: foreground,
                 ),
               ),
             ],
@@ -307,70 +270,4 @@ class _DayTile extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Arc painter  ── draws the circular progress ring
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ArcPainter extends CustomPainter {
-  final double progress;
-  final bool isFuture;
-  final bool showTodayFill;
-
-  const _ArcPainter({
-    required this.progress,
-    required this.isFuture,
-    required this.showTodayFill,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - 5) / 2;
-    const strokeWidth = 2.5;
-
-    // 1. Grey background track (full circle)
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = kGreyColor.withValues(alpha: 0.25)
-        ..strokeWidth = strokeWidth
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // 2. Light fill for today (only when it's not inside the selected container)
-    if (showTodayFill) {
-      canvas.drawCircle(
-        center,
-        radius - strokeWidth / 2,
-        Paint()
-          ..color = lightPurple
-          ..style = PaintingStyle.fill,
-      );
-    }
-
-    // 3. Purple arc — sweeps clockwise from 12 o'clock proportional to progress
-    if (progress > 0 && !isFuture) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2, // start at 12 o'clock
-        2 * math.pi * progress, // sweep angle
-        false,
-        Paint()
-          ..color = purple
-          ..strokeWidth = strokeWidth
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_ArcPainter old) =>
-      old.progress != progress ||
-      old.isFuture != isFuture ||
-      old.showTodayFill != showTodayFill;
 }

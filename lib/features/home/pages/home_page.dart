@@ -54,7 +54,6 @@ class _HomePageState extends State<HomePage> {
 
               // ── Weekly calendar ───────────────────────────────────────────
               TrainingCalendar(
-                weekData: state.weekData,
                 selectedDate: state.selectedDate,
                 visibleWeekStart: state.visibleWeekStart,
                 onDateSelected: (date) {
@@ -106,7 +105,10 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(
                   "Today's Habits",
-                  style: AppTextStyles.semiBold.copyWith(fontSize: 16),
+                  style: AppTextStyles.semiBold.copyWith(
+                    fontSize: 16,
+                    color: kWhiteColor,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => AppRoute.manageHabits.push(context),
@@ -117,13 +119,13 @@ class _HomePageState extends State<HomePage> {
                         'View All',
                         style: AppTextStyles.medium.copyWith(
                           fontSize: 13,
-                          color: purple,
+                          color: kPrimaryGreenColor,
                         ),
                       ),
                       const SizedBox(width: 2),
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
-                        color: purple,
+                        color: kPrimaryGreenColor,
                         size: 12,
                       ),
                     ],
@@ -144,9 +146,9 @@ class _HomePageState extends State<HomePage> {
                     context.read<HomeBloc>().add(HabitToggled(habit.id));
                     // Keep insights in sync — its weekly stats depend on
                     // the same completion record we just toggled.
-                    context
-                        .read<InsightsBloc>()
-                        .add(InsightsRefreshRequested());
+                    context.read<InsightsBloc>().add(
+                      InsightsRefreshRequested(),
+                    );
                   },
                 ),
               ),
@@ -168,7 +170,7 @@ class _LoadingView extends StatelessWidget {
     return const Center(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
-        child: CircularProgressIndicator(color: purple),
+        child: CircularProgressIndicator(color: kPrimaryGreenColor),
       ),
     );
   }
@@ -189,7 +191,7 @@ class _EmptyHabitsView extends StatelessWidget {
       decoration: BoxDecoration(
         color: kWhiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kGreyColor.withValues(alpha: 0.25)),
+        border: Border.all(color: kLightGreyColor.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
@@ -205,7 +207,7 @@ class _EmptyHabitsView extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.normal.copyWith(
               fontSize: 13,
-              color: kDarkGreyColor,
+              color: kSecondaryGreyColor,
             ),
           ),
         ],
@@ -230,20 +232,19 @@ class _ErrorView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
         child: Column(
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 40),
+            const Icon(Icons.error_outline, color: kRedColor, size: 40),
             Space.vertical(12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+              style: AppTextStyles.normal.copyWith(color: kSecondaryGreyColor),
             ),
             Space.vertical(16),
             TextButton(
-              onPressed: () =>
-                  context.read<HomeBloc>().add(HomeStarted()),
+              onPressed: () => context.read<HomeBloc>().add(HomeStarted()),
               child: Text(
                 'Retry',
-                style: AppTextStyles.medium.copyWith(color: purple),
+                style: AppTextStyles.medium.copyWith(color: kPrimaryGreenColor),
               ),
             ),
           ],
