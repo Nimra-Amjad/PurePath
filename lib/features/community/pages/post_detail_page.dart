@@ -9,6 +9,7 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/custom_back_button.dart';
+import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
@@ -505,11 +506,9 @@ class _CommentTileState extends State<_CommentTile> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: kBlackColor.withOpacityValue(0.04), blurRadius: 6),
-        ],
+        border: Border.all(color: kPrimaryGreyColor, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,11 +542,12 @@ class _CommentTileState extends State<_CommentTile> {
                               c.authorName,
                               style: AppTextStyles.semiBold.copyWith(
                                 fontSize: 13,
+                                color: kWhiteColor,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
+                          Space.horizontal(10),
                           Text(
                             c.timeAgo,
                             style: AppTextStyles.normal.copyWith(
@@ -563,7 +563,7 @@ class _CommentTileState extends State<_CommentTile> {
                         style: AppTextStyles.normal.copyWith(
                           fontSize: 13,
                           height: 1.5,
-                          color: const Color(0xFF374151),
+                          color: kWhiteColor,
                         ),
                       ),
                     ],
@@ -617,7 +617,9 @@ class _CommentTileState extends State<_CommentTile> {
                     'Reply',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 12,
-                      color: _showReplyInput ? purple : kSecondaryGreyColor,
+                      color: _showReplyInput
+                          ? kLightGreenColor
+                          : kSecondaryGreyColor,
                     ),
                   ),
                 ),
@@ -634,7 +636,7 @@ class _CommentTileState extends State<_CommentTile> {
                               : '${c.replyCount} ${c.replyCount == 1 ? 'reply' : 'replies'}',
                           style: AppTextStyles.medium.copyWith(
                             fontSize: 12,
-                            color: purple,
+                            color: kLightGreenColor,
                           ),
                         ),
                         Space.horizontal(3),
@@ -643,7 +645,7 @@ class _CommentTileState extends State<_CommentTile> {
                               ? Icons.keyboard_arrow_up_rounded
                               : Icons.keyboard_arrow_down_rounded,
                           size: 16,
-                          color: purple,
+                          color: kLightGreenColor,
                         ),
                       ],
                     ),
@@ -694,47 +696,30 @@ class _CommentTileState extends State<_CommentTile> {
                   ),
                   Space.horizontal(8),
                   Expanded(
-                    child: TextField(
+                    child: CustomTextField(
                       controller: _replyController,
                       focusNode: _replyFocus,
                       textCapitalization: TextCapitalization.sentences,
-                      style: AppTextStyles.normal.copyWith(fontSize: 13),
                       maxLines: null,
-                      decoration: InputDecoration(
-                        hintText: 'Write a reply…',
-                        hintStyle: AppTextStyles.normal.copyWith(
-                          fontSize: 13,
-                          color: kSecondaryGreyColor,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        filled: true,
-                        fillColor: bg,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: _submittingReply
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: purple,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.send_rounded,
-                                  size: 18,
+                      hintText: 'Write a reply…',
+                      onFieldSubmitted: (_) => _submitReply(),
+                      suffix: GestureDetector(
+                        onTap: _submittingReply ? null : _submitReply,
+                        child: _submittingReply
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                   color: purple,
                                 ),
-                          onPressed: _submitReply,
-                        ),
+                              )
+                            : const Icon(
+                                Icons.send_rounded,
+                                size: 18,
+                                color: purple,
+                              ),
                       ),
-                      onSubmitted: (_) => _submitReply(),
                     ),
                   ),
                 ],
@@ -788,7 +773,7 @@ class _ReplyTile extends StatelessWidget {
             height: 50,
             margin: const EdgeInsets.only(right: 10),
             decoration: BoxDecoration(
-              color: purple.withOpacityValue(0.2),
+              color: kLightGreyColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -813,11 +798,14 @@ class _ReplyTile extends StatelessWidget {
                     Flexible(
                       child: Text(
                         reply.authorName,
-                        style: AppTextStyles.semiBold.copyWith(fontSize: 12),
+                        style: AppTextStyles.semiBold.copyWith(
+                          fontSize: 12,
+                          color: kWhiteColor,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
+                    Space.horizontal(10),
                     Text(
                       reply.timeAgo,
                       style: AppTextStyles.normal.copyWith(
@@ -833,7 +821,7 @@ class _ReplyTile extends StatelessWidget {
                   style: AppTextStyles.normal.copyWith(
                     fontSize: 12,
                     height: 1.5,
-                    color: const Color(0xFF374151),
+                    color: kWhiteColor,
                   ),
                 ),
                 Space.vertical(5),
@@ -926,74 +914,40 @@ class _CommentInputBarState extends State<_CommentInputBar> {
           ),
           Space.horizontal(10),
           Expanded(
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 120),
-              decoration: BoxDecoration(
-                color: kPrimaryGreyColor,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: widget.focusNode,
-                      cursorColor: kWhiteColor,
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: AppTextStyles.normal.copyWith(fontSize: 14),
-                      onTap: () => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Add a comment…',
-                        hintStyle: AppTextStyles.normal.copyWith(
-                          fontSize: 14,
-                          color: kWhiteColor,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => widget.onSubmit(),
-                    ),
-                  ),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, anim) => ScaleTransition(
-                      scale: anim,
-                      child: FadeTransition(opacity: anim, child: child),
-                    ),
-                    child: _hasText
-                        ? Padding(
-                            key: const ValueKey('send'),
-                            padding: const EdgeInsets.only(right: 6, bottom: 4),
-                            child: IconButton(
-                              onPressed: widget.submitting
-                                  ? null
-                                  : widget.onSubmit,
-                              icon: widget.submitting
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: kWhiteColor,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.send_rounded,
-                                      size: 20,
-                                      color: kWhiteColor,
-                                    ),
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(6),
-                            ),
-                          )
-                        : const SizedBox.shrink(key: ValueKey('empty')),
-                  ),
-                ],
+            child: CustomTextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              hintText: 'Add a comment…',
+              onTap: () => setState(() {}),
+              onFieldSubmitted: (_) => widget.onSubmit(),
+              suffix: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+                child: _hasText
+                    ? GestureDetector(
+                        key: const ValueKey('send'),
+                        onTap: widget.submitting ? null : widget.onSubmit,
+                        child: widget.submitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kWhiteColor,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send_rounded,
+                                size: 20,
+                                color: kWhiteColor,
+                              ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty')),
               ),
             ),
           ),

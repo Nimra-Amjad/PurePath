@@ -5,6 +5,7 @@ import 'package:purepath/core/extensions/color.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? hintText;
   final String? labelText;
   final Widget? prefix;
@@ -13,7 +14,8 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
-  final int maxLines;
+  final void Function(String)? onFieldSubmitted;
+  final int? maxLines;
   final TextCapitalization? textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
   final bool readOnly;
@@ -22,6 +24,7 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     this.controller,
+    this.focusNode,
     this.hintText,
     this.labelText,
     this.prefix,
@@ -30,6 +33,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.validator,
     this.onChanged,
+    this.onFieldSubmitted,
     this.maxLines = 1,
     this.textCapitalization,
     this.inputFormatters,
@@ -41,12 +45,14 @@ class CustomTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       textCapitalization: textCapitalization ?? TextCapitalization.none,
       obscureText: obscureText,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
       maxLines: maxLines,
       readOnly: readOnly,
 
