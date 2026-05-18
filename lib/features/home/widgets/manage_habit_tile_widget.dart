@@ -36,13 +36,10 @@ class ManageHabitTileWidget extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(
-            color: kBlackColor.withOpacityValue(0.04),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: kBlackColor.withOpacityValue(0.04), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -63,21 +60,21 @@ class ManageHabitTileWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(habit.title, style: AppTextStyles.semiBold),
+                Text(
+                  habit.title,
+                  style: AppTextStyles.semiBold.copyWith(color: kWhiteColor),
+                ),
                 Space.vertical(3),
                 Text(
                   habit.subtitle,
                   style: AppTextStyles.normal.copyWith(
                     fontSize: 12,
-                    color: textSecondary,
+                    color: kSecondaryGreyColor,
                   ),
                 ),
                 Space.vertical(4),
                 // Frequency badge
-                _FrequencyBadge(
-                  label: habit.frequencyLabel,
-                  color: color,
-                ),
+                _FrequencyBadge(label: habit.frequencyLabel, color: color),
               ],
             ),
           ),
@@ -85,7 +82,7 @@ class ManageHabitTileWidget extends StatelessWidget {
           // ── Action buttons ──────────────────────────────────────────────
           _IconActionButton(
             icon: Icons.edit_outlined,
-            color: purple,
+            color: kDarkGreenColor,
             tooltip: 'Edit',
             onTap: onEdit,
           ),

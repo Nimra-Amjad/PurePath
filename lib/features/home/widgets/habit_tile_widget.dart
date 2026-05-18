@@ -25,11 +25,7 @@ class HabitTileWidget extends StatelessWidget {
   /// Parent is responsible for dispatching [HabitToggled] to [HomeBloc].
   final VoidCallback onTap;
 
-  const HabitTileWidget({
-    super.key,
-    required this.habit,
-    required this.onTap,
-  });
+  const HabitTileWidget({super.key, required this.habit, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -42,14 +38,8 @@ class HabitTileWidget extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: kWhiteColor,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: kBlackColor.withOpacityValue(0.04),
-              blurRadius: 8,
-            ),
-          ],
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
@@ -66,17 +56,19 @@ class HabitTileWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(habit.title, style: AppTextStyles.bold),
+                  Text(
+                    habit.title,
+                    style: AppTextStyles.bold.copyWith(color: kWhiteColor),
+                  ),
                   Space.vertical(3),
                   Text(
                     habit.subtitle,
-                    style: AppTextStyles.normal.copyWith(color: kDarkGreyColor),
+                    style: AppTextStyles.normal.copyWith(
+                      color: kSecondaryGreyColor,
+                    ),
                   ),
                   Space.vertical(5),
-                  _FrequencyBadge(
-                    label: habit.frequencyLabel,
-                    color: color,
-                  ),
+                  _FrequencyBadge(label: habit.frequencyLabel, color: color),
                 ],
               ),
             ),
@@ -91,10 +83,10 @@ class HabitTileWidget extends StatelessWidget {
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: habit.isCompleted ? color : Colors.grey.shade200,
+                color: habit.isCompleted ? color : kSecondaryGreyColor,
               ),
               child: habit.isCompleted
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  ? const Icon(Icons.check, size: 16, color: kBlackColor)
                   : null,
             ),
           ],

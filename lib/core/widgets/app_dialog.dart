@@ -93,7 +93,7 @@ class AppDialog extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 32),
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           decoration: BoxDecoration(
-            color: kWhiteColor,
+            color: kContainerColor,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -124,7 +124,7 @@ class AppDialog extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bold.copyWith(
                   fontSize: 18,
-                  color: textPrimary,
+                  color: kWhiteColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -135,7 +135,7 @@ class AppDialog extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 13.5,
-                  color: textSecondary,
+                  color: kSecondaryGreyColor,
                   height: 1.5,
                 ),
               ),

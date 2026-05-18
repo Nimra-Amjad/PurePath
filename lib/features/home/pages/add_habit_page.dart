@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -170,6 +172,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
     );
 
     final confirmed = await AppBottomSheet.show<bool>(
+      backgroundColor: kContainerColor,
       context,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -179,7 +182,10 @@ class _AddHabitPageState extends State<AddHabitPage> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Reminder Time',
-                style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: kWhiteColor,
+                ),
               ),
             ),
             Space.vertical(8),
@@ -214,7 +220,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(),
       body: Form(
         key: _formKey,
@@ -224,13 +230,13 @@ class _AddHabitPageState extends State<AddHabitPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildNameSection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildCategorySection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 8),
               _buildFrequencySection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildDateRangeSection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildGoalReminderSection(),
               const SizedBox(height: 36),
               _buildCreateButton(),
@@ -245,20 +251,17 @@ class _AddHabitPageState extends State<AddHabitPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: kBlackColor,
-          size: 20,
-        ),
-        onPressed: () => Navigator.of(context).pop(),
+      leading: CustomBackButton(
+        onTap: () {
+          context.pop();
+        },
       ),
       title: Text(
         'New Habit',
-        style: AppTextStyles.bold.copyWith(fontSize: 20),
+        style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),
       ),
     );
   }
@@ -301,9 +304,9 @@ class _AddHabitPageState extends State<AddHabitPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.55,
+              crossAxisSpacing: 5,
+              mainAxisSpacing: 5,
+              childAspectRatio: 2,
             ),
             itemCount: _allCategories.length,
             itemBuilder: (_, i) {
@@ -312,53 +315,46 @@ class _AddHabitPageState extends State<AddHabitPage> {
               final categoryColor = category.color;
 
               return GestureDetector(
-                onTap: () => setState(() {
-                  _selectedCategory = category;
-                  _categoryError = false;
-                }),
+                onTap: () {
+                  setState(() {
+                    _selectedCategory = category;
+                    _categoryError = false;
+                  });
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? categoryColor.withValues(alpha: 0.12)
-                        : kWhiteColor,
-                    borderRadius: BorderRadius.circular(14),
+                        : kContainerColor,
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
                           ? categoryColor
-                          : kGreyColor.withValues(alpha: 0.3),
+                          : kSecondaryGreyColor.withValues(alpha: 0.3),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
                   child: Row(
                     children: [
                       // Emoji with tinted circular background
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: categoryColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            category.emoji,
-                            style: const TextStyle(fontSize: 15),
-                          ),
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: categoryColor.withValues(alpha: 0.2),
+                        child: Text(
+                          category.emoji,
+                          style: AppTextStyles.medium.copyWith(fontSize: 15),
                         ),
                       ),
-                      const SizedBox(width: 7),
+                      Space.horizontal(8),
                       // Category label
                       Expanded(
                         child: Text(
                           category.label,
                           style: AppTextStyles.medium.copyWith(
-                            fontSize: 11,
-                            color: isSelected ? categoryColor : kDarkGreyColor,
+                            fontSize: 12,
+                            color: isSelected ? categoryColor : kWhiteColor,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -400,7 +396,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
                   }),
                 ),
               ),
-              const SizedBox(width: 12),
+              Space.horizontal(8),
               Expanded(
                 child: _FrequencyButton(
                   label: 'Weekly',
@@ -412,7 +408,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
             ],
           ),
           // Day picker — only visible when Weekly is selected
-          if (!_isDaily) ...[const SizedBox(height: 14), _buildWeekDayPicker()],
+          if (!_isDaily) ...[Space.vertical(12), _buildWeekDayPicker()],
         ],
       ),
     );
@@ -423,8 +419,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 10,
+          runSpacing: 10,
           children: List.generate(7, (i) {
             final isSelected = _selectedWeekDays.contains(i);
             return GestureDetector(
@@ -440,19 +436,14 @@ class _AddHabitPageState extends State<AddHabitPage> {
                 height: 42,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? purple : kWhiteColor,
-                  border: Border.all(
-                    color: isSelected
-                        ? purple
-                        : kGreyColor.withValues(alpha: 0.3),
-                  ),
+                  color: isSelected ? kDarkGreenColor : kWhiteColor,
                 ),
                 child: Center(
                   child: Text(
                     _weekDayLabels[i],
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 10,
-                      color: isSelected ? kWhiteColor : kDarkGreyColor,
+                    style: AppTextStyles.normal.copyWith(
+                      fontSize: 12,
+                      color: isSelected ? kWhiteColor : kBlackColor,
                     ),
                   ),
                 ),
@@ -461,7 +452,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
           }),
         ),
         if (_weekDayError) ...[
-          const SizedBox(height: 6),
+          Space.vertical(6),
           const _ErrorLabel('Please select at least one day'),
         ],
       ],
@@ -548,6 +539,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
         : (initial.isAfter(lastDate) ? lastDate : initial);
 
     final confirmed = await AppBottomSheet.show<bool>(
+      backgroundColor: kContainerColor,
       context,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -557,7 +549,10 @@ class _AddHabitPageState extends State<AddHabitPage> {
               alignment: Alignment.centerLeft,
               child: Text(
                 title,
-                style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: kWhiteColor,
+                ),
               ),
             ),
             Space.vertical(8),
@@ -691,7 +686,7 @@ class _Section extends StatelessWidget {
           style: AppTextStyles.semiBold.copyWith(
             fontSize: 11,
             letterSpacing: 1.1,
-            color: kDarkGreyColor.withValues(alpha: 0.55),
+            color: kWhiteColor,
           ),
         ),
         const SizedBox(height: 10),
@@ -758,9 +753,9 @@ class _DateField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: kGreyColor.withValues(alpha: 0.3)),
+          border: Border.all(color: kSecondaryGreyColor.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,8 +763,8 @@ class _DateField extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.medium.copyWith(
-                fontSize: 11,
-                color: kDarkGreyColor.withValues(alpha: 0.7),
+                fontSize: 12,
+                color: kWhiteColor,
               ),
             ),
             const SizedBox(height: 4),
@@ -780,7 +775,7 @@ class _DateField extends StatelessWidget {
                     hasValue ? _format(date!) : hint,
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 13,
-                      color: hasValue ? kBlackColor : kGreyColor,
+                      color: hasValue ? kWhiteColor : kSecondaryGreyColor,
                     ),
                   ),
                 ),
@@ -828,13 +823,10 @@ class _FrequencyButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? purple : kWhiteColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? purple : kGreyColor.withValues(alpha: 0.3),
-          ),
+          color: isSelected ? kDarkGreenColor : kWhiteColor,
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           children: [
@@ -845,14 +837,11 @@ class _FrequencyButton extends StatelessWidget {
                 color: isSelected ? kWhiteColor : kBlackColor,
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               sublabel,
               style: AppTextStyles.normal.copyWith(
                 fontSize: 12,
-                color: isSelected
-                    ? kWhiteColor.withValues(alpha: 0.75)
-                    : kGreyColor,
+                color: isSelected ? kWhiteColor : kPrimaryGreyColor,
               ),
             ),
           ],

@@ -1,10 +1,16 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/app_bottom_sheet.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
+import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
@@ -17,12 +23,13 @@ import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 // Edit Habit Page
 //
 // Pre-fills all form fields from an existing [HabitDefinition].
-// The form structure mirrors AddHabitPage — same sections, same validations.
+// The form structure mirrors AddHabitPage — same sections, same validations,
+// same dark theme.
 //
 // On "Save Changes" tap:
 //   • All fields are validated simultaneously
-//   • On success → dispatches [ManageHabitUpdateRequested] to [ManageHabitsBloc]
-//     and pops back to ManageHabitsPage
+//   • On success → persists via HomeRepository, refreshes the dependent
+//     blocs, then pops back to ManageHabitsPage.
 //
 // Navigation: opened via Navigator.push with BlocProvider.value so it shares
 // the same [ManageHabitsBloc] instance as its parent.
@@ -51,15 +58,26 @@ class _EditHabitPageState extends State<EditHabitPage> {
   late DateTime _startDate;
   DateTime? _endDate;
 
-  // ── Validation error flags ─────────────────────────────────────────────────
+  // ── Validation error flags (for non-FormField widgets) ────────────────────
   bool _categoryError = false;
   bool _weekDayError = false;
   bool _dateRangeError = false;
 
+  // ── Submission state ───────────────────────────────────────────────────────
+  bool _isSubmitting = false;
+
   // ── Static data ────────────────────────────────────────────────────────────
+
   static const _allCategories = HabitCategory.values;
+
   static const _weekDayLabels = [
-    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
   ];
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -87,14 +105,15 @@ class _EditHabitPageState extends State<EditHabitPage> {
     super.dispose();
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit & validation ────────────────────────────────────────────────────
 
   Future<void> _onSaveTapped() async {
+    if (_isSubmitting) return;
+
     setState(() {
       _categoryError = _selectedCategory == null;
       _weekDayError = !_isDaily && _selectedWeekDays.isEmpty;
-      _dateRangeError =
-          _endDate != null && _endDate!.isBefore(_startDate);
+      _dateRangeError = _endDate != null && _endDate!.isBefore(_startDate);
     });
 
     final formValid = _formKey.currentState!.validate();
@@ -103,11 +122,15 @@ class _EditHabitPageState extends State<EditHabitPage> {
 
     if (!formValid || !selectionsValid) return;
 
+    final weekDays = _isDaily
+        ? const <int>[]
+        : (_selectedWeekDays.toList()..sort());
+
     final updated = widget.habit.copyWith(
       title: _nameController.text.trim(),
       category: _selectedCategory,
       isDaily: _isDaily,
-      weekDays: _isDaily ? [] : _selectedWeekDays.toList()..sort(),
+      weekDays: weekDays,
       goal: _goalController.text.trim(),
       reminderTime: _reminderController.text.trim(),
       startDate: _startDate,
@@ -115,14 +138,15 @@ class _EditHabitPageState extends State<EditHabitPage> {
       clearEndDate: _endDate == null,
     );
 
-    // Persist via the repository first so we can sequence the screen
-    // refreshes after the write completes.
+    setState(() => _isSubmitting = true);
+
     try {
       await context.read<HomeRepository>().updateHabit(updated);
     } catch (_) {
       if (!mounted) return;
+      setState(() => _isSubmitting = false);
       AppSnackBar.error(context, 'Could not update habit. Please try again.');
-      return; // Stay on the page so the user can retry.
+      return;
     }
 
     if (!mounted) return;
@@ -142,18 +166,56 @@ class _EditHabitPageState extends State<EditHabitPage> {
   // ── Time picker ────────────────────────────────────────────────────────────
 
   Future<void> _pickReminderTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: purple),
+    final now = DateTime.now();
+    DateTime tempPicked = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
+
+    final confirmed = await AppBottomSheet.show<bool>(
+      backgroundColor: kContainerColor,
+      context,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Reminder Time',
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
+            Space.vertical(8),
+            SizedBox(
+              height: 220,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: tempPicked,
+                use24hFormat: false,
+                onDateTimeChanged: (value) => tempPicked = value,
+              ),
+            ),
+            Space.vertical(8),
+            PrimaryButton(
+              text: "Add Time",
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            Space.vertical(32),
+          ],
         ),
-        child: child!,
       ),
     );
-    if (picked != null && mounted) {
-      setState(() => _reminderController.text = picked.format(context));
+
+    if (confirmed == true && mounted) {
+      final timeOfDay = TimeOfDay.fromDateTime(tempPicked);
+      setState(() => _reminderController.text = timeOfDay.format(context));
     }
   }
 
@@ -162,7 +224,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(),
       body: Form(
         key: _formKey,
@@ -172,13 +234,13 @@ class _EditHabitPageState extends State<EditHabitPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildNameSection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildCategorySection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 8),
               _buildFrequencySection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildDateRangeSection(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               _buildGoalReminderSection(),
               const SizedBox(height: 36),
               _buildSaveButton(),
@@ -193,20 +255,17 @@ class _EditHabitPageState extends State<EditHabitPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: kBlackColor,
-          size: 20,
-        ),
-        onPressed: () => Navigator.of(context).pop(),
+      leading: CustomBackButton(
+        onTap: () {
+          context.pop();
+        },
       ),
       title: Text(
         'Edit Habit',
-        style: AppTextStyles.bold.copyWith(fontSize: 20),
+        style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),
       ),
     );
   }
@@ -244,9 +303,9 @@ class _EditHabitPageState extends State<EditHabitPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.55,
+              crossAxisSpacing: 5,
+              mainAxisSpacing: 5,
+              childAspectRatio: 2,
             ),
             itemCount: _allCategories.length,
             itemBuilder: (_, i) {
@@ -255,51 +314,44 @@ class _EditHabitPageState extends State<EditHabitPage> {
               final categoryColor = category.color;
 
               return GestureDetector(
-                onTap: () => setState(() {
-                  _selectedCategory = category;
-                  _categoryError = false;
-                }),
+                onTap: () {
+                  setState(() {
+                    _selectedCategory = category;
+                    _categoryError = false;
+                  });
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? categoryColor.withValues(alpha: 0.12)
-                        : kWhiteColor,
-                    borderRadius: BorderRadius.circular(14),
+                        : kContainerColor,
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
                           ? categoryColor
-                          : kGreyColor.withValues(alpha: 0.3),
+                          : kSecondaryGreyColor.withValues(alpha: 0.3),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: categoryColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            category.emoji,
-                            style: const TextStyle(fontSize: 15),
-                          ),
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: categoryColor.withValues(alpha: 0.2),
+                        child: Text(
+                          category.emoji,
+                          style: AppTextStyles.medium.copyWith(fontSize: 15),
                         ),
                       ),
-                      const SizedBox(width: 7),
+                      Space.horizontal(8),
                       Expanded(
                         child: Text(
                           category.label,
                           style: AppTextStyles.medium.copyWith(
-                            fontSize: 11,
-                            color: isSelected ? categoryColor : kDarkGreyColor,
+                            fontSize: 12,
+                            color: isSelected ? categoryColor : kWhiteColor,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -341,7 +393,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
                   }),
                 ),
               ),
-              const SizedBox(width: 12),
+              Space.horizontal(8),
               Expanded(
                 child: _FrequencyButton(
                   label: 'Weekly',
@@ -352,7 +404,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
               ),
             ],
           ),
-          if (!_isDaily) ...[const SizedBox(height: 14), _buildWeekDayPicker()],
+          if (!_isDaily) ...[Space.vertical(12), _buildWeekDayPicker()],
         ],
       ),
     );
@@ -363,8 +415,8 @@ class _EditHabitPageState extends State<EditHabitPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 10,
+          runSpacing: 10,
           children: List.generate(7, (i) {
             final isSelected = _selectedWeekDays.contains(i);
             return GestureDetector(
@@ -380,19 +432,14 @@ class _EditHabitPageState extends State<EditHabitPage> {
                 height: 42,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? purple : kWhiteColor,
-                  border: Border.all(
-                    color: isSelected
-                        ? purple
-                        : kGreyColor.withValues(alpha: 0.3),
-                  ),
+                  color: isSelected ? kDarkGreenColor : kWhiteColor,
                 ),
                 child: Center(
                   child: Text(
                     _weekDayLabels[i],
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 10,
-                      color: isSelected ? kWhiteColor : kDarkGreyColor,
+                    style: AppTextStyles.normal.copyWith(
+                      fontSize: 12,
+                      color: isSelected ? kWhiteColor : kBlackColor,
                     ),
                   ),
                 ),
@@ -401,7 +448,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
           }),
         ),
         if (_weekDayError) ...[
-          const SizedBox(height: 6),
+          Space.vertical(6),
           const _ErrorLabel('Please select at least one day'),
         ],
       ],
@@ -424,9 +471,11 @@ class _EditHabitPageState extends State<EditHabitPage> {
                   date: _startDate,
                   onTap: () async {
                     final picked = await _pickDate(
+                      title: 'Start Date',
                       initial: _startDate,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 365 * 5)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365 * 5),
+                      ),
                     );
                     if (picked != null) {
                       setState(() {
@@ -445,6 +494,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
                   hint: 'No end date',
                   onTap: () async {
                     final picked = await _pickDate(
+                      title: 'End Date',
                       initial: _endDate ?? _startDate,
                       firstDate: _startDate,
                     );
@@ -472,21 +522,58 @@ class _EditHabitPageState extends State<EditHabitPage> {
   }
 
   Future<DateTime?> _pickDate({
+    required String title,
     required DateTime initial,
     required DateTime firstDate,
   }) async {
-    return showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: firstDate,
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: purple),
+    final lastDate = DateTime.now().add(const Duration(days: 365 * 5));
+    DateTime tempPicked = initial.isBefore(firstDate)
+        ? firstDate
+        : (initial.isAfter(lastDate) ? lastDate : initial);
+
+    final confirmed = await AppBottomSheet.show<bool>(
+      backgroundColor: kContainerColor,
+      context,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
+            Space.vertical(8),
+            SizedBox(
+              height: 220,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.date,
+                initialDateTime: tempPicked,
+                minimumDate: firstDate,
+                maximumDate: lastDate,
+                onDateTimeChanged: (value) => tempPicked = value,
+              ),
+            ),
+            Space.vertical(8),
+            PrimaryButton(
+              text: "Set Date",
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            Space.vertical(32),
+          ],
         ),
-        child: child!,
       ),
     );
+
+    if (confirmed == true) {
+      return DateTime(tempPicked.year, tempPicked.month, tempPicked.day);
+    }
+    return null;
   }
 
   // ── Section: Goal & Reminder ───────────────────────────────────────────────
@@ -532,29 +619,40 @@ class _EditHabitPageState extends State<EditHabitPage> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: _onSaveTapped,
+        onPressed: _isSubmitting ? null : _onSaveTapped,
         style: ElevatedButton.styleFrom(
           backgroundColor: purple,
           foregroundColor: kWhiteColor,
+          disabledBackgroundColor: purple.withValues(alpha: 0.6),
+          disabledForegroundColor: kWhiteColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Save Changes',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 16,
-                color: kWhiteColor,
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: kWhiteColor,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Save Changes',
+                    style: AppTextStyles.semiBold.copyWith(
+                      fontSize: 16,
+                      color: kWhiteColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.check_rounded, size: 20),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.check_rounded, size: 20),
-          ],
-        ),
       ),
     );
   }
@@ -580,7 +678,7 @@ class _Section extends StatelessWidget {
           style: AppTextStyles.semiBold.copyWith(
             fontSize: 11,
             letterSpacing: 1.1,
-            color: kDarkGreyColor.withValues(alpha: 0.55),
+            color: kWhiteColor,
           ),
         ),
         const SizedBox(height: 10),
@@ -620,8 +718,18 @@ class _DateField extends StatelessWidget {
 
   String _format(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
@@ -634,9 +742,9 @@ class _DateField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: kGreyColor.withValues(alpha: 0.3)),
+          border: Border.all(color: kSecondaryGreyColor.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,8 +752,8 @@ class _DateField extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.medium.copyWith(
-                fontSize: 11,
-                color: kDarkGreyColor.withValues(alpha: 0.7),
+                fontSize: 12,
+                color: kWhiteColor,
               ),
             ),
             const SizedBox(height: 4),
@@ -656,7 +764,7 @@ class _DateField extends StatelessWidget {
                     hasValue ? _format(date!) : hint,
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 13,
-                      color: hasValue ? kBlackColor : kGreyColor,
+                      color: hasValue ? kWhiteColor : kSecondaryGreyColor,
                     ),
                   ),
                 ),
@@ -703,13 +811,10 @@ class _FrequencyButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? purple : kWhiteColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? purple : kGreyColor.withValues(alpha: 0.3),
-          ),
+          color: isSelected ? kDarkGreenColor : kWhiteColor,
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           children: [
@@ -720,14 +825,11 @@ class _FrequencyButton extends StatelessWidget {
                 color: isSelected ? kWhiteColor : kBlackColor,
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               sublabel,
               style: AppTextStyles.normal.copyWith(
                 fontSize: 12,
-                color: isSelected
-                    ? kWhiteColor.withValues(alpha: 0.75)
-                    : kGreyColor,
+                color: isSelected ? kWhiteColor : kPrimaryGreyColor,
               ),
             ),
           ],

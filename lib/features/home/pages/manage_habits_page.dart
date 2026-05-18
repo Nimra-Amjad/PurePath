@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/app_dialog.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
@@ -49,7 +52,7 @@ class _ManageHabitsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(context),
       body: BlocBuilder<ManageHabitsBloc, ManageHabitsState>(
         builder: (context, state) {
@@ -67,20 +70,17 @@ class _ManageHabitsView extends StatelessWidget {
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: kBlackColor,
-          size: 20,
-        ),
-        onPressed: () => Navigator.of(context).pop(),
+      leading: CustomBackButton(
+        onTap: () {
+          context.pop();
+        },
       ),
       title: Text(
         'My Habits',
-        style: AppTextStyles.bold.copyWith(fontSize: 20),
+        style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),
       ),
     );
   }
@@ -114,9 +114,15 @@ class _LoadedView extends StatelessWidget {
   // Show a confirmation dialog before dispatching the delete event.
 
   Future<void> _onDelete(BuildContext context, HabitDefinition habit) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => _DeleteConfirmDialog(habitTitle: habit.title),
+    final confirmed = await AppDialog.show(
+      context,
+      icon: Icons.delete_outline_rounded,
+      iconColor: red,
+      title: 'Delete habit?',
+      subtitle:
+          '"${habit.title}" will be removed along with its progress. This cannot be undone.',
+      confirmText: 'Delete',
+      confirmColor: red,
     );
 
     if (confirmed != true || !context.mounted) return;
@@ -199,56 +205,6 @@ class _EmptyView extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Delete confirmation dialog
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DeleteConfirmDialog extends StatelessWidget {
-  final String habitTitle;
-
-  const _DeleteConfirmDialog({required this.habitTitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: kWhiteColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        'Delete Habit',
-        style: AppTextStyles.bold.copyWith(fontSize: 18),
-      ),
-      content: Text(
-        'Are you sure you want to delete "$habitTitle"?\nThis cannot be undone.',
-        style: AppTextStyles.normal.copyWith(color: textSecondary),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(
-            'Cancel',
-            style: AppTextStyles.medium.copyWith(color: textSecondary),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: red,
-            foregroundColor: kWhiteColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          child: Text(
-            'Delete',
-            style: AppTextStyles.semiBold.copyWith(color: kWhiteColor),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Loading view
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -257,9 +213,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: purple),
-    );
+    return const Center(child: CircularProgressIndicator(color: purple));
   }
 }
 

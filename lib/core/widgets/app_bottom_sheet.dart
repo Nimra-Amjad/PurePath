@@ -48,7 +48,7 @@ class AppBottomSheet extends StatelessWidget {
     super.key,
     required this.body,
     this.showSheetHandler = true,
-    this.backgroundColor = kWhiteColor,
+    this.backgroundColor = kScaffoldColor,
     this.borderRadius = 24,
     this.enableScrollView = true,
     this.scrollController,
@@ -71,7 +71,7 @@ class AppBottomSheet extends StatelessWidget {
     bool isDismissible = true,
     bool enableDrag = true,
     bool enableScrollView = true,
-    Color backgroundColor = kWhiteColor,
+    Color backgroundColor = kScaffoldColor,
     double borderRadius = 24,
     ScrollController? scrollController,
   }) {
@@ -91,8 +91,7 @@ class AppBottomSheet extends StatelessWidget {
       useSafeArea: true,
       builder: (ctx) => Padding(
         // Lifts the sheet above the keyboard when it appears
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: AppBottomSheet(
           body: body,
           showSheetHandler: showSheetHandler,
@@ -123,10 +122,7 @@ class AppBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showSheetHandler) ...[
-            const SheetHandleBar(),
-            Space.vertical(20),
-          ],
+          if (showSheetHandler) ...[const SheetHandleBar(), Space.vertical(20)],
           if (enableScrollView)
             Flexible(
               child: SingleChildScrollView(

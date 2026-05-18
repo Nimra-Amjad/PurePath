@@ -12,6 +12,7 @@ import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/custom_vertical_divider.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
@@ -78,22 +79,28 @@ class ProfilePage extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 40,
-              backgroundColor: lightPurple,
+              backgroundColor: kContainerColor,
               child: Text(
                 initial,
                 style: AppTextStyles.semiBold.copyWith(
                   fontSize: 28,
-                  color: purple,
+                  color: kWhiteColor,
                 ),
               ),
             ),
             Space.vertical(12),
-            Text(displayName, style: AppTextStyles.bold.copyWith(fontSize: 20)),
+            Text(
+              displayName,
+              style: AppTextStyles.bold.copyWith(
+                fontSize: 20,
+                color: kWhiteColor,
+              ),
+            ),
             if (email.isNotEmpty) ...[
               Space.vertical(4),
               Text(
                 email,
-                style: AppTextStyles.normal.copyWith(color: textSecondary),
+                style: AppTextStyles.normal.copyWith(color: kLightGreyColor),
               ),
             ],
           ],
@@ -112,16 +119,15 @@ class ProfilePage extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: kWhiteColor,
+            color: kContainerColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statItem('$coins', 'Day Streak', orange),
+              _statItem('$coins', 'Day Streak', kPrimaryGreenColor),
               CustomVerticalDivider(),
-              _statItem('$earnedBadges', 'Badges', purple),
+              _statItem('$earnedBadges', 'Badges', kDarkGreenColor),
             ],
           ),
         );
@@ -137,7 +143,13 @@ class ProfilePage extends StatelessWidget {
           style: AppTextStyles.bold.copyWith(fontSize: 18, color: color),
         ),
         Space.vertical(4),
-        Text(label, style: AppTextStyles.normal.copyWith(fontSize: 12)),
+        Text(
+          label,
+          style: AppTextStyles.normal.copyWith(
+            fontSize: 12,
+            color: kWhiteColor,
+          ),
+        ),
       ],
     );
   }
@@ -162,7 +174,7 @@ class ProfilePage extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: lightPurple,
+            color: kContainerColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -185,13 +197,16 @@ class ProfilePage extends StatelessWidget {
                   value: progress,
                   minHeight: 6,
                   color: tier.color,
-                  backgroundColor: kWhiteColor,
+                  backgroundColor: kLightGreyColor,
                 ),
               ),
               Space.vertical(6),
               Text(
                 subtitle,
-                style: AppTextStyles.normal.copyWith(fontSize: 12),
+                style: AppTextStyles.normal.copyWith(
+                  fontSize: 12,
+                  color: kWhiteColor,
+                ),
               ),
             ],
           ),
@@ -215,7 +230,7 @@ class ProfilePage extends StatelessWidget {
                 Text(
                   "BADGES & ACHIEVEMENTS",
                   style: AppTextStyles.bold.copyWith(
-                    color: textSecondary,
+                    color: kWhiteColor,
                     fontSize: 12,
                   ),
                 ),
@@ -226,7 +241,7 @@ class ProfilePage extends StatelessWidget {
                   child: Text(
                     "See all ${BadgesPage.totalCount}",
                     style: AppTextStyles.medium.copyWith(
-                      color: purple,
+                      color: kDarkGreenColor,
                       fontSize: 13,
                     ),
                   ),
@@ -341,24 +356,15 @@ class ProfilePage extends StatelessWidget {
   // ── Sheets ────────────────────────────────────────────────────────────────
 
   void _showChangeUsernameSheet(BuildContext context) {
-    AppBottomSheet.show(
-      context,
-      body: const _ChangeUsernameSheet(),
-    );
+    AppBottomSheet.show(context, body: const _ChangeUsernameSheet());
   }
 
   void _showChangePasswordSheet(BuildContext context) {
-    AppBottomSheet.show(
-      context,
-      body: const _ChangePasswordSheet(),
-    );
+    AppBottomSheet.show(context, body: const _ChangePasswordSheet());
   }
 
   void _showDeleteAccountSheet(BuildContext context) {
-    AppBottomSheet.show(
-      context,
-      body: const _DeleteAccountSheet(),
-    );
+    AppBottomSheet.show(context, body: const _DeleteAccountSheet());
   }
 
   Widget _settingTile({
@@ -368,16 +374,34 @@ class ProfilePage extends StatelessWidget {
     bool isDanger = false,
     VoidCallback? onTap,
   }) {
-    return ListTile(
+    return GestureDetector(
       onTap: onTap,
-      leading: Icon(icon, color: isDanger ? red : textSecondary),
-      title: Text(
-        title,
-        style: AppTextStyles.normal.copyWith(
-          color: isDanger ? red : textPrimary,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: isDanger ? red : kSecondaryGreyColor),
+                Space.horizontal(10),
+                Text(
+                  title,
+                  style: AppTextStyles.normal.copyWith(
+                    color: isDanger ? red : kWhiteColor,
+                  ),
+                ),
+              ],
+            ),
+            Icon(Icons.chevron_right, size: 24, color: kSecondaryGreyColor),
+          ],
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, size: 18, color: textSecondary),
     );
   }
 }
@@ -472,9 +496,8 @@ class _EmptyBadgePreview extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
       ),
       child: Column(
         children: [
@@ -484,7 +507,7 @@ class _EmptyBadgePreview extends StatelessWidget {
             'Build a 10-day streak to earn your first badge',
             style: AppTextStyles.medium.copyWith(
               fontSize: 12,
-              color: textSecondary,
+              color: kWhiteColor,
             ),
             textAlign: TextAlign.center,
           ),
@@ -570,8 +593,10 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
             Space.vertical(6),
             Text(
               'Your name appears on your posts, comments, and replies.',
-              style:
-                  AppTextStyles.normal.copyWith(color: textSecondary, fontSize: 13),
+              style: AppTextStyles.normal.copyWith(
+                color: textSecondary,
+                fontSize: 13,
+              ),
             ),
             Space.vertical(20),
             CustomTextField(
@@ -587,11 +612,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
               },
             ),
             Space.vertical(20),
-            _SheetPrimaryButton(
-              label: 'Save',
-              loading: _saving,
-              onTap: _save,
-            ),
+            PrimaryButton(text: 'Save', onPressed: _save, isLoading: _saving),
           ],
         ),
       ),
@@ -640,9 +661,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     setState(() => _saving = true);
     try {
       await context.read<FirebaseAuthRepository>().updatePassword(
-            currentPassword: _currentCtrl.text,
-            newPassword: _newCtrl.text,
-          );
+        currentPassword: _currentCtrl.text,
+        newPassword: _newCtrl.text,
+      );
       if (!mounted) return;
       AppSnackBar.success(context, 'Password updated!');
       Navigator.of(context).pop();
@@ -656,8 +677,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
 
   String _friendlyError(Object e) {
     final msg = e.toString();
-    if (msg.contains('wrong-password') ||
-        msg.contains('invalid-credential')) {
+    if (msg.contains('wrong-password') || msg.contains('invalid-credential')) {
       return 'Current password is incorrect.';
     }
     if (msg.contains('weak-password')) {
@@ -681,13 +701,18 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           children: [
             Text(
               'Change Password',
-              style: AppTextStyles.bold.copyWith(fontSize: 20),
+              style: AppTextStyles.bold.copyWith(
+                fontSize: 20,
+                color: kWhiteColor,
+              ),
             ),
             Space.vertical(6),
             Text(
               'Enter your current password to confirm, then choose a new one.',
-              style:
-                  AppTextStyles.normal.copyWith(color: textSecondary, fontSize: 13),
+              style: AppTextStyles.normal.copyWith(
+                color: textSecondary,
+                fontSize: 13,
+              ),
             ),
             Space.vertical(20),
             CustomTextField(
@@ -698,8 +723,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 visible: _showCurrent,
                 onTap: () => setState(() => _showCurrent = !_showCurrent),
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Required' : null,
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
             ),
             Space.vertical(12),
             CustomTextField(
@@ -735,10 +759,10 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
               },
             ),
             Space.vertical(20),
-            _SheetPrimaryButton(
-              label: 'Update Password',
-              loading: _saving,
-              onTap: _save,
+            PrimaryButton(
+              text: 'Update Password',
+              onPressed: _save,
+              isLoading: _saving,
             ),
           ],
         ),
@@ -860,8 +884,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: red, size: 22),
+                  const Icon(Icons.warning_amber_rounded, color: red, size: 22),
                   Space.horizontal(10),
                   Expanded(
                     child: Column(
@@ -869,8 +892,10 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                       children: [
                         Text(
                           'This cannot be undone',
-                          style: AppTextStyles.semiBold
-                              .copyWith(fontSize: 14, color: red),
+                          style: AppTextStyles.semiBold.copyWith(
+                            fontSize: 14,
+                            color: red,
+                          ),
                         ),
                         Space.vertical(4),
                         Text(
@@ -909,8 +934,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                   color: textSecondary,
                 ),
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Required' : null,
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
             ),
             Space.vertical(20),
 
@@ -949,13 +973,13 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
             Space.vertical(8),
             Center(
               child: TextButton(
-                onPressed: _deleting
-                    ? null
-                    : () => Navigator.of(context).pop(),
+                onPressed: _deleting ? null : () => Navigator.of(context).pop(),
                 child: Text(
                   'Cancel',
-                  style: AppTextStyles.medium
-                      .copyWith(color: textSecondary, fontSize: 14),
+                  style: AppTextStyles.medium.copyWith(
+                    color: textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
@@ -970,50 +994,50 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
 // Shared sheet button
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SheetPrimaryButton extends StatelessWidget {
-  final String label;
-  final bool loading;
-  final VoidCallback onTap;
+// class _SheetPrimaryButton extends StatelessWidget {
+//   final String label;
+//   final bool loading;
+//   final VoidCallback onTap;
 
-  const _SheetPrimaryButton({
-    required this.label,
-    required this.loading,
-    required this.onTap,
-  });
+//   const _SheetPrimaryButton({
+//     required this.label,
+//     required this.loading,
+//     required this.onTap,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: loading ? null : onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: purple,
-          disabledBackgroundColor: purple.withValues(alpha: 0.5),
-          foregroundColor: kWhiteColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: kWhiteColor,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Text(
-                label,
-                style: AppTextStyles.semiBold.copyWith(
-                  fontSize: 15,
-                  color: kWhiteColor,
-                ),
-              ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return SizedBox(
+//       width: double.infinity,
+//       height: 52,
+//       child: ElevatedButton(
+//         onPressed: loading ? null : onTap,
+//         style: ElevatedButton.styleFrom(
+//           backgroundColor: purple,
+//           disabledBackgroundColor: purple.withValues(alpha: 0.5),
+//           foregroundColor: kWhiteColor,
+//           elevation: 0,
+//           shape: RoundedRectangleBorder(
+//             borderRadius: BorderRadius.circular(14),
+//           ),
+//         ),
+//         child: loading
+//             ? const SizedBox(
+//                 width: 22,
+//                 height: 22,
+//                 child: CircularProgressIndicator(
+//                   color: kWhiteColor,
+//                   strokeWidth: 2.5,
+//                 ),
+//               )
+//             : Text(
+//                 label,
+//                 style: AppTextStyles.semiBold.copyWith(
+//                   fontSize: 15,
+//                   color: kWhiteColor,
+//                 ),
+//               ),
+//       ),
+//     );
+//   }
+// }

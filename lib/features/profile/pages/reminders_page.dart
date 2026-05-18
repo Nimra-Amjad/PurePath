@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
@@ -22,7 +24,7 @@ class RemindersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(context),
       body: BlocListener<NotificationBloc, NotificationState>(
         listenWhen: (a, b) =>
@@ -40,9 +42,9 @@ class RemindersPage extends StatelessWidget {
               children: [
                 _ToggleCard(
                   isEnabled: enabled,
-                  onChanged: (value) => context
-                      .read<NotificationBloc>()
-                      .add(NotificationToggled(enabled: value)),
+                  onChanged: (value) => context.read<NotificationBloc>().add(
+                    NotificationToggled(enabled: value),
+                  ),
                 ),
                 Space.vertical(16),
                 _InfoCard(enabled: enabled),
@@ -56,19 +58,19 @@ class RemindersPage extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: kWhiteColor,
-      surfaceTintColor: kWhiteColor,
+      backgroundColor: kScaffoldColor,
+      surfaceTintColor: kScaffoldColor,
       elevation: 0,
       scrolledUnderElevation: 0.5,
       shadowColor: kBlackColor.withOpacityValue(0.06),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-        color: kBlackColor,
-        onPressed: () => Navigator.of(context).pop(),
+      leading: CustomBackButton(
+        onTap: () {
+          context.pop();
+        },
       ),
       title: Text(
         'Reminders',
-        style: AppTextStyles.bold.copyWith(fontSize: 18),
+        style: AppTextStyles.bold.copyWith(fontSize: 18, color: kWhiteColor),
       ),
     );
   }
@@ -89,7 +91,7 @@ class _ToggleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: isEnabled ? lightPurple : kLightGreyColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -113,16 +115,14 @@ class _ToggleCard extends StatelessWidget {
       width: 46,
       height: 46,
       decoration: BoxDecoration(
-        color: isEnabled
-            ? purple.withOpacityValue(0.18)
-            : kGreyColor.withOpacityValue(0.18),
+        color: kSecondaryGreyColor,
         shape: BoxShape.circle,
       ),
       child: Icon(
         isEnabled
             ? Icons.notifications_active_rounded
             : Icons.notifications_off_rounded,
-        color: isEnabled ? purple : textSecondary,
+        color: kWhiteColor,
         size: 22,
       ),
     );
@@ -134,7 +134,10 @@ class _ToggleCard extends StatelessWidget {
       children: [
         Text(
           'Habit Reminders',
-          style: AppTextStyles.semiBold.copyWith(fontSize: 15),
+          style: AppTextStyles.semiBold.copyWith(
+            fontSize: 15,
+            color: kWhiteColor,
+          ),
         ),
         Space.vertical(2),
         Text(
@@ -175,9 +178,9 @@ class _InfoCard extends StatelessWidget {
             child: Text(
               enabled
                   ? "We'll remind you to check off your habits so your "
-                      'streak stays alive.'
+                        'streak stays alive.'
                   : "Turn reminders on and we'll send you a friendly nudge "
-                      'so you never miss a day.',
+                        'so you never miss a day.',
               style: AppTextStyles.normal.copyWith(
                 fontSize: 12,
                 color: textSecondary,
