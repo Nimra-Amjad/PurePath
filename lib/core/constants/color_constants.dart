@@ -40,3 +40,4 @@ const kContainerColor = Color(0xff2c2c2e);
 const kContainerColorContrast = Color(0xff222223);
 const kRedColor = Color(0xFFef233c);
 const kTransparentColor = Colors.transparent;
+const kPurpleColor = Color(0xFF6C4DFF);
