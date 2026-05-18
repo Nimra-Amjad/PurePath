@@ -97,7 +97,7 @@ class PrimaryButton extends StatelessWidget {
     return isLoading
         ? Center(
             child: CircularProgressIndicator(
-              color: kWhiteColor,
+              color: kBlackColor,
               strokeWidth: 1,
             ),
           )

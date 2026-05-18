@@ -4,6 +4,7 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
+import 'package:purepath/features/home/widgets/frequency_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit tile widget
@@ -68,13 +69,11 @@ class HabitTileWidget extends StatelessWidget {
                     ),
                   ),
                   Space.vertical(5),
-                  _FrequencyBadge(label: habit.frequencyLabel, color: color),
+                  FrequencyBadge(label: habit.frequencyLabel, color: color),
                 ],
               ),
             ),
             Space.horizontal(12),
-
-            Space.horizontal(8),
 
             // Checkmark badge — animates between grey (pending) and category color (done)
             AnimatedContainer(
@@ -83,7 +82,7 @@ class HabitTileWidget extends StatelessWidget {
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: habit.isCompleted ? color : kSecondaryGreyColor,
+                color: habit.isCompleted ? color : kWhiteColor,
               ),
               child: habit.isCompleted
                   ? const Icon(Icons.check, size: 16, color: kBlackColor)
@@ -91,32 +90,6 @@ class HabitTileWidget extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Frequency badge — "Daily" or "Weekly" pill
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _FrequencyBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _FrequencyBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacityValue(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.medium.copyWith(fontSize: 11, color: color),
       ),
     );
   }

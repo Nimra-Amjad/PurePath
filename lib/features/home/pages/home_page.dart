@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
+import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
@@ -83,8 +85,11 @@ class _HomePageState extends State<HomePage> {
         return const _LoadingView();
 
       case HomeStatus.error:
-        return _ErrorView(
+        return CustomErrorView(
           message: state.errorMessage ?? 'Something went wrong',
+          onRetry: () {
+            context.read<HomeBloc>().add(HomeStarted());
+          },
         );
 
       case HomeStatus.loaded:
@@ -111,7 +116,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => AppRoute.manageHabits.push(context),
+                  onTap: () => AppRoute.habits.push(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -122,7 +127,7 @@ class _HomePageState extends State<HomePage> {
                           color: kPrimaryGreenColor,
                         ),
                       ),
-                      const SizedBox(width: 2),
+                      Space.horizontal(4),
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
                         color: kPrimaryGreenColor,
@@ -137,7 +142,7 @@ class _HomePageState extends State<HomePage> {
 
             // ── Habit tiles ─────────────────────────────────────────────
             if (summary.habits.isEmpty)
-              const _EmptyHabitsView()
+              const EmptyHabitView()
             else
               ...summary.habits.map(
                 (habit) => HabitTileWidget(
@@ -171,84 +176,6 @@ class _LoadingView extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
         child: CircularProgressIndicator(color: kPrimaryGreenColor),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty habits view — shown when the user hasn't created any habits yet.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _EmptyHabitsView extends StatelessWidget {
-  const _EmptyHabitsView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: BoxDecoration(
-        color: kWhiteColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kLightGreyColor.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        children: [
-          const Text('🌱', style: TextStyle(fontSize: 32)),
-          Space.vertical(10),
-          Text(
-            'No habits yet',
-            style: AppTextStyles.semiBold.copyWith(fontSize: 15),
-          ),
-          Space.vertical(6),
-          Text(
-            'Tap the + button to create your first habit.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.normal.copyWith(
-              fontSize: 13,
-              color: kSecondaryGreyColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Error view
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
-        child: Column(
-          children: [
-            const Icon(Icons.error_outline, color: kRedColor, size: 40),
-            Space.vertical(12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.normal.copyWith(color: kSecondaryGreyColor),
-            ),
-            Space.vertical(16),
-            TextButton(
-              onPressed: () => context.read<HomeBloc>().add(HomeStarted()),
-              child: Text(
-                'Retry',
-                style: AppTextStyles.medium.copyWith(color: kPrimaryGreenColor),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

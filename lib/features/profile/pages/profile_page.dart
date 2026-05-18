@@ -27,11 +27,11 @@ class ProfilePage extends StatelessWidget {
     final confirmed = await AppDialog.show(
       context,
       icon: Icons.logout_rounded,
-      iconColor: red,
+      iconColor: kRedColor,
       title: 'Sign out?',
       subtitle: "You'll be logged out and need to sign back in to continue.",
       confirmText: 'Sign out',
-      confirmColor: red,
+      confirmColor: kRedColor,
     );
 
     if (confirmed == true && context.mounted) {
@@ -388,12 +388,12 @@ class ProfilePage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: isDanger ? red : kSecondaryGreyColor),
+                Icon(icon, color: isDanger ? kRedColor : kSecondaryGreyColor),
                 Space.horizontal(10),
                 Text(
                   title,
                   style: AppTextStyles.normal.copyWith(
-                    color: isDanger ? red : kWhiteColor,
+                    color: isDanger ? kRedColor : kWhiteColor,
                   ),
                 ),
               ],
@@ -588,7 +588,10 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
           children: [
             Text(
               'Edit Username',
-              style: AppTextStyles.bold.copyWith(fontSize: 20),
+              style: AppTextStyles.bold.copyWith(
+                fontSize: 20,
+                color: kWhiteColor,
+              ),
             ),
             Space.vertical(6),
             Text(
@@ -806,7 +809,6 @@ class _DeleteAccountSheet extends StatefulWidget {
 class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
   final _formKey = GlobalKey<FormState>();
   final _passwordCtrl = TextEditingController();
-  bool _showPassword = false;
   bool _deleting = false;
 
   @override
@@ -817,17 +819,28 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
 
   Future<void> _delete() async {
     if (_deleting) return;
-    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final authRepo = context.read<FirebaseAuthRepository>();
     final userRepo = context.read<UserRepository>();
     final userBloc = context.read<UserBloc>();
+    final notificationBloc = context.read<NotificationBloc>();
     final router = GoRouter.of(context);
+
+    // Pull the stored password off the cached UserModel so we can satisfy
+    // Firebase's recent-login requirement without prompting the user.
+    final localUser = userRepo.localUser;
+    if (localUser == null || localUser.password.isEmpty) {
+      AppSnackBar.error(
+        context,
+        'Please sign out and back in, then try again.',
+      );
+      return;
+    }
 
     setState(() => _deleting = true);
     try {
-      // 1) Recent-login check.
-      await authRepo.reauthenticate(_passwordCtrl.text);
+      // 1) Recent-login check — re-sign-in silently with the saved password.
+      await authRepo.reauthenticate(localUser.password);
 
       // 2) Wipe Firestore data while we still have an auth context.
       await userRepo.deleteAllUserData();
@@ -839,6 +852,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
 
       // 4) Reset local state + leave the screen.
       Navigator.of(context).pop(); // close sheet
+      notificationBloc.add(const NotificationCleared());
       userBloc.add(LogoutRequested());
       router.go(AppRoute.login.path);
     } catch (e) {
@@ -877,14 +891,18 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: red.withValues(alpha: 0.08),
+                color: kRedColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: red.withValues(alpha: 0.25)),
+                border: Border.all(color: kRedColor.withValues(alpha: 0.25)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: red, size: 22),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: kRedColor,
+                    size: 22,
+                  ),
                   Space.horizontal(10),
                   Expanded(
                     child: Column(
@@ -894,7 +912,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                           'This cannot be undone',
                           style: AppTextStyles.semiBold.copyWith(
                             fontSize: 14,
-                            color: red,
+                            color: kRedColor,
                           ),
                         ),
                         Space.vertical(4),
@@ -914,61 +932,16 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
               ),
             ),
             Space.vertical(20),
-
-            Text(
-              'Confirm with your password',
-              style: AppTextStyles.semiBold.copyWith(fontSize: 14),
-            ),
-            Space.vertical(10),
-            CustomTextField(
-              controller: _passwordCtrl,
-              hintText: 'Current password',
-              obscureText: !_showPassword,
-              suffix: GestureDetector(
-                onTap: () => setState(() => _showPassword = !_showPassword),
-                child: Icon(
-                  _showPassword
-                      ? Icons.visibility_off_rounded
-                      : Icons.visibility_rounded,
-                  size: 20,
-                  color: textSecondary,
-                ),
-              ),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-            ),
-            Space.vertical(20),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _deleting ? null : _delete,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: red,
-                  disabledBackgroundColor: red.withValues(alpha: 0.5),
-                  foregroundColor: kWhiteColor,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: _deleting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: kWhiteColor,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Text(
-                        'Delete My Account',
-                        style: AppTextStyles.semiBold.copyWith(
-                          fontSize: 15,
-                          color: kWhiteColor,
-                        ),
-                      ),
-              ),
+            PrimaryButton(
+              text: "Delete My Account",
+              buttonColor: kRedColor,
+              textColor: kWhiteColor,
+              isLoading: _deleting,
+              onPressed: _deleting
+                  ? () {}
+                  : () {
+                      _delete();
+                    },
             ),
             Space.vertical(8),
             Center(

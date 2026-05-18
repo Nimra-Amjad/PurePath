@@ -5,6 +5,7 @@ import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
+import 'package:purepath/features/home/widgets/frequency_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Manage habit tile widget
@@ -74,7 +75,7 @@ class ManageHabitTileWidget extends StatelessWidget {
                 ),
                 Space.vertical(4),
                 // Frequency badge
-                _FrequencyBadge(label: habit.frequencyLabel, color: color),
+                FrequencyBadge(label: habit.frequencyLabel, color: color),
               ],
             ),
           ),
@@ -94,32 +95,6 @@ class ManageHabitTileWidget extends StatelessWidget {
             onTap: onDelete,
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Frequency badge — small pill showing "Daily" or "Weekly"
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _FrequencyBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _FrequencyBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacityValue(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.medium.copyWith(fontSize: 11, color: color),
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
@@ -58,12 +57,10 @@ class CreatePostSheet extends StatefulWidget {
 class _CreatePostSheetState extends State<CreatePostSheet> {
   // ── Form state ─────────────────────────────────────────────────────────────
   final _contentController = TextEditingController();
-  final _imageController = TextEditingController();
   final _contentFocus = FocusNode();
 
   static const int _maxLength = 500;
 
-  bool _showImageField = false;
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.existing != null;
@@ -80,10 +77,6 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
     final existing = widget.existing;
     if (existing != null) {
       _contentController.text = existing.content;
-      if (existing.imageUrl != null && existing.imageUrl!.isNotEmpty) {
-        _imageController.text = existing.imageUrl!;
-        _showImageField = true;
-      }
     }
     // Rebuild whenever the content changes so _canPost / _charCount stay
     // in sync with what the user has typed.
@@ -98,7 +91,6 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
   void dispose() {
     _contentController.removeListener(_onContentChanged);
     _contentController.dispose();
-    _imageController.dispose();
     _contentFocus.dispose();
     super.dispose();
   }
@@ -118,21 +110,17 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
 
     setState(() => _isSubmitting = true);
 
-    final imageUrl = _imageController.text.trim();
-    final imageOrNull = imageUrl.isEmpty ? null : imageUrl;
 
     if (_isEditing) {
       bloc.add(
         CommunityPostUpdated(
           postId: widget.existing!.id,
           content: content,
-          imageUrl: imageOrNull,
+          imageUrl: null,
         ),
       );
     } else {
-      bloc.add(
-        CommunityPostCreated(content: content, imageUrl: imageOrNull),
-      );
+      bloc.add(CommunityPostCreated(content: content, imageUrl: null));
     }
 
     if (!mounted) return;
@@ -175,21 +163,6 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
             focusNode: _contentFocus,
             maxLength: _maxLength,
             charCount: _charCount,
-          ),
-          if (_showImageField) ...[
-            Space.vertical(12),
-            _ImageField(
-              controller: _imageController,
-              onClose: () => setState(() {
-                _showImageField = false;
-                _imageController.clear();
-              }),
-            ),
-          ],
-          Space.vertical(16),
-          _AttachImageChip(
-            isActive: _showImageField,
-            onTap: () => setState(() => _showImageField = !_showImageField),
           ),
           Space.vertical(16),
           const _InspireBanner(),
@@ -359,78 +332,6 @@ class _ComposerCard extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Image URL field — collapsible
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ImageField extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onClose;
-
-  const _ImageField({required this.controller, required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomTextField(
-      controller: controller,
-      keyboardType: TextInputType.url,
-      hintText: 'Paste an image URL',
-      prefix: Icon(Icons.link_rounded, size: 18, color: textSecondary),
-      suffix: GestureDetector(
-        onTap: onClose,
-        child: Icon(Icons.close_rounded, size: 16, color: textSecondary),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Attach image chip — only attachment option, replaces the old toolbar
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _AttachImageChip extends StatelessWidget {
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _AttachImageChip({required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? purple : purple.withOpacityValue(0.08),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive
-                  ? Icons.image_rounded
-                  : Icons.add_photo_alternate_outlined,
-              size: 16,
-              color: isActive ? kWhiteColor : purple,
-            ),
-            Space.horizontal(6),
-            Text(
-              isActive ? 'Image attached' : 'Add image',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 12,
-                color: isActive ? kWhiteColor : purple,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

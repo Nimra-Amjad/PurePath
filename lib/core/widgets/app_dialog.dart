@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
+import 'package:purepath/core/widgets/space.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AppDialog
@@ -88,7 +91,7 @@ class AppDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Material(
-        color: Colors.transparent,
+        color: kTransparentColor,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 32),
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
@@ -116,7 +119,7 @@ class AppDialog extends StatelessWidget {
                 ),
                 child: Icon(icon, color: iconColor, size: 28),
               ),
-              const SizedBox(height: 18),
+              Space.vertical(18),
 
               // ── Title ────────────────────────────────────────────────────
               Text(
@@ -127,7 +130,7 @@ class AppDialog extends StatelessWidget {
                   color: kWhiteColor,
                 ),
               ),
-              const SizedBox(height: 8),
+              Space.vertical(8),
 
               // ── Subtitle ─────────────────────────────────────────────────
               Text(
@@ -139,54 +142,28 @@ class AppDialog extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 24),
+              Space.vertical(24),
 
               // ── Confirm button ───────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: confirmColor,
-                    foregroundColor: kWhiteColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    confirmText,
-                    style: AppTextStyles.semiBold.copyWith(
-                      fontSize: 15,
-                      color: kWhiteColor,
-                    ),
-                  ),
-                ),
+              PrimaryButton(
+                text: confirmText,
+                buttonColor: kRedColor,
+                textColor: kWhiteColor,
+                onPressed: () {
+                  context.pop(true);
+                },
               ),
-              const SizedBox(height: 10),
+
+              Space.vertical(10),
 
               // ── Cancel button ────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  style: TextButton.styleFrom(
-                    backgroundColor: kLightGreyColor.withValues(alpha: 0.6),
-                    foregroundColor: textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    cancelText,
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 15,
-                      color: textPrimary,
-                    ),
-                  ),
-                ),
+              PrimaryButton(
+                text: confirmText,
+                buttonColor: kLightGreyColor,
+                textColor: kBlackColor,
+                onPressed: () {
+                  context.pop(false);
+                },
               ),
             ],
           ),

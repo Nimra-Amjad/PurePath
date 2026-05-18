@@ -36,8 +36,8 @@ class DailyProgressCard extends StatelessWidget {
             child: CircularProgressIndicator(
               value: summary.overallProgress,
               strokeWidth: 6,
-              color: purple,
-              backgroundColor: lightPurple,
+              color: kPrimaryGreenColor,
+              backgroundColor: kContainerColorContrast,
             ),
           ),
           Space.horizontal(16),

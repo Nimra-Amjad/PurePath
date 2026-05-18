@@ -26,7 +26,7 @@ class ProgressWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: kLightGreyColor,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -55,14 +55,17 @@ class ProgressWidget extends StatelessWidget {
               children: [
                 Text(
                   stat.title,
-                  style: AppTextStyles.medium.copyWith(fontSize: 14),
+                  style: AppTextStyles.medium.copyWith(
+                    fontSize: 14,
+                    color: kWhiteColor,
+                  ),
                 ),
                 Space.vertical(2),
                 Text(
                   '${stat.completedDays} / ${stat.totalDays} days',
                   style: AppTextStyles.normal.copyWith(
                     fontSize: 12,
-                    color: textSecondary,
+                    color: kSecondaryGreyColor,
                   ),
                 ),
               ],

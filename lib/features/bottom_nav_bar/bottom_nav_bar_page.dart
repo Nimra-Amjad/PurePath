@@ -4,7 +4,6 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/utils.dart';
-import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/community/pages/community_page.dart';
 import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/insights/pages/insights_page.dart';
@@ -42,19 +41,6 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
           ],
         ),
       ),
-      // FAB is only visible on the Home tab (index 0)
-      floatingActionButton: _index == 0
-          ? FloatingActionButton(
-              onPressed: () => AppRoute.addHabit.push(context),
-              backgroundColor: kPrimaryGreenColor,
-              shape: const CircleBorder(),
-              child: const Icon(
-                Icons.add_rounded,
-                color: kBlackColor,
-                size: 28,
-              ),
-            )
-          : null,
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: kScaffoldColor,

@@ -3,15 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_back_button.dart';
-import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/core/widgets/custom_error_view.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
@@ -24,14 +27,14 @@ import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 // time the page is opened.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class ManageHabitsPage extends StatefulWidget {
-  const ManageHabitsPage({super.key});
+class HabitsPage extends StatefulWidget {
+  const HabitsPage({super.key});
 
   @override
-  State<ManageHabitsPage> createState() => _ManageHabitsPageState();
+  State<HabitsPage> createState() => _HabitsPageState();
 }
 
-class _ManageHabitsPageState extends State<ManageHabitsPage> {
+class _HabitsPageState extends State<HabitsPage> {
   @override
   void initState() {
     super.initState();
@@ -58,8 +61,11 @@ class _ManageHabitsView extends StatelessWidget {
         builder: (context, state) {
           return switch (state.status) {
             ManageHabitsStatus.loading => const _LoadingView(),
-            ManageHabitsStatus.error => _ErrorView(
+            ManageHabitsStatus.error => CustomErrorView(
               message: state.errorMessage ?? 'Something went wrong.',
+              onRetry: () {
+                context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
+              },
             ),
             ManageHabitsStatus.loaded => _LoadedView(habits: state.habits),
           };
@@ -153,53 +159,39 @@ class _LoadedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (habits.isEmpty) return const _EmptyView();
+    if (habits.isEmpty) return const EmptyHabitView();
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-      itemCount: habits.length,
-      itemBuilder: (context, index) {
-        final habit = habits[index];
-        return ManageHabitTileWidget(
-          habit: habit,
-          onEdit: () => _onEdit(context, habit),
-          onDelete: () => _onDelete(context, habit),
-        );
-      },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty view
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🏃', style: TextStyle(fontSize: 56)),
-            Space.vertical(16),
-            Text(
-              'No habits yet',
-              style: AppTextStyles.bold.copyWith(fontSize: 18),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: PrimaryButton(
+              height: 35,
+              text: "Add Habit",
+              isMainAxisSizeMin: true,
+              onPressed: () {
+                AppRoute.addHabit.push(context);
+              },
             ),
-            Space.vertical(8),
-            Text(
-              'Tap the + button on the home screen\nto create your first habit.',
-              style: AppTextStyles.normal.copyWith(color: textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
-      ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            itemCount: habits.length,
+            itemBuilder: (context, index) {
+              final habit = habits[index];
+              return ManageHabitTileWidget(
+                habit: habit,
+                onEdit: () => _onEdit(context, habit),
+                onDelete: () => _onDelete(context, habit),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -213,49 +205,8 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator(color: purple));
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Error view
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: red, size: 48),
-            Space.vertical(12),
-            Text(
-              message,
-              style: AppTextStyles.normal.copyWith(color: textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            Space.vertical(16),
-            ElevatedButton(
-              onPressed: () =>
-                  context.read<ManageHabitsBloc>().add(ManageHabitsStarted()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: purple,
-                foregroundColor: kWhiteColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
+    return const Center(
+      child: CircularProgressIndicator(color: kPrimaryGreenColor),
     );
   }
 }

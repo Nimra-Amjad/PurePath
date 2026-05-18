@@ -121,7 +121,10 @@ class _LoadedView extends StatelessWidget {
           if (stats.isNotEmpty) ...[
             Text(
               'Habit Progress',
-              style: AppTextStyles.semiBold.copyWith(fontSize: 16),
+              style: AppTextStyles.semiBold.copyWith(
+                fontSize: 16,
+                color: kWhiteColor,
+              ),
             ),
             Space.vertical(12),
             ...stats.map(

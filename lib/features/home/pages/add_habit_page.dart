@@ -239,7 +239,13 @@ class _AddHabitPageState extends State<AddHabitPage> {
               const SizedBox(height: 24),
               _buildGoalReminderSection(),
               const SizedBox(height: 36),
-              _buildCreateButton(),
+              PrimaryButton(
+                text: "Create Habit",
+                isLoading: _isSubmitting,
+                onPressed: () {
+                  _onCreateTapped();
+                },
+              ),
             ],
           ),
         ),
@@ -274,7 +280,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
       child: CustomTextField(
         controller: _nameController,
         hintText: 'e.g. Morning Run',
-        textCapitalization: TextCapitalization.sentences,
+        textCapitalization: TextCapitalization.words,
         inputFormatters: [LengthLimitingTextInputFormatter(50)],
         validator: (value) {
           final v = value?.trim() ?? '';
@@ -615,51 +621,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── Create button ──────────────────────────────────────────────────────────
-
-  Widget _buildCreateButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSubmitting ? null : _onCreateTapped,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: purple,
-          foregroundColor: kWhiteColor,
-          disabledBackgroundColor: purple.withValues(alpha: 0.6),
-          disabledForegroundColor: kWhiteColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: _isSubmitting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: kWhiteColor,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Create Habit',
-                    style: AppTextStyles.semiBold.copyWith(
-                      fontSize: 16,
-                      color: kWhiteColor,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 20),
-                ],
-              ),
       ),
     );
   }
