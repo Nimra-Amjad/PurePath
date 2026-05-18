@@ -29,6 +29,14 @@ abstract class CommunityRepository {
   /// Permanently removes a post and all of its comments + replies.
   Future<void> deletePost(String postId);
 
+  /// Updates the content + optional image of an existing post. Other fields
+  /// (author, likes, createdAt) are left untouched.
+  Future<void> updatePost({
+    required String postId,
+    required String content,
+    String? imageUrl,
+  });
+
   /// Toggles whether [userId] likes [postId]: idempotent on the user's behalf.
   Future<void> togglePostLike({
     required String postId,

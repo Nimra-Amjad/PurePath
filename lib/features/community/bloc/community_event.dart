@@ -25,6 +25,18 @@ final class CommunityPostDeleted extends CommunityEvent {
   CommunityPostDeleted(this.postId);
 }
 
+/// Updates content / image of an existing post the user owns.
+final class CommunityPostUpdated extends CommunityEvent {
+  final String postId;
+  final String content;
+  final String? imageUrl;
+  CommunityPostUpdated({
+    required this.postId,
+    required this.content,
+    this.imageUrl,
+  });
+}
+
 /// Toggles whether the current user likes [postId].
 final class CommunityPostLikeToggled extends CommunityEvent {
   final String postId;

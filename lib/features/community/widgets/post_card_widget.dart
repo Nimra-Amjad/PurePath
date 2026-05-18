@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
+import 'package:purepath/core/widgets/app_bottom_sheet.dart';
+import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/pages/create_post_page.dart';
 import 'package:purepath/features/community/pages/post_detail_page.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,85 +164,132 @@ class _AuthorRow extends StatelessWidget {
           ),
         ),
         if (isOwn)
-          PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.more_horiz_rounded,
-              size: 20,
-              color: kSecondaryGreyColor,
-            ),
-            onSelected: (v) {
-              if (v == 'delete') {
-                _confirmDelete(context, post.id);
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.delete_outline_rounded,
-                      size: 18,
-                      color: red,
-                    ),
-                    Space.horizontal(8),
-                    Text(
-                      'Delete',
-                      style: AppTextStyles.medium.copyWith(color: red),
-                    ),
-                  ],
-                ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => PostActionsSheet.show(context, post),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(
+                Icons.more_horiz_rounded,
+                size: 22,
+                color: kSecondaryGreyColor,
               ),
-            ],
+            ),
           ),
       ],
     );
   }
+}
 
-  void _confirmDelete(BuildContext context, String postId) {
-    showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: kWhiteColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Delete post',
-          style: AppTextStyles.bold.copyWith(fontSize: 18),
-        ),
-        content: Text(
-          'This post and all its comments will be permanently removed.',
-          style: AppTextStyles.normal.copyWith(color: kSecondaryGreyColor),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium.copyWith(color: kSecondaryGreyColor),
-            ),
+// ─────────────────────────────────────────────────────────────────────────────
+// Owner actions sheet — Edit / Delete
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PostActionsSheet extends StatelessWidget {
+  final PostModel post;
+  // The context that opened the sheet (i.e. the PostCard's). The sheet's own
+  // BuildContext is torn down the moment we pop, so we use this longer-lived
+  // one to show the follow-up dialog and dispatch the delete event.
+  final BuildContext parentContext;
+
+  const PostActionsSheet._({required this.post, required this.parentContext});
+
+  /// Opens the bottom sheet with Edit + Delete actions for the post owner.
+  static Future<void> show(BuildContext context, PostModel post) {
+    return AppBottomSheet.show<void>(
+      context,
+      body: PostActionsSheet._(post: post, parentContext: context),
+    );
+  }
+
+  Future<void> _onEdit(BuildContext context) async {
+    Navigator.of(context).pop();
+    if (!parentContext.mounted) return;
+    await CreatePostSheet.showEdit(parentContext, post);
+  }
+
+  Future<void> _onDelete(BuildContext context) async {
+    Navigator.of(context).pop();
+    if (!parentContext.mounted) return;
+    final confirmed = await AppDialog.show(
+      parentContext,
+      icon: Icons.delete_outline_rounded,
+      iconColor: red,
+      title: 'Delete post?',
+      subtitle: 'This post and all its comments will be permanently removed.',
+      confirmText: 'Delete',
+      confirmColor: red,
+    );
+    if (confirmed == true && parentContext.mounted) {
+      parentContext.read<CommunityBloc>().add(CommunityPostDeleted(post.id));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ActionTile(
+            icon: Icons.edit_outlined,
+            label: 'Edit post',
+            color: kWhiteColor,
+            onTap: () => _onEdit(context),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: red,
-              foregroundColor: kWhiteColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.semiBold.copyWith(color: kWhiteColor),
-            ),
+          Space.vertical(8),
+          _ActionTile(
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete post',
+            color: red,
+            onTap: () => _onDelete(context),
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true && context.mounted) {
-        context.read<CommunityBloc>().add(CommunityPostDeleted(postId));
-      }
-    });
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: kContainerColor,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: color),
+              Space.horizontal(12),
+              Text(
+                label,
+                style: AppTextStyles.medium.copyWith(
+                  fontSize: 14,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

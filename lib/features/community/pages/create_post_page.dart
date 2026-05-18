@@ -10,6 +10,7 @@ import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
+import 'package:purepath/features/community/models/post_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Create Post sheet
@@ -29,12 +30,25 @@ import 'package:purepath/features/community/bloc/community_bloc.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CreatePostSheet extends StatefulWidget {
-  const CreatePostSheet._();
+  /// When non-null, the sheet opens in edit mode and pre-fills its fields
+  /// from this post.
+  final PostModel? existing;
 
-  /// Opens the sheet. Returns `true` if the user successfully published a
-  /// post, `null` if they dismissed without posting.
+  const CreatePostSheet._({this.existing});
+
+  /// Opens the sheet to compose a brand-new post. Returns `true` if the user
+  /// successfully published, `null` if they dismissed without posting.
   static Future<bool?> show(BuildContext context) {
     return AppBottomSheet.show<bool>(context, body: const CreatePostSheet._());
+  }
+
+  /// Opens the sheet in edit mode, pre-filled from [post]. Returns `true` if
+  /// the user saved their edits, `null` if they dismissed.
+  static Future<bool?> showEdit(BuildContext context, PostModel post) {
+    return AppBottomSheet.show<bool>(
+      context,
+      body: CreatePostSheet._(existing: post),
+    );
   }
 
   @override
@@ -52,6 +66,8 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
   bool _showImageField = false;
   bool _isSubmitting = false;
 
+  bool get _isEditing => widget.existing != null;
+
   bool get _canPost =>
       !_isSubmitting && _contentController.text.trim().isNotEmpty;
 
@@ -60,6 +76,15 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill from the existing post when editing.
+    final existing = widget.existing;
+    if (existing != null) {
+      _contentController.text = existing.content;
+      if (existing.imageUrl != null && existing.imageUrl!.isNotEmpty) {
+        _imageController.text = existing.imageUrl!;
+        _showImageField = true;
+      }
+    }
     // Rebuild whenever the content changes so _canPost / _charCount stay
     // in sync with what the user has typed.
     _contentController.addListener(_onContentChanged);
@@ -94,15 +119,27 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
     setState(() => _isSubmitting = true);
 
     final imageUrl = _imageController.text.trim();
-    bloc.add(
-      CommunityPostCreated(
-        content: content,
-        imageUrl: imageUrl.isEmpty ? null : imageUrl,
-      ),
-    );
+    final imageOrNull = imageUrl.isEmpty ? null : imageUrl;
+
+    if (_isEditing) {
+      bloc.add(
+        CommunityPostUpdated(
+          postId: widget.existing!.id,
+          content: content,
+          imageUrl: imageOrNull,
+        ),
+      );
+    } else {
+      bloc.add(
+        CommunityPostCreated(content: content, imageUrl: imageOrNull),
+      );
+    }
 
     if (!mounted) return;
-    AppSnackBar.success(context, 'Post published!');
+    AppSnackBar.success(
+      context,
+      _isEditing ? 'Post updated!' : 'Post published!',
+    );
     Navigator.of(context).pop(true);
   }
 
@@ -129,6 +166,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
             displayName: displayName,
             initial: initial,
             isSubmitting: _isSubmitting,
+            isEditing: _isEditing,
             onCancel: () => Navigator.of(context).pop(),
           ),
           Space.vertical(18),
@@ -157,7 +195,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
           const _InspireBanner(),
           Space.vertical(16),
           PrimaryButton(
-            text: 'Create Post',
+            text: _isEditing ? 'Save Changes' : 'Create Post',
             onPressed: _submit,
             inactive: !_canPost,
             isLoading: _isSubmitting,
@@ -177,12 +215,14 @@ class _SheetHeader extends StatelessWidget {
   final String displayName;
   final String initial;
   final bool isSubmitting;
+  final bool isEditing;
   final VoidCallback onCancel;
 
   const _SheetHeader({
     required this.displayName,
     required this.initial,
     required this.isSubmitting,
+    required this.isEditing,
     required this.onCancel,
   });
 
@@ -240,7 +280,7 @@ class _SheetHeader extends StatelessWidget {
               ),
               Space.vertical(1),
               Text(
-                'Posting to Community',
+                isEditing ? 'Editing your post' : 'Posting to Community',
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 11,
                   color: kSecondaryGreyColor,

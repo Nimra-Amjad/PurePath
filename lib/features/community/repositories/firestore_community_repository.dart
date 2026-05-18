@@ -100,6 +100,18 @@ class FirestoreCommunityRepository implements CommunityRepository {
   }
 
   @override
+  Future<void> updatePost({
+    required String postId,
+    required String content,
+    String? imageUrl,
+  }) async {
+    await _postsRef.doc(postId).update({
+      'content': content,
+      'imageUrl': imageUrl,
+    });
+  }
+
+  @override
   Future<void> deletePost(String postId) async {
     // Cascade: delete comments + replies first, then the post.
     final comments = await _commentsRef(postId).get();

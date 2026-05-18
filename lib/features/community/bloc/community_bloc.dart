@@ -36,6 +36,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     on<CommunityRefreshRequested>(_onRefreshRequested);
     on<CommunityPostCreated>(_onPostCreated);
     on<CommunityPostDeleted>(_onPostDeleted);
+    on<CommunityPostUpdated>(_onPostUpdated);
     on<CommunityPostLikeToggled>(_onPostLikeToggled);
     on<_CommunityFeedReceived>(_onFeedReceived);
     on<_CommunityFeedErrored>(_onFeedErrored);
@@ -91,6 +92,39 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
       await _repository.deletePost(event.postId);
     } catch (_) {
       // Resync on failure.
+      _subscribeToFeed();
+    }
+  }
+
+  Future<void> _onPostUpdated(
+    CommunityPostUpdated event,
+    Emitter<CommunityState> emit,
+  ) async {
+    // Optimistic local update so the edit lands immediately; the stream will
+    // reconcile if the write later fails.
+    final updated = state.posts.map((p) {
+      if (p.id != event.postId) return p;
+      return PostModel(
+        id: p.id,
+        userId: p.userId,
+        authorName: p.authorName,
+        authorImgUrl: p.authorImgUrl,
+        content: event.content,
+        imageUrl: event.imageUrl,
+        createdAt: p.createdAt,
+        likedBy: p.likedBy,
+        commentCount: p.commentCount,
+      );
+    }).toList();
+    emit(state.copyWith(posts: updated));
+
+    try {
+      await _repository.updatePost(
+        postId: event.postId,
+        content: event.content,
+        imageUrl: event.imageUrl,
+      );
+    } catch (_) {
       _subscribeToFeed();
     }
   }
