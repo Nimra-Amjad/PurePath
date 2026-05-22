@@ -26,6 +26,11 @@ abstract class CommunityRepository {
   /// propagates everywhere on the next snapshot.
   Stream<PostsPage> watchPostsPage({required int limit});
 
+  /// Clears any in-memory cache the repository keeps for author display
+  /// data. Called before a manual refresh so freshly-renamed users show
+  /// their new name on the very next snapshot (without an app restart).
+  void clearAuthorCache();
+
   /// Persists a new post authored by [userId]. The post document only
   /// stores the user id — name + avatar are looked up on read time so a
   /// rename in the user's profile propagates everywhere.

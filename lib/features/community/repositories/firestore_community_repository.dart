@@ -58,6 +58,9 @@ class FirestoreCommunityRepository implements CommunityRepository {
   // ── Posts ──────────────────────────────────────────────────────────────────
 
   @override
+  void clearAuthorCache() => _userCache.clear();
+
+  @override
   Stream<PostsPage> watchPostsPage({required int limit}) {
     // Fetch limit + 1 to detect whether more pages exist without an extra
     // round-trip.

@@ -67,6 +67,11 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     CommunityRefreshRequested event,
     Emitter<CommunityState> emit,
   ) {
+    // Drop the author cache so freshly-renamed users show their new name
+    // on the very next snapshot (otherwise the cache hides the change
+    // until app restart).
+    _repository.clearAuthorCache();
+
     // Re-subscribe at the same limit. Status flips to `loading` so the
     // inline refresh loader at the top of the feed appears until the next
     // snapshot lands.

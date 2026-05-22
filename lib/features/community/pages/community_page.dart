@@ -112,6 +112,14 @@ class _FeedViewState extends State<_FeedView> {
   // next page is in flight by the time the user gets there.
   static const _loadMoreThreshold = 240.0;
 
+  // Minimum on-screen time for the pull-to-refresh loader. Without this it
+  // can flash for ~100ms and the user wonders if anything happened.
+  static const _minRefreshVisible = Duration(milliseconds: 1200);
+
+  // True between the moment the user triggers a refresh and the minimum
+  // visible window expiring, even if the actual fetch comes back sooner.
+  bool _forceRefreshLoader = false;
+
   @override
   void initState() {
     super.initState();
@@ -123,6 +131,20 @@ class _FeedViewState extends State<_FeedView> {
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _onRefresh() async {
+    setState(() => _forceRefreshLoader = true);
+    final bloc = context.read<CommunityBloc>();
+    bloc.add(CommunityRefreshRequested());
+    // Wait for the next non-loading snapshot AND the minimum visible
+    // duration, whichever takes longer.
+    await Future.wait([
+      bloc.stream
+          .firstWhere((s) => s.status != CommunityStatus.loading),
+      Future.delayed(_minRefreshVisible),
+    ]);
+    if (mounted) setState(() => _forceRefreshLoader = false);
   }
 
   void _onScroll() {
@@ -166,12 +188,12 @@ class _FeedViewState extends State<_FeedView> {
       );
     }
 
-    // A refresh is in flight when the bloc is reloading the first page but
-    // still has stale posts mounted. We don't want Flutter's stock arrow/
-    // spinner — instead, a small inline loader is rendered as the first
-    // row of the list (see _RefreshLoaderRow below).
-    final isRefreshing = state.status == CommunityStatus.loading &&
-        state.posts.isNotEmpty;
+    // A refresh is in flight when either the bloc is reloading the first
+    // page (status: loading with stale posts mounted) OR we're inside the
+    // minimum visible window for the inline loader. Flutter's stock arrow
+    // is hidden; the loader is the first row of the list (see _RefreshLoaderRow).
+    final isRefreshing = _forceRefreshLoader ||
+        (state.status == CommunityStatus.loading && state.posts.isNotEmpty);
 
     final showLoadMoreRow =
         !widget.onlyMine && (state.isLoadingMore || state.hasMore);
@@ -187,14 +209,7 @@ class _FeedViewState extends State<_FeedView> {
       backgroundColor: Colors.transparent,
       displacement: 0,
       edgeOffset: -200,
-      onRefresh: () async {
-        final bloc = context.read<CommunityBloc>();
-        bloc.add(CommunityRefreshRequested());
-        // Wait until the refresh finishes so the indicator's "active"
-        // window matches the actual fetch even though it's invisible.
-        await bloc.stream
-            .firstWhere((s) => s.status != CommunityStatus.loading);
-      },
+      onRefresh: _onRefresh,
       child: ListView.separated(
         controller: _scrollCtrl,
         // Bouncing physics feels far smoother than the default Android
