@@ -87,10 +87,10 @@ class _CommunityPageState extends State<CommunityPage>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Feed view — handles loading / error / empty / loaded states
+// Feed view — handles loading / error / empty / loaded states + pagination
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _FeedView extends StatelessWidget {
+class _FeedView extends StatefulWidget {
   final CommunityState state;
   final String? currentUid;
   final bool onlyMine;
@@ -102,7 +102,48 @@ class _FeedView extends StatelessWidget {
   });
 
   @override
+  State<_FeedView> createState() => _FeedViewState();
+}
+
+class _FeedViewState extends State<_FeedView> {
+  final ScrollController _scrollCtrl = ScrollController();
+
+  // Trigger LoadMore this many pixels before reaching the very bottom so the
+  // next page is in flight by the time the user gets there.
+  static const _loadMoreThreshold = 240.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.removeListener(_onScroll);
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Only the global feed paginates — "My Posts" is a local filter over
+    // the same paged state.
+    if (widget.onlyMine) return;
+    if (!_scrollCtrl.hasClients) return;
+
+    final pos = _scrollCtrl.position;
+    if (pos.pixels >= pos.maxScrollExtent - _loadMoreThreshold) {
+      final s = widget.state;
+      if (s.hasMore && !s.isLoadingMore) {
+        context.read<CommunityBloc>().add(CommunityLoadMoreRequested());
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+
     if (state.status == CommunityStatus.loading && state.posts.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: purple));
     }
@@ -115,24 +156,116 @@ class _FeedView extends StatelessWidget {
       );
     }
 
-    final posts = onlyMine ? state.myPosts(currentUid) : state.posts;
+    final posts = widget.onlyMine
+        ? state.myPosts(widget.currentUid)
+        : state.posts;
 
     if (posts.isEmpty) {
       return _EmptyFeed(
-        label: onlyMine ? "You haven't posted yet" : 'No posts yet',
+        label: widget.onlyMine ? "You haven't posted yet" : 'No posts yet',
       );
     }
 
+    // A refresh is in flight when the bloc is reloading the first page but
+    // still has stale posts mounted. We don't want Flutter's stock arrow/
+    // spinner — instead, a small inline loader is rendered as the first
+    // row of the list (see _RefreshLoaderRow below).
+    final isRefreshing = state.status == CommunityStatus.loading &&
+        state.posts.isNotEmpty;
+
+    final showLoadMoreRow =
+        !widget.onlyMine && (state.isLoadingMore || state.hasMore);
+
+    final leadingExtras = isRefreshing ? 1 : 0;
+    final trailingExtras = showLoadMoreRow ? 1 : 0;
+
     return RefreshIndicator(
-      color: kWhiteColor,
+      // Visually hidden — we only keep RefreshIndicator for its pull-down
+      // gesture detection. The actual loading affordance is the inline
+      // loader rendered as the first list row.
+      color: Colors.transparent,
+      backgroundColor: Colors.transparent,
+      displacement: 0,
+      edgeOffset: -200,
       onRefresh: () async {
-        context.read<CommunityBloc>().add(CommunityRefreshRequested());
+        final bloc = context.read<CommunityBloc>();
+        bloc.add(CommunityRefreshRequested());
+        // Wait until the refresh finishes so the indicator's "active"
+        // window matches the actual fetch even though it's invisible.
+        await bloc.stream
+            .firstWhere((s) => s.status != CommunityStatus.loading);
       },
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        itemCount: posts.length,
+        controller: _scrollCtrl,
+        // Bouncing physics feels far smoother than the default Android
+        // clamping; wrapping in AlwaysScrollable keeps pull-to-refresh
+        // working even when the list is shorter than the viewport.
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        cacheExtent: 600,
+        addAutomaticKeepAlives: false,
+        itemCount: posts.length + leadingExtras + trailingExtras,
         separatorBuilder: (_, __) => Space.vertical(12),
-        itemBuilder: (_, i) => PostCard(post: posts[i], currentUid: currentUid),
+        itemBuilder: (_, i) {
+          if (isRefreshing && i == 0) {
+            return const _RefreshLoaderRow();
+          }
+          final postIdx = i - leadingExtras;
+          if (postIdx >= posts.length) {
+            return _LoadMoreRow(isLoading: state.isLoadingMore);
+          }
+          return PostCard(
+            post: posts[postIdx],
+            currentUid: widget.currentUid,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LoadMoreRow extends StatelessWidget {
+  final bool isLoading;
+  const _LoadMoreRow({required this.isLoading});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: kWhiteColor,
+                ),
+              )
+            : const SizedBox(height: 22),
+      ),
+    );
+  }
+}
+
+class _RefreshLoaderRow extends StatelessWidget {
+  const _RefreshLoaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: Center(
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: kWhiteColor,
+          ),
+        ),
       ),
     );
   }
@@ -203,6 +336,9 @@ class _Header extends StatelessWidget {
             ],
             onTabChanged: (i) => tabController.animateTo(i),
           ),
+          // Breathing room between the pill and the scrolling feed so cards
+          // never butt up against the tab selector when the list is scrolled.
+          Space.vertical(14),
         ],
       ),
     );

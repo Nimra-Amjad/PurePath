@@ -8,20 +8,29 @@ import 'package:purepath/features/community/models/post_model.dart';
 // these methods — nothing in the bloc or UI changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// One page of posts plus a flag telling the caller whether more exist.
+class PostsPage {
+  final List<PostModel> posts;
+  final bool hasMore;
+  const PostsPage({required this.posts, required this.hasMore});
+}
+
 abstract class CommunityRepository {
   // ── Posts ─────────────────────────────────────────────────────────────────
 
-  /// All posts, newest first.
-  Future<List<PostModel>> getAllPosts();
+  /// Live stream of the top [limit] posts (newest first). Emits whenever
+  /// any of those posts change — likes, comment count, edits — and whenever
+  /// a new top post is added or one of the loaded ones is deleted. Pagination
+  /// is done by re-calling with a larger limit. Author name + avatar are
+  /// enriched per emission from the `users` collection so a profile rename
+  /// propagates everywhere on the next snapshot.
+  Stream<PostsPage> watchPostsPage({required int limit});
 
-  /// Live stream of all posts, newest first.
-  Stream<List<PostModel>> watchAllPosts();
-
-  /// Persists a new post authored by [userId].
+  /// Persists a new post authored by [userId]. The post document only
+  /// stores the user id — name + avatar are looked up on read time so a
+  /// rename in the user's profile propagates everywhere.
   Future<PostModel> addPost({
     required String userId,
-    required String authorName,
-    String? authorImgUrl,
     required String content,
     String? imageUrl,
   });

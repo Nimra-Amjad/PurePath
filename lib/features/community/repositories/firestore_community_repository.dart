@@ -28,6 +28,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
   static const _kPosts = 'community';
   static const _kComments = 'comments';
   static const _kReplies = 'replies';
+  static const _kUsers = 'users';
 
   final FirebaseFirestore _firestore;
 
@@ -36,6 +37,14 @@ class FirestoreCommunityRepository implements CommunityRepository {
 
   CollectionReference<Map<String, dynamic>> get _postsRef =>
       _firestore.collection(_kPosts);
+
+  CollectionReference<Map<String, dynamic>> get _usersRef =>
+      _firestore.collection(_kUsers);
+
+  // Session-level cache of user docs (uid → data) so successive feed
+  // snapshots only fetch authors we haven't seen yet. Reset implicitly on
+  // app restart; renames within a session may stay stale until then.
+  final Map<String, Map<String, dynamic>> _userCache = {};
 
   CollectionReference<Map<String, dynamic>> _commentsRef(String postId) =>
       _postsRef.doc(postId).collection(_kComments);
@@ -49,37 +58,35 @@ class FirestoreCommunityRepository implements CommunityRepository {
   // ── Posts ──────────────────────────────────────────────────────────────────
 
   @override
-  Future<List<PostModel>> getAllPosts() async {
-    final snap = await _postsRef
-        .orderBy('createdAt', descending: true)
-        .limit(100)
-        .get();
-    return snap.docs.map(_postFromDoc).toList();
-  }
-
-  @override
-  Stream<List<PostModel>> watchAllPosts() {
+  Stream<PostsPage> watchPostsPage({required int limit}) {
+    // Fetch limit + 1 to detect whether more pages exist without an extra
+    // round-trip.
     return _postsRef
         .orderBy('createdAt', descending: true)
-        .limit(100)
+        .limit(limit + 1)
         .snapshots()
-        .map((snap) => snap.docs.map(_postFromDoc).toList());
+        .asyncMap((snap) async {
+      final hasMore = snap.docs.length > limit;
+      final pageDocs = hasMore ? snap.docs.take(limit).toList() : snap.docs;
+      final rawPosts = pageDocs.map(_postFromDoc).toList();
+      final enriched = await _enrichWithAuthors(rawPosts);
+      return PostsPage(posts: enriched, hasMore: hasMore);
+    });
   }
 
   @override
   Future<PostModel> addPost({
     required String userId,
-    required String authorName,
-    String? authorImgUrl,
     required String content,
     String? imageUrl,
   }) async {
     final docRef = _postsRef.doc();
     final now = DateTime.now();
+    // Post documents intentionally store only the userId — author name and
+    // avatar are looked up at read time from the users collection so a
+    // profile rename propagates everywhere automatically.
     await docRef.set({
       'userId': userId,
-      'authorName': authorName,
-      'authorImgUrl': authorImgUrl,
       'content': content,
       'imageUrl': imageUrl,
       'createdAt': FieldValue.serverTimestamp(),
@@ -89,14 +96,56 @@ class FirestoreCommunityRepository implements CommunityRepository {
     return PostModel(
       id: docRef.id,
       userId: userId,
-      authorName: authorName,
-      authorImgUrl: authorImgUrl,
+      authorName: '',
+      authorImgUrl: null,
       content: content,
       imageUrl: imageUrl,
       createdAt: now,
       likedBy: const [],
       commentCount: 0,
     );
+  }
+
+  // ── Author enrichment ─────────────────────────────────────────────────────
+
+  /// Looks up the current `fullName` + `imgUrl` for every unique author id
+  /// in [posts] and returns a new list with that data filled in. Uses an
+  /// in-memory cache so re-emissions of the feed stream (likes, comment
+  /// counts, edits) don't re-fetch authors we already have.
+  Future<List<PostModel>> _enrichWithAuthors(List<PostModel> posts) async {
+    if (posts.isEmpty) return posts;
+
+    final uids = posts.map((p) => p.userId).toSet().toList();
+    if (uids.isEmpty) return posts;
+
+    // Only fetch uids we haven't seen yet this session.
+    final missing = uids.where((u) => !_userCache.containsKey(u)).toList();
+    for (var i = 0; i < missing.length; i += 30) {
+      final end = i + 30 > missing.length ? missing.length : i + 30;
+      final chunk = missing.sublist(i, end);
+      final usersSnap = await _usersRef
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in usersSnap.docs) {
+        _userCache[d.id] = d.data();
+      }
+    }
+
+    return posts.map((p) {
+      final u = _userCache[p.userId];
+      if (u == null) return p;
+      return PostModel(
+        id: p.id,
+        userId: p.userId,
+        authorName: (u['fullName'] as String?) ?? '',
+        authorImgUrl: u['imgUrl'] as String?,
+        content: p.content,
+        imageUrl: p.imageUrl,
+        createdAt: p.createdAt,
+        likedBy: p.likedBy,
+        commentCount: p.commentCount,
+      );
+    }).toList();
   }
 
   @override

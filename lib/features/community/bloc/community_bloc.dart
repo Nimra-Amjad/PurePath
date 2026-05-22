@@ -12,19 +12,28 @@ part 'community_state.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // CommunityBloc
 //
-// Owns the feed: subscribes to a live Firestore stream so any post created on
-// any device shows up immediately, and exposes mutation events (create,
-// delete, like) that route through [CommunityRepository].
+// Owns the community feed.
 //
-// Author identity is pulled from [UserRepository.localUser] so callers don't
-// have to hand the bloc a UserModel for every event.
+// Real-time + paginated. The feed is backed by a live Firestore snapshot
+// stream of the top N posts (N = currently-loaded count, grows by 10 each
+// time the user scrolls to the bottom). Every change to those posts —
+// new post, like, comment count, edit, delete — flows in automatically
+// across devices without any pull-to-refresh.
+//
+// Pagination is just "subscribe with a larger limit":
+//   • CommunityStarted              → subscribe with limit = 10.
+//   • CommunityLoadMoreRequested    → limit += 10, resubscribe.
+//   • CommunityRefreshRequested     → resubscribe at the current limit.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   final CommunityRepository _repository;
   final UserRepository _userRepository;
 
-  StreamSubscription<List<PostModel>>? _feedSub;
+  static const _pageSize = 10;
+
+  StreamSubscription<PostsPage>? _feedSub;
+  int _currentLimit = _pageSize;
 
   CommunityBloc({
     required CommunityRepository repository,
@@ -34,6 +43,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
         super(const CommunityState(status: CommunityStatus.loading)) {
     on<CommunityStarted>(_onStarted);
     on<CommunityRefreshRequested>(_onRefreshRequested);
+    on<CommunityLoadMoreRequested>(_onLoadMoreRequested);
     on<CommunityPostCreated>(_onPostCreated);
     on<CommunityPostDeleted>(_onPostDeleted);
     on<CommunityPostUpdated>(_onPostUpdated);
@@ -45,15 +55,33 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   // ── Event handlers ────────────────────────────────────────────────────────
 
   void _onStarted(CommunityStarted event, Emitter<CommunityState> emit) {
-    _subscribeToFeed();
+    // Avoid resubscribing on every page mount if we already have content.
+    if (state.status == CommunityStatus.loaded && state.posts.isNotEmpty) {
+      return;
+    }
+    _currentLimit = _pageSize;
+    _subscribe();
   }
 
   void _onRefreshRequested(
     CommunityRefreshRequested event,
     Emitter<CommunityState> emit,
   ) {
+    // Re-subscribe at the same limit. Status flips to `loading` so the
+    // inline refresh loader at the top of the feed appears until the next
+    // snapshot lands.
     emit(state.copyWith(status: CommunityStatus.loading));
-    _subscribeToFeed();
+    _subscribe();
+  }
+
+  void _onLoadMoreRequested(
+    CommunityLoadMoreRequested event,
+    Emitter<CommunityState> emit,
+  ) {
+    if (!state.hasMore || state.isLoadingMore) return;
+    _currentLimit += _pageSize;
+    emit(state.copyWith(isLoadingMore: true));
+    _subscribe();
   }
 
   Future<void> _onPostCreated(
@@ -64,15 +92,26 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     if (user == null || user.uid.isEmpty) return;
 
     try {
-      await _repository.addPost(
+      final created = await _repository.addPost(
         userId: user.uid,
-        authorName: user.fullName,
-        authorImgUrl: user.imgUrl,
         content: event.content,
         imageUrl: event.imageUrl,
       );
-      // Stream subscription will refresh the feed automatically.
-    } catch (e) {
+      // Optimistic prepend so the author sees their post instantly. The
+      // stream will emit shortly with the canonical doc and replace this.
+      final newPost = PostModel(
+        id: created.id,
+        userId: user.uid,
+        authorName: user.fullName,
+        authorImgUrl: user.imgUrl,
+        content: created.content,
+        imageUrl: created.imageUrl,
+        createdAt: created.createdAt,
+        likedBy: created.likedBy,
+        commentCount: created.commentCount,
+      );
+      emit(state.copyWith(posts: [newPost, ...state.posts]));
+    } catch (_) {
       emit(state.copyWith(
         status: CommunityStatus.error,
         errorMessage: 'Could not publish post. Please try again.',
@@ -84,15 +123,15 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     CommunityPostDeleted event,
     Emitter<CommunityState> emit,
   ) async {
+    final before = state.posts;
+    // Optimistic removal — stream will reconcile if the delete fails.
+    emit(state.copyWith(
+      posts: before.where((p) => p.id != event.postId).toList(),
+    ));
     try {
-      // Optimistic removal — stream will reconcile if the delete fails.
-      emit(state.copyWith(
-        posts: state.posts.where((p) => p.id != event.postId).toList(),
-      ));
       await _repository.deletePost(event.postId);
     } catch (_) {
-      // Resync on failure.
-      _subscribeToFeed();
+      emit(state.copyWith(posts: before));
     }
   }
 
@@ -100,8 +139,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     CommunityPostUpdated event,
     Emitter<CommunityState> emit,
   ) async {
-    // Optimistic local update so the edit lands immediately; the stream will
-    // reconcile if the write later fails.
+    // Optimistic local update; stream will emit the persisted version.
     final updated = state.posts.map((p) {
       if (p.id != event.postId) return p;
       return PostModel(
@@ -125,7 +163,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
         imageUrl: event.imageUrl,
       );
     } catch (_) {
-      _subscribeToFeed();
+      // Stream will eventually replay the canonical state — no manual undo.
     }
   }
 
@@ -137,7 +175,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     if (user == null || user.uid.isEmpty) return;
 
     final uid = user.uid;
-    // Optimistic toggle — instant UI feedback.
+    // Optimistic toggle — instant UI feedback before the round-trip.
     final updated = state.posts.map((p) {
       if (p.id != event.postId) return p;
       final liked = p.likedBy.contains(uid);
@@ -164,7 +202,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     try {
       await _repository.togglePostLike(postId: event.postId, userId: uid);
     } catch (_) {
-      // Stream will rectify.
+      // Stream emission will reconcile.
     }
   }
 
@@ -174,7 +212,9 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   ) {
     emit(state.copyWith(
       status: CommunityStatus.loaded,
-      posts: event.posts,
+      posts: event.page.posts,
+      hasMore: event.page.hasMore,
+      isLoadingMore: false,
     ));
   }
 
@@ -182,18 +222,23 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     _CommunityFeedErrored event,
     Emitter<CommunityState> emit,
   ) {
-    emit(state.copyWith(
-      status: CommunityStatus.error,
-      errorMessage: 'Could not load posts. Please try again.',
-    ));
+    // Only surface the error screen when there's no data to fall back to.
+    if (state.posts.isEmpty) {
+      emit(state.copyWith(
+        status: CommunityStatus.error,
+        errorMessage: 'Could not load posts. Please try again.',
+      ));
+    } else {
+      emit(state.copyWith(isLoadingMore: false));
+    }
   }
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  void _subscribeToFeed() {
+  void _subscribe() {
     _feedSub?.cancel();
-    _feedSub = _repository.watchAllPosts().listen(
-          (posts) => add(_CommunityFeedReceived(posts)),
+    _feedSub = _repository.watchPostsPage(limit: _currentLimit).listen(
+          (page) => add(_CommunityFeedReceived(page)),
           onError: (e) => add(_CommunityFeedErrored(e)),
         );
   }
