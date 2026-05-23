@@ -80,6 +80,20 @@ class BadgesPage extends StatelessWidget {
         .toList();
   }
 
+  /// First [count] badges with their earned state, for the profile preview.
+  /// Always returns [count] entries (or fewer if the catalog is smaller) so
+  /// the preview row has a stable layout.
+  static List<({String emoji, String name, bool isEarned})> firstNPreviews(
+    BuildContext context, {
+    int count = 5,
+  }) {
+    final xp = context.read<UserBloc>().state.user?.coins ?? 0;
+    return _badges
+        .take(count)
+        .map((b) => (emoji: b.emoji, name: b.name, isEarned: xp >= b.threshold))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(

@@ -219,7 +219,7 @@ class ProfilePage extends StatelessWidget {
     return BlocBuilder<UserBloc, UserState>(
       buildWhen: (a, b) => a.user?.coins != b.user?.coins,
       builder: (context, _) {
-        final previews = BadgesPage.earnedPreviews(context);
+        final previews = BadgesPage.firstNPreviews(context);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -238,7 +238,7 @@ class ProfilePage extends StatelessWidget {
                   child: Text(
                     "See all ${BadgesPage.totalCount}",
                     style: AppTextStyles.medium.copyWith(
-                      color: kDarkGreenColor,
+                      color: kPrimaryGreenColor,
                       fontSize: 13,
                     ),
                   ),
@@ -246,46 +246,60 @@ class ProfilePage extends StatelessWidget {
               ],
             ),
             Space.vertical(12),
-            if (previews.isEmpty)
-              _EmptyBadgePreview()
-            else
-              Row(
-                children: previews
-                    .expand(
-                      (p) => [
-                        _badge(p.$1, p.$2),
-                        if (p != previews.last) Space.horizontal(12),
-                      ],
-                    )
-                    .toList(),
-              ),
+            Row(
+              children: previews
+                  .expand(
+                    (p) => [
+                      _badge(p.emoji, p.name, p.isEarned),
+                      if (p != previews.last) Space.horizontal(8),
+                    ],
+                  )
+                  .toList(),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _badge(String emoji, String label) {
+  Widget _badge(String emoji, String label, bool isEarned) {
     return Expanded(
       child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(10),
+        height: 86,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: border),
+          border: Border.all(
+            color: isEarned
+                ? kPrimaryGreenColor.withValues(alpha: 0.5)
+                : kPrimaryGreyColor.withValues(alpha: 0.4),
+            width: isEarned ? 1.2 : 0.8,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(emoji, style: AppTextStyles.normal.copyWith(fontSize: 20)),
+            Opacity(
+              opacity: isEarned ? 1.0 : 0.4,
+              child: Text(
+                emoji,
+                style: AppTextStyles.normal.copyWith(fontSize: 22),
+              ),
+            ),
             Space.vertical(6),
             Text(
               label,
               textAlign: TextAlign.center,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.normal.copyWith(fontSize: 12),
+              style: AppTextStyles.medium.copyWith(
+                fontSize: 10,
+                color: isEarned
+                    ? kWhiteColor
+                    : kLightGreyColor.withValues(alpha: 0.6),
+              ),
             ),
           ],
         ),
@@ -481,34 +495,6 @@ class _Tier {
   _Tier? get next {
     final i = _ladder.indexOf(this);
     return (i >= 0 && i < _ladder.length - 1) ? _ladder[i + 1] : null;
-  }
-}
-
-class _EmptyBadgePreview extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      decoration: BoxDecoration(
-        color: kContainerColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          const Text('🔥', style: TextStyle(fontSize: 24)),
-          Space.vertical(6),
-          Text(
-            'Build a 10-day streak to earn your first badge',
-            style: AppTextStyles.medium.copyWith(
-              fontSize: 12,
-              color: kWhiteColor,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
   }
 }
 
