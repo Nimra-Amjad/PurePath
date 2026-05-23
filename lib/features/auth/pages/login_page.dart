@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kScaffoldColor,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: kScaffoldColor,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+      ),
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserSignedIn) {

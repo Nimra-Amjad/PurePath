@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
@@ -87,6 +88,12 @@ class _PreferencesPageState extends State<PreferencesPage> {
 
     return Scaffold(
       backgroundColor: kScaffoldColor,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: kScaffoldColor,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+      ),
       body: SafeArea(
         child: Column(
           children: [
