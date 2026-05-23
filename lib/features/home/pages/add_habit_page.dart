@@ -156,7 +156,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
     context.read<NotificationBloc>().add(const HabitNotificationsSynced());
 
     AppSnackBar.success(context, 'Habit created successfully!');
-    Navigator.of(context).pop();
+    context.pop();
   }
 
   // ── Time picker ────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
             Space.vertical(8),
             PrimaryButton(
               text: "Add Time",
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => context.pop(true),
             ),
             Space.vertical(32),
           ],
@@ -575,7 +575,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
             Space.vertical(8),
             PrimaryButton(
               text: "Set Date",
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => context.pop(true),
             ),
             Space.vertical(32),
           ],

@@ -16,7 +16,6 @@ import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
-import 'package:purepath/features/profile/pages/reminders_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -235,9 +234,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const BadgesPage())),
+                  onTap: () => AppRoute.badges.push(context),
                   child: Text(
                     "See all ${BadgesPage.totalCount}",
                     style: AppTextStyles.medium.copyWith(
@@ -316,9 +313,7 @@ class ProfilePage extends StatelessWidget {
           context: context,
           icon: Icons.notifications_rounded,
           title: "Reminders",
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const RemindersPage())),
+          onTap: () => AppRoute.reminders.push(context),
         ),
         _settingTile(
           context: context,
@@ -558,7 +553,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
     if (user == null) return;
 
     if (newName == user.fullName) {
-      Navigator.of(context).pop();
+      context.pop();
       return;
     }
 
@@ -570,7 +565,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
 
     if (ok) {
       AppSnackBar.success(context, 'Username updated!');
-      Navigator.of(context).pop();
+      context.pop();
     } else {
       AppSnackBar.error(context, 'Could not update. Please try again.');
     }
@@ -669,7 +664,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
       );
       if (!mounted) return;
       AppSnackBar.success(context, 'Password updated!');
-      Navigator.of(context).pop();
+      context.pop();
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.error(context, _friendlyError(e));
@@ -851,7 +846,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
       if (!mounted) return;
 
       // 4) Reset local state + leave the screen.
-      Navigator.of(context).pop(); // close sheet
+      context.pop(); // close sheet
       notificationBloc.add(const NotificationCleared());
       userBloc.add(LogoutRequested());
       router.go(AppRoute.login.path);
@@ -946,7 +941,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
             Space.vertical(8),
             Center(
               child: TextButton(
-                onPressed: _deleting ? null : () => Navigator.of(context).pop(),
+                onPressed: _deleting ? null : () => context.pop(),
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.medium.copyWith(

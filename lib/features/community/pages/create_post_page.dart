@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
@@ -128,7 +129,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
       context,
       _isEditing ? 'Post updated!' : 'Post published!',
     );
-    Navigator.of(context).pop(true);
+    context.pop(true);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -155,7 +156,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
             initial: initial,
             isSubmitting: _isSubmitting,
             isEditing: _isEditing,
-            onCancel: () => Navigator.of(context).pop(),
+            onCancel: () => context.pop(),
           ),
           Space.vertical(18),
           _ComposerCard(

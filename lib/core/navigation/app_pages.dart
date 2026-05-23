@@ -8,11 +8,17 @@ import 'package:purepath/features/auth/pages/login_page.dart';
 import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
 import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
+import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/pages/post_detail_page.dart';
+import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/add_habit_page.dart';
+import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/pages/habits_page.dart';
 import 'package:purepath/features/preferences/pages/preferences_page.dart';
 import 'package:purepath/features/preferences/pages/welcome_page.dart';
 import 'package:purepath/features/preferences/views/summary_page.dart';
+import 'package:purepath/features/profile/pages/badges_page.dart';
+import 'package:purepath/features/profile/pages/reminders_page.dart';
 
 final router = GoRouter(
   debugLogDiagnostics: kDebugMode,
@@ -57,6 +63,24 @@ final router = GoRouter(
     GoRoute(
       path: AppRoute.habits.path,
       builder: (context, state) => const HabitsPage(),
+    ),
+    GoRoute(
+      path: AppRoute.editHabit.path,
+      builder: (context, state) =>
+          EditHabitPage(habit: state.extra as HabitDefinition),
+    ),
+    GoRoute(
+      path: AppRoute.badges.path,
+      builder: (context, state) => const BadgesPage(),
+    ),
+    GoRoute(
+      path: AppRoute.reminders.path,
+      builder: (context, state) => const RemindersPage(),
+    ),
+    GoRoute(
+      path: AppRoute.postDetail.path,
+      builder: (context, state) =>
+          PostDetailPage(post: state.extra as PostModel),
     ),
   ],
 );

@@ -30,9 +30,6 @@ import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 //   • All fields are validated simultaneously
 //   • On success → persists via HomeRepository, refreshes the dependent
 //     blocs, then pops back to ManageHabitsPage.
-//
-// Navigation: opened via Navigator.push with BlocProvider.value so it shares
-// the same [ManageHabitsBloc] instance as its parent.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EditHabitPage extends StatefulWidget {
@@ -160,7 +157,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
     context.read<NotificationBloc>().add(const HabitNotificationsSynced());
 
     AppSnackBar.success(context, 'Habit updated successfully!');
-    Navigator.of(context).pop();
+    context.pop();
   }
 
   // ── Time picker ────────────────────────────────────────────────────────────
@@ -205,7 +202,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
             Space.vertical(8),
             PrimaryButton(
               text: "Add Time",
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => context.pop(true),
             ),
             Space.vertical(32),
           ],
@@ -562,7 +559,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
             Space.vertical(8),
             PrimaryButton(
               text: "Set Date",
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => context.pop(true),
             ),
             Space.vertical(32),
           ],

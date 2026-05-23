@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/sheet_handle_bar.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -105,7 +106,7 @@ class AppBottomSheet extends StatelessWidget {
   }
 
   /// Dismisses the currently shown bottom sheet.
-  static void hide(BuildContext context) => Navigator.of(context).pop();
+  static void hide(BuildContext context) => context.pop();
 
   // ── Build ──────────────────────────────────────────────────────────────────
 

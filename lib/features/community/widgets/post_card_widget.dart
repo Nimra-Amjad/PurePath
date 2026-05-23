@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
 import 'package:purepath/features/community/pages/create_post_page.dart';
-import 'package:purepath/features/community/pages/post_detail_page.dart';
 import 'package:purepath/features/community/widgets/author_row_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,9 +31,7 @@ class PostCard extends StatelessWidget {
   }
 
   void _openDetail(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => PostDetailPage(post: post)));
+    AppRoute.postDetail.push(context, extra: post);
   }
 
   @override
@@ -129,13 +128,13 @@ class PostActionsSheet extends StatelessWidget {
   }
 
   Future<void> _onEdit(BuildContext context) async {
-    Navigator.of(context).pop();
+    context.pop();
     if (!parentContext.mounted) return;
     await CreatePostSheet.showEdit(parentContext, post);
   }
 
   Future<void> _onDelete(BuildContext context) async {
-    Navigator.of(context).pop();
+    context.pop();
     if (!parentContext.mounted) return;
     final confirmed = await AppDialog.show(
       parentContext,

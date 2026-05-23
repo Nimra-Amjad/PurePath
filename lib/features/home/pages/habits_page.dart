@@ -12,7 +12,6 @@ import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/repositories/home_repository.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
@@ -102,18 +101,11 @@ class _LoadedView extends StatelessWidget {
   const _LoadedView({required this.habits});
 
   // ── Edit ─────────────────────────────────────────────────────────────────
-  // Navigate to EditHabitPage while sharing the current ManageHabitsBloc so
-  // the edit form can dispatch ManageHabitUpdateRequested directly.
+  // Navigate to EditHabitPage. ManageHabitsBloc is globally provided in DI so
+  // no explicit BlocProvider.value wrapping is needed.
 
   void _onEdit(BuildContext context, HabitDefinition habit) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: context.read<ManageHabitsBloc>(),
-          child: EditHabitPage(habit: habit),
-        ),
-      ),
-    );
+    AppRoute.editHabit.push(context, extra: habit);
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
