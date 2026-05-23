@@ -6,6 +6,7 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
+import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,28 +23,27 @@ import 'package:purepath/core/widgets/space.dart';
 class BadgesPage extends StatelessWidget {
   const BadgesPage({super.key});
 
-  // ── 20 badges, gated on consecutive-day streak ────────────────────────────
   static const _badges = <_BadgeData>[
-    _BadgeData(emoji: '🌱', name: 'Ten Days',         description: '10 days in a row. Habit is taking root.',                         color: Color(0xFF4CAF50), threshold: 10),
-    _BadgeData(emoji: '🔥', name: 'Three Weeks',      description: '21 straight days. Momentum is real.',                              color: Color(0xFFF97316), threshold: 21),
-    _BadgeData(emoji: '⚡', name: 'One Month',        description: '30 days unbroken. A full month of showing up.',                    color: Color(0xFFFFB300), threshold: 30),
-    _BadgeData(emoji: '💪', name: 'Six Weeks',        description: '45 days. The hard part is behind you.',                            color: Color(0xFF6C4DFF), threshold: 45),
-    _BadgeData(emoji: '✅', name: 'Two Months',       description: '60 days strong. Habit is the new normal.',                         color: Color(0xFF26A69A), threshold: 60),
-    _BadgeData(emoji: '🎯', name: 'Quarter Master',   description: '90 days — three months without a miss.',                           color: Color(0xFF1E88E5), threshold: 90),
-    _BadgeData(emoji: '🌿', name: 'Steady Spring',    description: '120 days of consistency. Growth is compounding.',                  color: Color(0xFF22C55E), threshold: 120),
-    _BadgeData(emoji: '🌳', name: 'Half Year',        description: '180 days. Half a year of unbroken effort.',                        color: Color(0xFF00897B), threshold: 180),
-    _BadgeData(emoji: '🌟', name: 'Nine Months',      description: '270 days. Most people quit before this.',                          color: Color(0xFF9B82E8), threshold: 270),
-    _BadgeData(emoji: '📚', name: 'One Year',         description: '365 days. A full year, every single day.',                         color: Color(0xFF5C6BC0), threshold: 365),
-    _BadgeData(emoji: '💯', name: '500 Days',         description: '500-day streak. Rare air now.',                                    color: Color(0xFFF97316), threshold: 500),
-    _BadgeData(emoji: '⭐', name: 'Two Years',        description: '730 days unbroken. This is identity, not effort.',                 color: Color(0xFFFFB300), threshold: 730),
-    _BadgeData(emoji: '🌲', name: '1000 Days',        description: 'Four digits of consecutive wins.',                                 color: Color(0xFF2E7D32), threshold: 1000),
-    _BadgeData(emoji: '🏃', name: 'Marathoner',       description: '1,500 days of discipline. Most lifestyles haven\'t lasted this.',  color: Color(0xFFEC407A), threshold: 1500),
-    _BadgeData(emoji: '🦁', name: 'Five Years',       description: '1,825 days — five solid years.',                                   color: Color(0xFFFF8F00), threshold: 1825),
-    _BadgeData(emoji: '🚀', name: '2000 Club',        description: '2,000 days. Few will ever stand here.',                            color: Color(0xFFE53935), threshold: 2000),
-    _BadgeData(emoji: '🏆', name: 'Decade Bound',     description: '2,500 days, one streak. Heading for a decade.',                    color: Color(0xFFFFB300), threshold: 2500),
-    _BadgeData(emoji: '🌺', name: 'In Full Bloom',    description: '3,000 days unbroken. A craft, not a phase.',                       color: Color(0xFFAB47BC), threshold: 3000),
-    _BadgeData(emoji: '🏅', name: 'Hall of Fame',     description: '3,650 days — a full decade of unbroken effort.',                   color: Color(0xFF6C4DFF), threshold: 3650),
-    _BadgeData(emoji: '👑', name: 'Legend',           description: '5,000 days. The streak is the life.',                              color: Color(0xFFFFB300), threshold: 5000),
+    _BadgeData(emoji: '🌱', name: 'First Step',       description: '10 days. The path begins.',                                color: Color(0xFF4CAF50), threshold: 10),
+    _BadgeData(emoji: '🔥', name: 'Spark',            description: '21 days. Momentum catches fire.',                          color: Color(0xFFF97316), threshold: 21),
+    _BadgeData(emoji: '⚡', name: 'Pure Month',       description: '30 days unbroken. A full cycle of light.',                 color: Color(0xFFFFB300), threshold: 30),
+    _BadgeData(emoji: '💪', name: 'Steel Will',       description: '45 days. The hardest part is behind you.',                 color: Color(0xFF6C4DFF), threshold: 45),
+    _BadgeData(emoji: '✅', name: 'Foundation',       description: '60 days strong. The habit is laid in stone.',              color: Color(0xFF26A69A), threshold: 60),
+    _BadgeData(emoji: '🎯', name: 'Quarter Master',   description: '90 days. Three months without a miss.',                    color: Color(0xFF1E88E5), threshold: 90),
+    _BadgeData(emoji: '🌿', name: 'Steady Flame',     description: '120 days. Quiet, unshakable progress.',                    color: Color(0xFF22C55E), threshold: 120),
+    _BadgeData(emoji: '🌳', name: 'Half-Year Hero',   description: '180 days. Half a year of pure effort.',                    color: Color(0xFF00897B), threshold: 180),
+    _BadgeData(emoji: '🌟', name: 'Nine-Month Soul',  description: '270 days. Most people never reach this.',                  color: Color(0xFF9B82E8), threshold: 270),
+    _BadgeData(emoji: '📚', name: 'Year of Light',    description: '365 days. A full year, every single day.',                 color: Color(0xFF5C6BC0), threshold: 365),
+    _BadgeData(emoji: '💯', name: 'Iron Pact',        description: '500 days. The promise you kept to yourself.',              color: Color(0xFFF97316), threshold: 500),
+    _BadgeData(emoji: '⭐', name: 'Identity Shift',   description: "730 days. This isn't effort — this is who you are.",       color: Color(0xFFFFB300), threshold: 730),
+    _BadgeData(emoji: '🌲', name: 'Thousand Suns',    description: '1,000 days. Four digits of pure discipline.',              color: Color(0xFF2E7D32), threshold: 1000),
+    _BadgeData(emoji: '🏃', name: 'Marathoner',       description: '1,500 days. Few have walked this far.',                    color: Color(0xFFEC407A), threshold: 1500),
+    _BadgeData(emoji: '🦁', name: 'Ironclad',         description: '1,825 days. Five solid years of light.',                   color: Color(0xFFFF8F00), threshold: 1825),
+    _BadgeData(emoji: '🚀', name: 'Mountain Mover',   description: '2,000 days. The unmovable becomes you.',                   color: Color(0xFFE53935), threshold: 2000),
+    _BadgeData(emoji: '🏆', name: 'Path of Pure',     description: '2,500 days. A craft, not a phase.',                        color: Color(0xFFFFB300), threshold: 2500),
+    _BadgeData(emoji: '🌺', name: "Sage's Streak",    description: '3,000 days. Wisdom written in days.',                      color: Color(0xFFAB47BC), threshold: 3000),
+    _BadgeData(emoji: '🏅', name: 'Decade of Light',  description: '3,650 days. Ten years, unbroken.',                         color: Color(0xFF6C4DFF), threshold: 3650),
+    _BadgeData(emoji: '👑', name: 'Pure Legend',      description: '5,000 days. The streak is the life.',                      color: Color(0xFFFFB300), threshold: 5000),
   ];
 
   /// Total badge count for the "See all N" link on the profile page.
@@ -67,8 +67,10 @@ class BadgesPage extends StatelessWidget {
   /// Up to [count] earned (emoji, name) pairs for the profile preview row.
   /// Pulls the live coin balance from [UserBloc] so the preview updates
   /// the moment a badge is unlocked.
-  static List<(String, String)> earnedPreviews(BuildContext context,
-      {int count = 4}) {
+  static List<(String, String)> earnedPreviews(
+    BuildContext context, {
+    int count = 4,
+  }) {
     final coins = context.read<UserBloc>().state.user?.coins ?? 0;
     final earned = earnedCountForCoins(coins);
     return _badges
@@ -88,21 +90,22 @@ class BadgesPage extends StatelessWidget {
         final total = _badges.length;
 
         return Scaffold(
-          backgroundColor: bg,
+          backgroundColor: kScaffoldColor,
           appBar: AppBar(
-            backgroundColor: kWhiteColor,
-            surfaceTintColor: kWhiteColor,
+            backgroundColor: kScaffoldColor,
+            surfaceTintColor: kScaffoldColor,
             elevation: 0,
-            scrolledUnderElevation: 0.5,
-            shadowColor: kBlackColor.withOpacityValue(0.06),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              color: kBlackColor,
-              onPressed: () => context.pop(),
+            scrolledUnderElevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: CustomBackButton(onTap: () => context.pop()),
             ),
             title: Text(
               'Badges',
-              style: AppTextStyles.bold.copyWith(fontSize: 18),
+              style: AppTextStyles.bold.copyWith(
+                fontSize: 18,
+                color: kWhiteColor,
+              ),
             ),
           ),
           body: CustomScrollView(
@@ -164,8 +167,9 @@ class _ProgressBanner extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: lightPurple,
+        color: kContainerColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kPrimaryGreyColor, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +186,7 @@ class _ProgressBanner extends StatelessWidget {
                       '$coins-day streak · $earned of $total badges',
                       style: AppTextStyles.semiBold.copyWith(
                         fontSize: 15,
-                        color: purple,
+                        color: kWhiteColor,
                       ),
                     ),
                     Space.vertical(2),
@@ -190,7 +194,7 @@ class _ProgressBanner extends StatelessWidget {
                       'Mark a habit done every day to keep your streak alive.',
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 12,
-                        color: purple.withOpacityValue(0.7),
+                        color: kLightGreyColor.withOpacityValue(0.8),
                       ),
                     ),
                   ],
@@ -204,8 +208,8 @@ class _ProgressBanner extends StatelessWidget {
             child: LinearProgressIndicator(
               value: total == 0 ? 0 : earned / total,
               minHeight: 7,
-              backgroundColor: purple.withOpacityValue(0.15),
-              valueColor: const AlwaysStoppedAnimation(purple),
+              backgroundColor: kContainerColorContrast,
+              valueColor: const AlwaysStoppedAnimation(kPrimaryGreenColor),
             ),
           ),
         ],
@@ -246,19 +250,21 @@ class _BadgeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: kContainerColor,
           borderRadius: BorderRadius.circular(16),
           border: isEarned
-              ? Border.all(color: data.color.withOpacityValue(0.4), width: 1.5)
+              ? Border.all(color: data.color.withOpacityValue(0.55), width: 1.5)
               : isNext
                   ? Border.all(
-                      color: data.color.withOpacityValue(0.6), width: 1.5)
-                  : Border.all(color: border),
+                      color: data.color.withOpacityValue(0.6),
+                      width: 1.5,
+                    )
+                  : Border.all(color: kPrimaryGreyColor, width: 0.8),
           boxShadow: isEarned
               ? [
                   BoxShadow(
-                    color: data.color.withOpacityValue(0.12),
-                    blurRadius: 8,
+                    color: data.color.withOpacityValue(0.18),
+                    blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
                 ]
@@ -271,12 +277,12 @@ class _BadgeCard extends StatelessWidget {
               alignment: Alignment.bottomRight,
               children: [
                 Opacity(
-                  opacity: isEarned ? 1.0 : 0.35,
+                  opacity: isEarned ? 1.0 : 0.4,
                   child: Container(
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: data.color.withOpacityValue(0.12),
+                      color: data.color.withOpacityValue(0.18),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -292,9 +298,9 @@ class _BadgeCard extends StatelessWidget {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isNext ? data.color : kGreyColor,
+                      color: isNext ? data.color : kPrimaryGreyColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: kWhiteColor, width: 1.5),
+                      border: Border.all(color: kContainerColor, width: 1.5),
                     ),
                     child: Icon(
                       isNext
@@ -313,10 +319,10 @@ class _BadgeCard extends StatelessWidget {
               style: AppTextStyles.semiBold.copyWith(
                 fontSize: 11,
                 color: isEarned
-                    ? textPrimary
+                    ? kWhiteColor
                     : isNext
                         ? data.color
-                        : textSecondary,
+                        : kLightGreyColor.withOpacityValue(0.7),
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -328,9 +334,9 @@ class _BadgeCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: data.progressFor(coins).clamp(0.0, 1.0),
                   minHeight: 4,
-                  backgroundColor: border,
+                  backgroundColor: kContainerColorContrast,
                   valueColor: AlwaysStoppedAnimation(
-                    data.color.withOpacityValue(0.7),
+                    data.color.withOpacityValue(0.85),
                   ),
                 ),
               ),
@@ -349,7 +355,7 @@ class _BadgeCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: data.color.withOpacityValue(0.1),
+                  color: data.color.withOpacityValue(0.18),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -365,7 +371,7 @@ class _BadgeCard extends StatelessWidget {
                 'Locked',
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 9,
-                  color: kGreyColor,
+                  color: kLightGreyColor.withOpacityValue(0.5),
                 ),
               ),
           ],
@@ -406,12 +412,12 @@ class _BadgeDetailSheet extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: data.color.withOpacityValue(isEarned ? 0.12 : 0.06),
+              color: data.color.withOpacityValue(isEarned ? 0.2 : 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Opacity(
-                opacity: isEarned ? 1.0 : 0.45,
+                opacity: isEarned ? 1.0 : 0.5,
                 child: Text(
                   data.emoji,
                   style: const TextStyle(fontSize: 34),
@@ -422,14 +428,17 @@ class _BadgeDetailSheet extends StatelessWidget {
           Space.vertical(14),
           Text(
             data.name,
-            style: AppTextStyles.bold.copyWith(fontSize: 20),
+            style: AppTextStyles.bold.copyWith(
+              fontSize: 20,
+              color: kWhiteColor,
+            ),
           ),
           Space.vertical(6),
           Text(
             data.description,
             style: AppTextStyles.normal.copyWith(
               fontSize: 14,
-              color: textSecondary,
+              color: kLightGreyColor.withOpacityValue(0.8),
             ),
             textAlign: TextAlign.center,
           ),
@@ -441,7 +450,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                   '${coins.clamp(0, data.threshold)} / ${data.threshold} days',
                   style: AppTextStyles.medium.copyWith(
                     fontSize: 13,
-                    color: textSecondary,
+                    color: kLightGreyColor,
                   ),
                 ),
                 const Spacer(),
@@ -460,7 +469,7 @@ class _BadgeDetailSheet extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor: border,
+                backgroundColor: kContainerColorContrast,
                 valueColor: AlwaysStoppedAnimation(data.color),
               ),
             ),
@@ -471,10 +480,10 @@ class _BadgeDetailSheet extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: isEarned
-                  ? green.withOpacityValue(0.1)
+                  ? kPrimaryGreenColor.withOpacityValue(0.18)
                   : isNext
-                      ? data.color.withOpacityValue(0.08)
-                      : kLightGreyColor,
+                      ? data.color.withOpacityValue(0.15)
+                      : kContainerColorContrast,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -488,10 +497,10 @@ class _BadgeDetailSheet extends StatelessWidget {
                           : Icons.lock_rounded,
                   size: 16,
                   color: isEarned
-                      ? green
+                      ? kPrimaryGreenColor
                       : isNext
                           ? data.color
-                          : textSecondary,
+                          : kLightGreyColor,
                 ),
                 Space.horizontal(6),
                 Text(
@@ -503,10 +512,10 @@ class _BadgeDetailSheet extends StatelessWidget {
                   style: AppTextStyles.semiBold.copyWith(
                     fontSize: 13,
                     color: isEarned
-                        ? green
+                        ? kPrimaryGreenColor
                         : isNext
                             ? data.color
-                            : textSecondary,
+                            : kLightGreyColor,
                   ),
                 ),
               ],
