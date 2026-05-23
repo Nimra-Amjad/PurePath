@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
@@ -211,8 +212,9 @@ class _EditHabitPageState extends State<EditHabitPage> {
     );
 
     if (confirmed == true && mounted) {
-      final timeOfDay = TimeOfDay.fromDateTime(tempPicked);
-      setState(() => _reminderController.text = timeOfDay.format(context));
+      setState(
+        () => _reminderController.text = DateFormat('h:mm a').format(tempPicked),
+      );
     }
   }
 

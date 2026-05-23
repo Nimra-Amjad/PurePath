@@ -30,7 +30,7 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: AppRoute.splash.path,
-      builder: (context, state) => const SplashPage(),
+      pageBuilder: (context, state) => _fadePage(state, const SplashPage()),
     ),
     GoRoute(
       path: AppRoute.login.path,
@@ -42,45 +42,49 @@ final router = GoRouter(
     ),
     GoRoute(
       path: AppRoute.preferences.path,
-      builder: (context, state) => const PreferencesPage(),
+      pageBuilder: (context, state) =>
+          _fadePage(state, const PreferencesPage()),
     ),
     GoRoute(
       path: AppRoute.welcome.path,
-      builder: (context, state) => const WelcomePage(),
+      pageBuilder: (context, state) => _fadePage(state, const WelcomePage()),
     ),
     GoRoute(
       path: AppRoute.summary.path,
-      builder: (context, state) => const SummaryPage(),
+      pageBuilder: (context, state) => _fadePage(state, const SummaryPage()),
     ),
     GoRoute(
       path: AppRoute.bottomNavBar.path,
-      builder: (context, state) => const BottomNavBarPage(),
+      pageBuilder: (context, state) =>
+          _fadePage(state, const BottomNavBarPage()),
     ),
     GoRoute(
       path: AppRoute.addHabit.path,
-      builder: (context, state) => const AddHabitPage(),
+      pageBuilder: (context, state) => _fadePage(state, const AddHabitPage()),
     ),
     GoRoute(
       path: AppRoute.habits.path,
-      builder: (context, state) => const HabitsPage(),
+      pageBuilder: (context, state) => _fadePage(state, const HabitsPage()),
     ),
     GoRoute(
       path: AppRoute.editHabit.path,
-      builder: (context, state) =>
-          EditHabitPage(habit: state.extra as HabitDefinition),
+      pageBuilder: (context, state) => _fadePage(
+        state,
+        EditHabitPage(habit: state.extra as HabitDefinition),
+      ),
     ),
     GoRoute(
       path: AppRoute.badges.path,
-      builder: (context, state) => const BadgesPage(),
+      pageBuilder: (context, state) => _fadePage(state, const BadgesPage()),
     ),
     GoRoute(
       path: AppRoute.reminders.path,
-      builder: (context, state) => const RemindersPage(),
+      pageBuilder: (context, state) => _fadePage(state, const RemindersPage()),
     ),
     GoRoute(
       path: AppRoute.postDetail.path,
-      builder: (context, state) =>
-          PostDetailPage(post: state.extra as PostModel),
+      pageBuilder: (context, state) =>
+          _fadePage(state, PostDetailPage(post: state.extra as PostModel)),
     ),
   ],
 );
