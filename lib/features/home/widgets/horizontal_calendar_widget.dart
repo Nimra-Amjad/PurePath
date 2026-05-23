@@ -85,7 +85,7 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(10, 14, 10, 14),
       decoration: BoxDecoration(
         color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
@@ -235,10 +235,11 @@ class _DayTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          margin: const EdgeInsets.only(right: 8),
           decoration: BoxDecoration(
             color: isSelected ? kPrimaryGreenColor : kTransparentColor,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected
                   ? kPrimaryGreenColor

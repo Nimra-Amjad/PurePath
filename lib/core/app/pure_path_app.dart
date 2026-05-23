@@ -16,11 +16,16 @@ class _PurePathAppState extends State<PurePathApp> {
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return DI(
-      child: MaterialApp.router(
-        key: const Key('material_app_key'),
-        title: "PurePath",
-        debugShowCheckedModeBanner: false,
-        routerConfig: router,
+      child: MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.noScaling, boldText: false),
+        child: MaterialApp.router(
+          key: const Key('material_app_key'),
+          title: "PurePath",
+          debugShowCheckedModeBanner: false,
+          routerConfig: router,
+        ),
       ),
     );
   }
