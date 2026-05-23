@@ -28,11 +28,11 @@ final router = GoRouter(
     ),
     GoRoute(
       path: AppRoute.login.path,
-      builder: (context, state) => const LoginPage(),
+      pageBuilder: (context, state) => _fadePage(state, const LoginPage()),
     ),
     GoRoute(
       path: AppRoute.signup.path,
-      builder: (context, state) => const SignupPage(),
+      pageBuilder: (context, state) => _fadePage(state, const SignupPage()),
     ),
     GoRoute(
       path: AppRoute.preferences.path,
@@ -60,6 +60,18 @@ final router = GoRouter(
     ),
   ],
 );
+
+CustomTransitionPage<T> _fadePage<T>(GoRouterState state, Widget child) {
+  return CustomTransitionPage<T>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
 
 class AppRouteObserver extends NavigatorObserver {
   @override
