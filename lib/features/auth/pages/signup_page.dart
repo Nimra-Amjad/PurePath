@@ -94,7 +94,12 @@ class _SignupPageState extends State<SignupPage> {
                           hintText: "Full Name",
                           controller: _fullNameTextController,
                           textCapitalization: TextCapitalization.words,
-                          inputFormatters: [CapitalizeWordsFormatter()],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r"[a-zA-Z ]"),
+                            ),
+                            CapitalizeWordsFormatter(),
+                          ],
                           validator: (value) {
                             return Validators.userName(value);
                           },

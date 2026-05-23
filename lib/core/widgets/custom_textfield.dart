@@ -58,7 +58,7 @@ class CustomTextField extends StatelessWidget {
       maxLines: maxLines,
       minLines: minLines,
       readOnly: readOnly,
-
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       onTap: onTap,
       cursorColor: kSecondaryGreyColor,
       inputFormatters: inputFormatters ?? [],
