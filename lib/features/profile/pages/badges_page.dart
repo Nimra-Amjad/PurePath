@@ -24,38 +24,38 @@ class BadgesPage extends StatelessWidget {
   const BadgesPage({super.key});
 
   static const _badges = <_BadgeData>[
-    _BadgeData(emoji: '🌱', name: 'First Step',       description: '10 days. The path begins.',                                color: Color(0xFF4CAF50), threshold: 10),
-    _BadgeData(emoji: '🔥', name: 'Spark',            description: '21 days. Momentum catches fire.',                          color: Color(0xFFF97316), threshold: 21),
-    _BadgeData(emoji: '⚡', name: 'Pure Month',       description: '30 days unbroken. A full cycle of light.',                 color: Color(0xFFFFB300), threshold: 30),
-    _BadgeData(emoji: '💪', name: 'Steel Will',       description: '45 days. The hardest part is behind you.',                 color: Color(0xFF6C4DFF), threshold: 45),
-    _BadgeData(emoji: '✅', name: 'Foundation',       description: '60 days strong. The habit is laid in stone.',              color: Color(0xFF26A69A), threshold: 60),
-    _BadgeData(emoji: '🎯', name: 'Quarter Master',   description: '90 days. Three months without a miss.',                    color: Color(0xFF1E88E5), threshold: 90),
-    _BadgeData(emoji: '🌿', name: 'Steady Flame',     description: '120 days. Quiet, unshakable progress.',                    color: Color(0xFF22C55E), threshold: 120),
-    _BadgeData(emoji: '🌳', name: 'Half-Year Hero',   description: '180 days. Half a year of pure effort.',                    color: Color(0xFF00897B), threshold: 180),
-    _BadgeData(emoji: '🌟', name: 'Nine-Month Soul',  description: '270 days. Most people never reach this.',                  color: Color(0xFF9B82E8), threshold: 270),
-    _BadgeData(emoji: '📚', name: 'Year of Light',    description: '365 days. A full year, every single day.',                 color: Color(0xFF5C6BC0), threshold: 365),
-    _BadgeData(emoji: '💯', name: 'Iron Pact',        description: '500 days. The promise you kept to yourself.',              color: Color(0xFFF97316), threshold: 500),
-    _BadgeData(emoji: '⭐', name: 'Identity Shift',   description: "730 days. This isn't effort — this is who you are.",       color: Color(0xFFFFB300), threshold: 730),
-    _BadgeData(emoji: '🌲', name: 'Thousand Suns',    description: '1,000 days. Four digits of pure discipline.',              color: Color(0xFF2E7D32), threshold: 1000),
-    _BadgeData(emoji: '🏃', name: 'Marathoner',       description: '1,500 days. Few have walked this far.',                    color: Color(0xFFEC407A), threshold: 1500),
-    _BadgeData(emoji: '🦁', name: 'Ironclad',         description: '1,825 days. Five solid years of light.',                   color: Color(0xFFFF8F00), threshold: 1825),
-    _BadgeData(emoji: '🚀', name: 'Mountain Mover',   description: '2,000 days. The unmovable becomes you.',                   color: Color(0xFFE53935), threshold: 2000),
-    _BadgeData(emoji: '🏆', name: 'Path of Pure',     description: '2,500 days. A craft, not a phase.',                        color: Color(0xFFFFB300), threshold: 2500),
-    _BadgeData(emoji: '🌺', name: "Sage's Streak",    description: '3,000 days. Wisdom written in days.',                      color: Color(0xFFAB47BC), threshold: 3000),
-    _BadgeData(emoji: '🏅', name: 'Decade of Light',  description: '3,650 days. Ten years, unbroken.',                         color: Color(0xFF6C4DFF), threshold: 3650),
-    _BadgeData(emoji: '👑', name: 'Pure Legend',      description: '5,000 days. The streak is the life.',                      color: Color(0xFFFFB300), threshold: 5000),
+    _BadgeData(emoji: '🌱', name: 'First Step',       description: '10 XP. The path begins.',                                  color: Color(0xFF4CAF50), threshold: 10),
+    _BadgeData(emoji: '🔥', name: 'Spark',            description: '21 XP. Momentum catches fire.',                            color: Color(0xFFF97316), threshold: 21),
+    _BadgeData(emoji: '⚡', name: 'Pure Month',       description: '30 XP. A full cycle of light.',                            color: Color(0xFFFFB300), threshold: 30),
+    _BadgeData(emoji: '💪', name: 'Steel Will',       description: '45 XP. The hardest part is behind you.',                   color: Color(0xFF6C4DFF), threshold: 45),
+    _BadgeData(emoji: '✅', name: 'Foundation',       description: '60 XP. The habit is laid in stone.',                       color: Color(0xFF26A69A), threshold: 60),
+    _BadgeData(emoji: '🎯', name: 'Quarter Master',   description: '90 XP earned through consistent effort.',                  color: Color(0xFF1E88E5), threshold: 90),
+    _BadgeData(emoji: '🌿', name: 'Steady Flame',     description: '120 XP. Quiet, unshakable progress.',                      color: Color(0xFF22C55E), threshold: 120),
+    _BadgeData(emoji: '🌳', name: 'Half-Year Hero',   description: '180 XP. Half a year of pure effort.',                      color: Color(0xFF00897B), threshold: 180),
+    _BadgeData(emoji: '🌟', name: 'Nine-Month Soul',  description: '270 XP. Most people never reach this.',                    color: Color(0xFF9B82E8), threshold: 270),
+    _BadgeData(emoji: '📚', name: 'Year of Light',    description: '365 XP. A full year of dedication.',                       color: Color(0xFF5C6BC0), threshold: 365),
+    _BadgeData(emoji: '💯', name: 'Iron Pact',        description: '500 XP. The promise you kept to yourself.',                color: Color(0xFFF97316), threshold: 500),
+    _BadgeData(emoji: '⭐', name: 'Identity Shift',   description: "730 XP. This isn't effort — this is who you are.",         color: Color(0xFFFFB300), threshold: 730),
+    _BadgeData(emoji: '🌲', name: 'Thousand Suns',    description: '1,000 XP. Four digits of pure discipline.',                color: Color(0xFF2E7D32), threshold: 1000),
+    _BadgeData(emoji: '🏃', name: 'Marathoner',       description: '1,500 XP. Few have walked this far.',                      color: Color(0xFFEC407A), threshold: 1500),
+    _BadgeData(emoji: '🦁', name: 'Ironclad',         description: '1,825 XP. Years of light, earned one day at a time.',      color: Color(0xFFFF8F00), threshold: 1825),
+    _BadgeData(emoji: '🚀', name: 'Mountain Mover',   description: '2,000 XP. The unmovable becomes you.',                     color: Color(0xFFE53935), threshold: 2000),
+    _BadgeData(emoji: '🏆', name: 'Path of Pure',     description: '2,500 XP. A craft, not a phase.',                          color: Color(0xFFFFB300), threshold: 2500),
+    _BadgeData(emoji: '🌺', name: "Sage's Path",      description: '3,000 XP. Wisdom written in dedication.',                  color: Color(0xFFAB47BC), threshold: 3000),
+    _BadgeData(emoji: '🏅', name: 'Decade of Light',  description: '3,650 XP. A decade of pure effort.',                       color: Color(0xFF6C4DFF), threshold: 3650),
+    _BadgeData(emoji: '👑', name: 'Pure Legend',      description: '5,000 XP. The path is the life.',                          color: Color(0xFFFFB300), threshold: 5000),
   ];
 
   /// Total badge count for the "See all N" link on the profile page.
   static int get totalCount => _badges.length;
 
-  /// Number of badges earned at [coins].
+  /// Number of badges earned at [xp].
   /// Sequential: badges are sorted by threshold ascending, so the count is
   /// simply how many thresholds the user has crossed.
-  static int earnedCountForCoins(int coins) {
+  static int earnedCountForXp(int xp) {
     int count = 0;
     for (final b in _badges) {
-      if (coins >= b.threshold) {
+      if (xp >= b.threshold) {
         count++;
       } else {
         break;
@@ -65,14 +65,14 @@ class BadgesPage extends StatelessWidget {
   }
 
   /// Up to [count] earned (emoji, name) pairs for the profile preview row.
-  /// Pulls the live coin balance from [UserBloc] so the preview updates
-  /// the moment a badge is unlocked.
+  /// Pulls the live XP from [UserBloc] so the preview updates the moment a
+  /// badge is unlocked.
   static List<(String, String)> earnedPreviews(
     BuildContext context, {
     int count = 4,
   }) {
-    final coins = context.read<UserBloc>().state.user?.coins ?? 0;
-    final earned = earnedCountForCoins(coins);
+    final xp = context.read<UserBloc>().state.user?.coins ?? 0;
+    final earned = earnedCountForXp(xp);
     return _badges
         .take(earned)
         .take(count)
@@ -85,8 +85,8 @@ class BadgesPage extends StatelessWidget {
     return BlocBuilder<UserBloc, UserState>(
       buildWhen: (a, b) => a.user?.coins != b.user?.coins,
       builder: (context, state) {
-        final coins = state.user?.coins ?? 0;
-        final earned = earnedCountForCoins(coins);
+        final xp = state.user?.coins ?? 0;
+        final earned = earnedCountForXp(xp);
         final total = _badges.length;
 
         return Scaffold(
@@ -114,7 +114,7 @@ class BadgesPage extends StatelessWidget {
                 child: _ProgressBanner(
                   earned: earned,
                   total: total,
-                  coins: coins,
+                  xp: xp,
                 ),
               ),
               SliverPadding(
@@ -130,7 +130,7 @@ class BadgesPage extends StatelessWidget {
                   delegate: SliverChildBuilderDelegate(
                     (_, i) => _BadgeCard(
                       data: _badges[i],
-                      coins: coins,
+                      xp: xp,
                       isEarned: i < earned,
                       isNext: i == earned,
                     ),
@@ -153,12 +153,12 @@ class BadgesPage extends StatelessWidget {
 class _ProgressBanner extends StatelessWidget {
   final int earned;
   final int total;
-  final int coins;
+  final int xp;
 
   const _ProgressBanner({
     required this.earned,
     required this.total,
-    required this.coins,
+    required this.xp,
   });
 
   @override
@@ -176,14 +176,14 @@ class _ProgressBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('🪙', style: TextStyle(fontSize: 22)),
+              const Text('✨', style: TextStyle(fontSize: 22)),
               Space.horizontal(10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$coins-day streak · $earned of $total badges',
+                      '$xp XP · $earned of $total badges',
                       style: AppTextStyles.semiBold.copyWith(
                         fontSize: 15,
                         color: kWhiteColor,
@@ -191,7 +191,7 @@ class _ProgressBanner extends StatelessWidget {
                     ),
                     Space.vertical(2),
                     Text(
-                      'Mark a habit done every day to keep your streak alive.',
+                      'Complete habits to earn XP and unlock badges.',
                       style: AppTextStyles.normal.copyWith(
                         fontSize: 12,
                         color: kLightGreyColor.withOpacityValue(0.8),
@@ -224,13 +224,13 @@ class _ProgressBanner extends StatelessWidget {
 
 class _BadgeCard extends StatelessWidget {
   final _BadgeData data;
-  final int coins;
+  final int xp;
   final bool isEarned;
   final bool isNext;
 
   const _BadgeCard({
     required this.data,
-    required this.coins,
+    required this.xp,
     required this.isEarned,
     required this.isNext,
   });
@@ -242,7 +242,7 @@ class _BadgeCard extends StatelessWidget {
         context,
         body: _BadgeDetailSheet(
           data: data,
-          coins: coins,
+          xp: xp,
           isEarned: isEarned,
           isNext: isNext,
         ),
@@ -332,7 +332,7 @@ class _BadgeCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: data.progressFor(coins).clamp(0.0, 1.0),
+                  value: data.progressFor(xp).clamp(0.0, 1.0),
                   minHeight: 4,
                   backgroundColor: kContainerColorContrast,
                   valueColor: AlwaysStoppedAnimation(
@@ -342,7 +342,7 @@ class _BadgeCard extends StatelessWidget {
               ),
               Space.vertical(3),
               Text(
-                '${coins.clamp(0, data.threshold)} / ${data.threshold} days',
+                '${xp.clamp(0, data.threshold)} / ${data.threshold} XP',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.normal.copyWith(
                   fontSize: 9,
@@ -387,21 +387,21 @@ class _BadgeCard extends StatelessWidget {
 
 class _BadgeDetailSheet extends StatelessWidget {
   final _BadgeData data;
-  final int coins;
+  final int xp;
   final bool isEarned;
   final bool isNext;
 
   const _BadgeDetailSheet({
     required this.data,
-    required this.coins,
+    required this.xp,
     required this.isEarned,
     required this.isNext,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progress = data.progressFor(coins).clamp(0.0, 1.0);
-    final toGo = (data.threshold - coins).clamp(0, data.threshold);
+    final progress = data.progressFor(xp).clamp(0.0, 1.0);
+    final toGo = (data.threshold - xp).clamp(0, data.threshold);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
@@ -447,7 +447,7 @@ class _BadgeDetailSheet extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '${coins.clamp(0, data.threshold)} / ${data.threshold} days',
+                  '${xp.clamp(0, data.threshold)} / ${data.threshold} XP',
                   style: AppTextStyles.medium.copyWith(
                     fontSize: 13,
                     color: kLightGreyColor,
@@ -507,7 +507,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                   isEarned
                       ? 'Earned'
                       : isNext
-                          ? '$toGo days to go'
+                          ? '$toGo XP to go'
                           : 'Unlock previous badges first',
                   style: AppTextStyles.semiBold.copyWith(
                     fontSize: 13,
@@ -546,6 +546,6 @@ class _BadgeData {
     required this.threshold,
   });
 
-  double progressFor(int coins) =>
-      threshold == 0 ? 1.0 : coins / threshold;
+  double progressFor(int xp) =>
+      threshold == 0 ? 1.0 : xp / threshold;
 }

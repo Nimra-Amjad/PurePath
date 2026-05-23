@@ -113,8 +113,8 @@ class ProfilePage extends StatelessWidget {
     return BlocBuilder<UserBloc, UserState>(
       buildWhen: (a, b) => a.user?.coins != b.user?.coins,
       builder: (context, state) {
-        final coins = state.user?.coins ?? 0;
-        final earnedBadges = BadgesPage.earnedCountForCoins(coins);
+        final xp = state.user?.coins ?? 0;
+        final earnedBadges = BadgesPage.earnedCountForXp(xp);
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -124,7 +124,7 @@ class ProfilePage extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statItem('$coins', 'Day Streak', kPrimaryGreenColor),
+              _statItem('$xp', 'XP', kPrimaryGreenColor),
               CustomVerticalDivider(),
               _statItem('$earnedBadges', 'Badges', kDarkGreenColor),
             ],
@@ -158,17 +158,17 @@ class ProfilePage extends StatelessWidget {
     return BlocBuilder<UserBloc, UserState>(
       buildWhen: (a, b) => a.user?.coins != b.user?.coins,
       builder: (context, state) {
-        final coins = state.user?.coins ?? 0;
-        final tier = _Tier.forCoins(coins);
+        final xp = state.user?.coins ?? 0;
+        final tier = _Tier.forXp(xp);
         final next = tier.next;
 
         final progress = next == null
             ? 1.0
-            : ((coins - tier.min) / (next.min - tier.min)).clamp(0.0, 1.0);
+            : ((xp - tier.min) / (next.min - tier.min)).clamp(0.0, 1.0);
 
         final subtitle = next == null
-            ? 'Top tier reached — keep the streak alive!'
-            : '$coins-day streak • ${next.min} days for ${next.name}';
+            ? 'Top tier reached — keep earning XP!'
+            : '$xp XP • ${next.min} XP for ${next.name}';
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -467,11 +467,11 @@ class _Tier {
     ),
   ];
 
-  /// The tier whose [min] is the largest value <= [coins].
-  static _Tier forCoins(int coins) {
+  /// The tier whose [min] is the largest value <= [xp].
+  static _Tier forXp(int xp) {
     var current = _ladder.first;
     for (final t in _ladder) {
-      if (coins >= t.min) current = t;
+      if (xp >= t.min) current = t;
     }
     return current;
   }
