@@ -76,11 +76,7 @@ class NotificationService {
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
-        // Android 13+ requires runtime permission for notifications.
         final granted = await android?.requestNotificationsPermission();
-        // Android 12+ requires a separate grant for exact alarms used by
-        // zonedSchedule. Best-effort — older OSes silently no-op.
-        await android?.requestExactAlarmsPermission();
         return granted ?? true;
       }
 
@@ -136,7 +132,7 @@ class NotificationService {
       _bodyFor(habit),
       _nextInstanceOfTime(time),
       _details(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -154,7 +150,7 @@ class NotificationService {
         _bodyFor(habit),
         _nextInstanceOfWeekday(weekday, time),
         _details(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
