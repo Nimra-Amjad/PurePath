@@ -26,6 +26,7 @@ class UserModel {
     // ── Preferences ─────────────────────────────────────────────────────────
     this.goal,
     this.challenge,
+    this.activityLevel,
     this.notificationsEnabled = false,
   });
 
@@ -49,6 +50,7 @@ class UserModel {
   // ── Preferences (filled during onboarding) ─────────────────────────────────
   final String? goal;
   final String? challenge;
+  final String? activityLevel;
   final bool notificationsEnabled;
 
   // ── Convenience getters ────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ class UserModel {
     String? stripeSubscriptionId,
     String? goal,
     String? challenge,
+    String? activityLevel,
     bool? notificationsEnabled,
   }) {
     return UserModel(
@@ -99,6 +102,7 @@ class UserModel {
       stripeSubscriptionId: stripeSubscriptionId ?? this.stripeSubscriptionId,
       goal: goal ?? this.goal,
       challenge: challenge ?? this.challenge,
+      activityLevel: activityLevel ?? this.activityLevel,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
@@ -118,6 +122,7 @@ class UserModel {
       'subscriptionId': stripeSubscriptionId,
       'goal': goal,
       'challenge': challenge,
+      'activityLevel': activityLevel,
       'notificationsEnabled': notificationsEnabled,
     };
   }
@@ -137,6 +142,7 @@ class UserModel {
       stripeSubscriptionId: map['subscriptionId'] as String? ?? '',
       goal: map['goal'] as String?,
       challenge: map['challenge'] as String?,
+      activityLevel: map['activityLevel'] as String?,
       notificationsEnabled: map['notificationsEnabled'] as bool? ?? false,
     );
   }
@@ -172,6 +178,7 @@ class UserModel {
         other.stripeSubscriptionId == stripeSubscriptionId &&
         other.goal == goal &&
         other.challenge == challenge &&
+        other.activityLevel == activityLevel &&
         other.notificationsEnabled == notificationsEnabled;
   }
 
@@ -188,6 +195,7 @@ class UserModel {
         stripeSubscriptionId.hashCode ^
         (goal?.hashCode ?? 0) ^
         (challenge?.hashCode ?? 0) ^
+        (activityLevel?.hashCode ?? 0) ^
         notificationsEnabled.hashCode;
   }
 
@@ -199,6 +207,7 @@ class UserModel {
       'email: $email, '
       'goal: $goal, '
       'challenge: $challenge, '
+      'activityLevel: $activityLevel, '
       'notificationsEnabled: $notificationsEnabled, '
       'coins: $coins'
       ')';

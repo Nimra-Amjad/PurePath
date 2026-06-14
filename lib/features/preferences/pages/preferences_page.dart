@@ -9,6 +9,7 @@ import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/preferences/views/activity_level_view.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
 import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
@@ -29,6 +30,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
   // have a value even if the user never taps anything.
   String _selectedGoal = '🏃‍♂️ Fitness & Health';
   String _selectedChallenge = 'I forget to do them';
+  String _selectedActivityLevel = '🌱 Beginner';
 
   // ── Steps ─────────────────────────────────────────────────────────────────
   // GoalView and ChallengeView get callbacks to bubble selections up here.
@@ -37,6 +39,9 @@ class _PreferencesPageState extends State<PreferencesPage> {
   List<Widget> get _steps => [
     GoalView(onGoalChanged: (v) => _selectedGoal = v),
     ChallengeView(onChallengeChanged: (v) => _selectedChallenge = v),
+    ActivityLevelView(
+      onActivityLevelChanged: (v) => _selectedActivityLevel = v,
+    ),
     const NotificationView(),
   ];
 
@@ -54,7 +59,11 @@ class _PreferencesPageState extends State<PreferencesPage> {
   void _finish({required bool notificationsEnabled}) {
     // Persist goal + challenge + onboarding completion via UserBloc.
     context.read<UserBloc>().add(
-      SaveOnboardingData(goal: _selectedGoal, challenge: _selectedChallenge),
+      SaveOnboardingData(
+        goal: _selectedGoal,
+        challenge: _selectedChallenge,
+        activityLevel: _selectedActivityLevel,
+      ),
     );
 
     // Hand the master-toggle decision to the notification bloc — it owns
@@ -176,12 +185,14 @@ class _PreferencesPageState extends State<PreferencesPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PrimaryButton(
-                    text: _currentStep == 2 ? 'Allow notifications' : 'Next',
-                    onPressed: _currentStep == 2
+                    text: _currentStep == steps.length - 1
+                        ? 'Allow notifications'
+                        : 'Next',
+                    onPressed: _currentStep == steps.length - 1
                         ? () => _finish(notificationsEnabled: true)
                         : _next,
                   ),
-                  if (_currentStep == 2) ...[
+                  if (_currentStep == steps.length - 1) ...[
                     Space.vertical(10),
                     PrimaryButton(
                       text: 'Skip for now',

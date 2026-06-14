@@ -181,12 +181,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         onboardingStatus: OnboardingStatus.completed,
         goal: event.goal,
         challenge: event.challenge,
+        activityLevel: event.activityLevel,
       );
       userRepository.updateLocalUser(updatedUser);
 
       await userRepository.updateUserDocument({
         'goal': event.goal,
         'challenge': event.challenge,
+        'activityLevel': event.activityLevel,
         'onboardingStatus': OnboardingStatus.completed.toValue(),
       });
 

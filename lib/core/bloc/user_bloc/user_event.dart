@@ -43,8 +43,13 @@ class LoadUser extends UserEvent {
 class SaveOnboardingData extends UserEvent {
   final String goal;
   final String challenge;
+  final String activityLevel;
 
-  SaveOnboardingData({required this.goal, required this.challenge});
+  SaveOnboardingData({
+    required this.goal,
+    required this.challenge,
+    required this.activityLevel,
+  });
 }
 
 // ── Internal stream sync ──────────────────────────────────────────────────────
