@@ -68,6 +68,10 @@ class _HomePageState extends State<HomePage> {
 
               Space.vertical(20),
 
+              // ── Explore habit library entry ───────────────────────────────
+              const _HabitLibraryBanner(),
+              Space.vertical(20),
+
               // ── Content below calendar ────────────────────────────────────
               _buildContent(context, state),
 
@@ -160,6 +164,76 @@ class _HomePageState extends State<HomePage> {
           ],
         );
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Habit library banner
+//
+// Tappable entry point on the home screen that opens the category-tabbed
+// Habit Library (suggested habits grouped by intensity level).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _HabitLibraryBanner extends StatelessWidget {
+  const _HabitLibraryBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => AppRoute.exploreHabits.push(context),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kPrimaryGreenColor.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: kPrimaryGreenColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: kPrimaryGreenColor,
+                size: 22,
+              ),
+            ),
+            Space.horizontal(14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Explore Habit Library',
+                    style: AppTextStyles.semiBold.copyWith(
+                      fontSize: 15,
+                      color: kWhiteColor,
+                    ),
+                  ),
+                  Space.vertical(2),
+                  Text(
+                    'Browse habits by category & level',
+                    style: AppTextStyles.normal.copyWith(
+                      fontSize: 12,
+                      color: kLightGreyColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: kPrimaryGreenColor,
+              size: 14,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

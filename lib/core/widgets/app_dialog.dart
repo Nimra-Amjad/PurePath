@@ -158,7 +158,7 @@ class AppDialog extends StatelessWidget {
 
               // ── Cancel button ────────────────────────────────────────────
               PrimaryButton(
-                text: confirmText,
+                text: cancelText,
                 buttonColor: kLightGreyColor,
                 textColor: kBlackColor,
                 onPressed: () {
