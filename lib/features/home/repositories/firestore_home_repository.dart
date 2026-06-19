@@ -8,14 +8,17 @@ import 'package:purepath/features/home/repositories/home_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Firestore home repository
 //
-// Two top-level collections:
+// Habit definitions live in a per-user sub-collection; completions live in a
+// top-level collection keyed by (user, date):
 //
-// 1) `habits`  — habit definitions (one doc per habit the user creates).
+// 1) `users/{uid}/habits`  — habit definitions (one doc per habit the user has).
 //    {
 //      id:           <doc id, also stored as a field for convenience>
 //      userId:       <Firebase auth uid of the creator>
 //      title:        String
 //      category:     String   (HabitCategory.name)
+//      type:         String   (HabitType.name — "custom" when the user built it,
+//                              "predefined" when added from the habit library)
 //      isDaily:      bool
 //      weekDays:     [int]    (0 = Mon … 6 = Sun, empty when isDaily)
 //      goal:         String
@@ -41,6 +44,7 @@ import 'package:purepath/features/home/repositories/home_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FirestoreHomeRepository implements HomeRepository {
+  static const _kUsers = 'users';
   static const _kHabits = 'habits';
   static const _kInsights = 'insights';
 
@@ -53,8 +57,13 @@ class FirestoreHomeRepository implements HomeRepository {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  CollectionReference<Map<String, dynamic>> get _habitsRef =>
-      _firestore.collection(_kHabits);
+  /// The signed-in user's `users/{uid}/habits` sub-collection, or null when no
+  /// user is authenticated.
+  CollectionReference<Map<String, dynamic>>? get _habitsRef {
+    final uid = _uid;
+    if (uid == null) return null;
+    return _firestore.collection(_kUsers).doc(uid).collection(_kHabits);
+  }
 
   CollectionReference<Map<String, dynamic>> get _insightsRef =>
       _firestore.collection(_kInsights);
@@ -63,10 +72,10 @@ class FirestoreHomeRepository implements HomeRepository {
 
   @override
   Future<List<HabitDefinition>> getAllHabits() async {
-    final uid = _uid;
-    if (uid == null) return const [];
+    final habitsRef = _habitsRef;
+    if (habitsRef == null) return const [];
 
-    final query = await _habitsRef.where('userId', isEqualTo: uid).get();
+    final query = await habitsRef.get();
 
     // Build the habits list and a side-map of createdAt millis in one pass.
     // Doing the lookup inline (instead of calling firstWhere/orElse later)
@@ -96,9 +105,10 @@ class FirestoreHomeRepository implements HomeRepository {
   @override
   Future<void> addHabit(HabitDefinition definition) async {
     final uid = _uid;
-    if (uid == null) return;
+    final habitsRef = _habitsRef;
+    if (uid == null || habitsRef == null) return;
 
-    final docRef = _habitsRef.doc(); // Firestore-generated unique id.
+    final docRef = habitsRef.doc(); // Firestore-generated unique id.
     await docRef.set({
       ...definition.toMap(),
       'id': docRef.id,
@@ -109,15 +119,21 @@ class FirestoreHomeRepository implements HomeRepository {
 
   @override
   Future<void> deleteHabit(String id) async {
+    final habitsRef = _habitsRef;
+    if (habitsRef == null) return;
+
     // Just remove the habit definition. Stale entries in `insights` docs are
     // harmless: getSummaryForWeek joins on the live habits list, so any
     // orphaned ids in the array are simply ignored.
-    await _habitsRef.doc(id).delete();
+    await habitsRef.doc(id).delete();
   }
 
   @override
   Future<void> updateHabit(HabitDefinition definition) async {
-    await _habitsRef.doc(definition.id).update(definition.toMap());
+    final habitsRef = _habitsRef;
+    if (habitsRef == null) return;
+
+    await habitsRef.doc(definition.id).update(definition.toMap());
   }
 
   @override

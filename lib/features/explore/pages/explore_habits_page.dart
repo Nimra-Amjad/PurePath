@@ -97,6 +97,8 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
       id: '', // Firestore assigns a unique id.
       title: title,
       category: category,
+      // Sourced from the app's predefined habit library.
+      type: HabitType.predefined,
       isDaily: true,
       startDate: DateTime(now.year, now.month, now.day),
     );

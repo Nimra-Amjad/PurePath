@@ -126,6 +126,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
       id: '',
       title: _nameController.text.trim(),
       category: _selectedCategory!,
+      // The user built this habit themselves.
+      type: HabitType.custom,
       isDaily: _isDaily,
       weekDays: weekDays,
       goal: _goalController.text.trim(),

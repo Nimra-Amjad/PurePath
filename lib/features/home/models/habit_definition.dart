@@ -1,6 +1,35 @@
 import 'package:purepath/features/home/models/habit_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Habit type
+//
+// Distinguishes habits the user built themselves from ones they added out of
+// the app's predefined habit library (Explore).
+//
+// Firestore: stored as the `type` field (HabitType.name). Parse it back with
+// HabitTypeExtension.fromString().
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum HabitType {
+  /// Created by the user via the "New Habit" screen.
+  custom,
+
+  /// Added from the app's predefined habit library.
+  predefined,
+}
+
+extension HabitTypeExtension on HabitType {
+  /// Parses a stored Firestore string back into a [HabitType].
+  /// Falls back to [HabitType.custom] for unknown / missing values.
+  static HabitType fromString(String? value) {
+    return HabitType.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => HabitType.custom,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Habit definition
 //
 // Represents the *configuration* of a habit — what the user set up when they
@@ -8,13 +37,17 @@ import 'package:purepath/features/home/models/habit_model.dart';
 // the habit's completion status for a specific calendar day.
 //
 // Firestore tip: store each [HabitDefinition] as a document in the user's
-// `habits` sub-collection.
+// `users/{uid}/habits` sub-collection.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HabitDefinition {
   final String id;
   final String title;
   final HabitCategory category;
+
+  /// Whether this habit was created by the user ([HabitType.custom]) or added
+  /// from the app's predefined library ([HabitType.predefined]).
+  final HabitType type;
 
   /// true  → habit runs every day
   /// false → habit runs only on [weekDays]
@@ -44,6 +77,7 @@ class HabitDefinition {
     required this.category,
     required this.isDaily,
     required this.startDate,
+    this.type = HabitType.custom,
     this.endDate,
     this.weekDays = const [],
     this.goal = '',
@@ -81,6 +115,7 @@ class HabitDefinition {
     String? id,
     String? title,
     HabitCategory? category,
+    HabitType? type,
     bool? isDaily,
     List<int>? weekDays,
     String? goal,
@@ -93,6 +128,7 @@ class HabitDefinition {
       id: id ?? this.id,
       title: title ?? this.title,
       category: category ?? this.category,
+      type: type ?? this.type,
       isDaily: isDaily ?? this.isDaily,
       weekDays: weekDays ?? this.weekDays,
       goal: goal ?? this.goal,
@@ -109,6 +145,7 @@ class HabitDefinition {
       'id': id,
       'title': title,
       'category': category.name,
+      'type': type.name,
       'isDaily': isDaily,
       'weekDays': weekDays,
       'goal': goal,
@@ -130,6 +167,7 @@ class HabitDefinition {
       category: HabitCategoryExtension.fromString(
         map['category'] as String? ?? '',
       ),
+      type: HabitTypeExtension.fromString(map['type'] as String?),
       isDaily: map['isDaily'] as bool? ?? true,
       weekDays:
           (map['weekDays'] as List?)?.map((e) => (e as num).toInt()).toList() ??
