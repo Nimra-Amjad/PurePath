@@ -1,82 +1,70 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
-import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/home/bloc/home_bloc.dart';
-import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
-import 'package:purepath/features/insights/bloc/insights_bloc.dart';
-import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add Habit Page
+// Configure Predefined Habit Sheet
 //
-// Lets the user create a new habit by filling in:
-//   Name → Category → Frequency → Reminder (optional)
+// Shown when the user taps a habit in the Habit Library. The category and title
+// come from the library entry and can't be changed — only the schedule details
+// are configurable here:
 //
-// Color and emoji are derived automatically from the chosen category —
-// no separate icon picker or color picker is shown.
+//   Frequency (Daily / Weekly) → Date range → Reminder (optional)
 //
-// On "Create Habit" tap:
-//   • All fields are validated simultaneously
-//   • Inline errors appear next to the relevant section
-//   • On success → shows a snackbar (hook up your bloc/repository here)
-//
-// TO CONNECT LATER:
-//   Replace the TODO comment in [_onCreateTapped] with a BLoC dispatch.
+// On "Add Habit" the sheet pops with a fully-built [HabitDefinition] tagged as
+// [HabitType.predefined]. The caller is responsible for persisting it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class AddHabitPage extends StatefulWidget {
-  const AddHabitPage({super.key});
+class ConfigurePredefinedHabitSheet extends StatefulWidget {
+  const ConfigurePredefinedHabitSheet({
+    super.key,
+    required this.category,
+    required this.title,
+  });
+
+  final HabitCategory category;
+  final String title;
+
+  /// Opens the sheet and resolves to a configured [HabitDefinition], or null if
+  /// the user dismissed it without confirming.
+  static Future<HabitDefinition?> show(
+    BuildContext context, {
+    required HabitCategory category,
+    required String title,
+  }) {
+    return AppBottomSheet.show<HabitDefinition>(
+      context,
+      backgroundColor: kScaffoldColor,
+      body: ConfigurePredefinedHabitSheet(category: category, title: title),
+    );
+  }
 
   @override
-  State<AddHabitPage> createState() => _AddHabitPageState();
+  State<ConfigurePredefinedHabitSheet> createState() =>
+      _ConfigurePredefinedHabitSheetState();
 }
 
-class _AddHabitPageState extends State<AddHabitPage> {
-  // ── Form ──────────────────────────────────────────────────────────────────
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+class _ConfigurePredefinedHabitSheetState
+    extends State<ConfigurePredefinedHabitSheet> {
   final _reminderController = TextEditingController();
 
-  // ── Selections ────────────────────────────────────────────────────────────
-  HabitCategory? _selectedCategory;
   bool _isDaily = true;
   final Set<int> _selectedWeekDays = {}; // 0 = Mon … 6 = Sun
 
-  // Defaults: start = today, end = open-ended (null).
   late DateTime _startDate = _today();
   DateTime? _endDate;
 
-  // ── Validation error flags (for non-FormField widgets) ────────────────────
-  bool _categoryError = false;
   bool _weekDayError = false;
   bool _dateRangeError = false;
-
-  static DateTime _today() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
-  // ── Submission state ───────────────────────────────────────────────────────
-  bool _isSubmitting = false;
-
-  // ── Static data ────────────────────────────────────────────────────────────
-
-  /// All 15 categories in display order.
-  static const _allCategories = HabitCategory.values;
 
   static const _weekDayLabels = [
     'Mon',
@@ -88,44 +76,36 @@ class _AddHabitPageState extends State<AddHabitPage> {
     'Sun',
   ];
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _reminderController.dispose();
     super.dispose();
   }
 
-  // ── Submit & validation ────────────────────────────────────────────────────
+  // ── Confirm ────────────────────────────────────────────────────────────────
 
-  Future<void> _onCreateTapped() async {
-    if (_isSubmitting) return;
-
-    // Validate custom selections (not covered by FormField validators)
+  void _onConfirm() {
     setState(() {
-      _categoryError = _selectedCategory == null;
       _weekDayError = !_isDaily && _selectedWeekDays.isEmpty;
       _dateRangeError = _endDate != null && _endDate!.isBefore(_startDate);
     });
 
-    final formValid = _formKey.currentState!.validate();
-    final selectionsValid =
-        !_categoryError && !_weekDayError && !_dateRangeError;
-
-    if (!formValid || !selectionsValid) return;
+    if (_weekDayError || _dateRangeError) return;
 
     final weekDays = _isDaily
         ? const <int>[]
         : (_selectedWeekDays.toList()..sort());
 
-    final newHabit = HabitDefinition(
-      // id is ignored by the repository; Firestore generates a unique one.
-      id: '',
-      title: _nameController.text.trim(),
-      category: _selectedCategory!,
-      // The user built this habit themselves.
-      type: HabitType.custom,
+    final definition = HabitDefinition(
+      id: '', // Firestore assigns a unique id.
+      title: widget.title,
+      category: widget.category,
+      type: HabitType.predefined,
       isDaily: _isDaily,
       weekDays: weekDays,
       reminderTime: _reminderController.text.trim(),
@@ -133,250 +113,65 @@ class _AddHabitPageState extends State<AddHabitPage> {
       endDate: _endDate,
     );
 
-    setState(() => _isSubmitting = true);
-
-    try {
-      await context.read<HomeRepository>().addHabit(newHabit);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      AppSnackBar.error(context, 'Could not create habit. Please try again.');
-      return;
-    }
-
-    if (!mounted) return;
-
-    // Refresh home + manage + insights so the new habit shows up under
-    // each day immediately on every screen.
-    context.read<HomeBloc>().add(HomeStarted());
-    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
-    context.read<InsightsBloc>().add(InsightsRefreshRequested());
-
-    // Re-sync OS reminders so the new habit's reminderTime is honored.
-    context.read<NotificationBloc>().add(const HabitNotificationsSynced());
-
-    AppSnackBar.success(context, 'Habit created successfully!');
-    context.pop();
-  }
-
-  // ── Time picker ────────────────────────────────────────────────────────────
-
-  Future<void> _pickReminderTime() async {
-    final now = DateTime.now();
-    DateTime tempPicked = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute,
-    );
-
-    final confirmed = await AppBottomSheet.show<bool>(
-      backgroundColor: kContainerColor,
-      context,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Reminder Time',
-                style: AppTextStyles.semiBold.copyWith(
-                  fontSize: 15,
-                  color: kWhiteColor,
-                ),
-              ),
-            ),
-            Space.vertical(8),
-            SizedBox(
-              height: 220,
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.time,
-                initialDateTime: tempPicked,
-                use24hFormat: false,
-                onDateTimeChanged: (value) => tempPicked = value,
-              ),
-            ),
-            Space.vertical(8),
-            PrimaryButton(
-              text: "Add Time",
-              onPressed: () => context.pop(true),
-            ),
-            Space.vertical(32),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      setState(
-        () => _reminderController.text = DateFormat('h:mm a').format(tempPicked),
-      );
-    }
+    context.pop(definition);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kScaffoldColor,
-      appBar: _buildAppBar(),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildNameSection(),
-              const SizedBox(height: 24),
-              _buildCategorySection(),
-              const SizedBox(height: 8),
-              _buildFrequencySection(),
-              const SizedBox(height: 24),
-              _buildDateRangeSection(),
-              const SizedBox(height: 24),
-              _buildReminderSection(),
-              const SizedBox(height: 36),
-              PrimaryButton(
-                text: "Create Habit",
-                isLoading: _isSubmitting,
-                onPressed: () {
-                  _onCreateTapped();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    final categoryColor = widget.category.color;
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: kScaffoldColor,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: CustomBackButton(
-        onTap: () {
-          context.pop();
-        },
-      ),
-      title: Text(
-        'New Habit',
-        style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),
-      ),
-    );
-  }
-
-  // ── Section: Habit name ────────────────────────────────────────────────────
-
-  Widget _buildNameSection() {
-    return _Section(
-      label: 'HABIT NAME',
-      child: CustomTextField(
-        controller: _nameController,
-        hintText: 'e.g. Morning Run',
-        textCapitalization: TextCapitalization.words,
-        inputFormatters: [LengthLimitingTextInputFormatter(50)],
-        validator: (value) {
-          final v = value?.trim() ?? '';
-          if (v.isEmpty) return 'Please enter a habit name';
-          if (v.length < 2) return 'Name must be at least 2 characters';
-          return null;
-        },
-      ),
-    );
-  }
-
-  // ── Section: Category ──────────────────────────────────────────────────────
-  //
-  // Shows all 15 categories in a 3-column grid.
-  // Each cell displays the category's emoji and label.
-  // Selecting a category automatically determines color and emoji —
-  // the user never needs to pick them separately.
-
-  Widget _buildCategorySection() {
-    return _Section(
-      label: 'CATEGORY',
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5,
-              childAspectRatio: 2,
-            ),
-            itemCount: _allCategories.length,
-            itemBuilder: (_, i) {
-              final category = _allCategories[i];
-              final isSelected = _selectedCategory == category;
-              final categoryColor = category.color;
-
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedCategory = category;
-                    _categoryError = false;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? categoryColor.withValues(alpha: 0.12)
-                        : kContainerColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? categoryColor
-                          : kSecondaryGreyColor.withValues(alpha: 0.3),
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Emoji with tinted circular background
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: categoryColor.withValues(alpha: 0.2),
-                        child: Text(
-                          category.emoji,
-                          style: AppTextStyles.medium.copyWith(fontSize: 15),
-                        ),
-                      ),
-                      Space.horizontal(8),
-                      // Category label
-                      Expanded(
-                        child: Text(
-                          category.label,
-                          style: AppTextStyles.medium.copyWith(
-                            fontSize: 12,
-                            color: isSelected ? categoryColor : kWhiteColor,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+          // ── Header: habit being added ──────────────────────────────────────
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: categoryColor.withValues(alpha: 0.2),
+                child: Text(
+                  widget.category.emoji,
+                  style: const TextStyle(fontSize: 17),
                 ),
-              );
-            },
+              ),
+              Space.horizontal(12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: AppTextStyles.semiBold.copyWith(
+                        fontSize: 15,
+                        color: kWhiteColor,
+                      ),
+                    ),
+                    Text(
+                      widget.category.label,
+                      style: AppTextStyles.normal.copyWith(
+                        fontSize: 12,
+                        color: kLightGreyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (_categoryError) ...[
-            const SizedBox(height: 6),
-            const _ErrorLabel('Please select a category'),
-          ],
+          const SizedBox(height: 24),
+
+          _buildFrequencySection(),
+          const SizedBox(height: 24),
+          _buildDateRangeSection(),
+          const SizedBox(height: 24),
+          _buildReminderSection(),
+          const SizedBox(height: 28),
+
+          PrimaryButton(text: 'Add Habit', onPressed: _onConfirm),
         ],
       ),
     );
@@ -414,7 +209,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
               ),
             ],
           ),
-          // Day picker — only visible when Weekly is selected
           if (!_isDaily) ...[Space.vertical(12), _buildWeekDayPicker()],
         ],
       ),
@@ -467,9 +261,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
   }
 
   // ── Section: Date range ────────────────────────────────────────────────────
-  //
-  // Start date defaults to today. End date is optional (open-ended habit).
-  // The habit is only shown on dates inside [startDate, endDate].
 
   Widget _buildDateRangeSection() {
     return _Section(
@@ -535,6 +326,80 @@ class _AddHabitPageState extends State<AddHabitPage> {
     );
   }
 
+  // ── Section: Reminder ──────────────────────────────────────────────────────
+
+  Widget _buildReminderSection() {
+    return _Section(
+      label: 'REMINDER',
+      child: CustomTextField(
+        controller: _reminderController,
+        hintText: 'Reminder time — optional',
+        readOnly: true,
+        onTap: _pickReminderTime,
+        suffix: const Icon(
+          Icons.access_time_rounded,
+          color: kGreyColor,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  // ── Pickers ────────────────────────────────────────────────────────────────
+
+  Future<void> _pickReminderTime() async {
+    final now = DateTime.now();
+    DateTime tempPicked = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
+
+    final confirmed = await AppBottomSheet.show<bool>(
+      backgroundColor: kContainerColor,
+      context,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Reminder Time',
+                style: AppTextStyles.semiBold.copyWith(
+                  fontSize: 15,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
+            Space.vertical(8),
+            SizedBox(
+              height: 220,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: tempPicked,
+                use24hFormat: false,
+                onDateTimeChanged: (value) => tempPicked = value,
+              ),
+            ),
+            Space.vertical(8),
+            PrimaryButton(text: 'Add Time', onPressed: () => context.pop(true)),
+            Space.vertical(32),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(
+        () =>
+            _reminderController.text = DateFormat('h:mm a').format(tempPicked),
+      );
+    }
+  }
+
   Future<DateTime?> _pickDate({
     required String title,
     required DateTime initial,
@@ -574,10 +439,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               ),
             ),
             Space.vertical(8),
-            PrimaryButton(
-              text: "Set Date",
-              onPressed: () => context.pop(true),
-            ),
+            PrimaryButton(text: 'Set Date', onPressed: () => context.pop(true)),
             Space.vertical(32),
           ],
         ),
@@ -589,32 +451,12 @@ class _AddHabitPageState extends State<AddHabitPage> {
     }
     return null;
   }
-
-  // ── Section: Reminder ──────────────────────────────────────────────────────
-
-  Widget _buildReminderSection() {
-    return _Section(
-      label: 'REMINDER',
-      child: CustomTextField(
-        controller: _reminderController,
-        hintText: 'Reminder time — optional',
-        readOnly: true,
-        onTap: _pickReminderTime,
-        suffix: const Icon(
-          Icons.access_time_rounded,
-          color: kGreyColor,
-          size: 20,
-        ),
-      ),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reusable sub-widgets
+// Reusable sub-widgets (mirrors Add/Edit Habit styling)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Wraps a form section with a small uppercase label above its content.
 class _Section extends StatelessWidget {
   final String label;
   final Widget child;
@@ -641,7 +483,6 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// Red error text shown under custom (non-FormField) selection widgets.
 class _ErrorLabel extends StatelessWidget {
   final String text;
   const _ErrorLabel(this.text);
@@ -655,8 +496,6 @@ class _ErrorLabel extends StatelessWidget {
   }
 }
 
-/// Tappable read-only field that opens a date picker.
-/// Optionally renders a small clear button when [onClear] is provided.
 class _DateField extends StatelessWidget {
   final String label;
   final DateTime? date;
@@ -748,7 +587,6 @@ class _DateField extends StatelessWidget {
   }
 }
 
-/// Daily / Weekly toggle button used in the Frequency section.
 class _FrequencyButton extends StatelessWidget {
   final String label;
   final String sublabel;

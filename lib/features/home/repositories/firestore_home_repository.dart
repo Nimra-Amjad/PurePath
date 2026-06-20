@@ -21,7 +21,6 @@ import 'package:purepath/features/home/repositories/home_repository.dart';
 //                              "predefined" when added from the habit library)
 //      isDaily:      bool
 //      weekDays:     [int]    (0 = Mon … 6 = Sun, empty when isDaily)
-//      goal:         String
 //      reminderTime: String
 //      createdAt:    Timestamp
 //    }

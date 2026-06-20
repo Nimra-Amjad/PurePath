@@ -32,7 +32,6 @@ class DummyHomeRepository implements HomeRepository {
       title: 'Morning Run',
       category: HabitCategory.fitness,
       isDaily: true,
-      goal: '5 km',
       startDate: _seedDate,
     ),
     HabitDefinition(
@@ -40,7 +39,6 @@ class DummyHomeRepository implements HomeRepository {
       title: 'Drink 2L Water',
       category: HabitCategory.hydration,
       isDaily: true,
-      goal: '2L',
       startDate: _seedDate,
     ),
     HabitDefinition(
@@ -48,7 +46,6 @@ class DummyHomeRepository implements HomeRepository {
       title: 'Mindfulness',
       category: HabitCategory.mindfulness,
       isDaily: true,
-      goal: '10 min',
       startDate: _seedDate,
     ),
     HabitDefinition(
@@ -57,7 +54,6 @@ class DummyHomeRepository implements HomeRepository {
       category: HabitCategory.learning,
       isDaily: false,
       weekDays: const [0, 1, 2, 3, 4], // Mon – Fri
-      goal: '20 pages',
       startDate: _seedDate,
     ),
     HabitDefinition(
@@ -65,7 +61,6 @@ class DummyHomeRepository implements HomeRepository {
       title: 'Sleep 8 Hours',
       category: HabitCategory.sleep,
       isDaily: true,
-      goal: '8 hrs',
       startDate: _seedDate,
     ),
   ];

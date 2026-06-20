@@ -9,6 +9,7 @@ import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/explore/data/habit_library_data.dart';
 import 'package:purepath/features/explore/models/intensity_level.dart';
+import 'package:purepath/features/explore/widgets/configure_predefined_habit_sheet.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
@@ -91,18 +92,9 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
     context.read<NotificationBloc>().add(const HabitNotificationsSynced());
   }
 
-  Future<void> _addHabit(HabitCategory category, String title) async {
-    final now = DateTime.now();
-    final habit = HabitDefinition(
-      id: '', // Firestore assigns a unique id.
-      title: title,
-      category: category,
-      // Sourced from the app's predefined habit library.
-      type: HabitType.predefined,
-      isDaily: true,
-      startDate: DateTime(now.year, now.month, now.day),
-    );
-
+  /// Persists a habit the user already configured in the sheet. The card owns
+  /// the spinner around this call, so it only spins during the actual save.
+  Future<void> _persistHabit(HabitDefinition habit) async {
     try {
       await context.read<HomeRepository>().addHabit(habit);
     } catch (_) {
@@ -151,7 +143,10 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
           leading: CustomBackButton(onTap: () => context.pop()),
           title: Text(
             'Habit Library',
-            style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),
+            style: AppTextStyles.bold.copyWith(
+              fontSize: 20,
+              color: kWhiteColor,
+            ),
           ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(52),
@@ -200,7 +195,7 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
                       isAdded: (title) =>
                           _addedIds.containsKey(keyFor(c, title)),
                       addedId: (title) => _addedIds[keyFor(c, title)],
-                      onAdd: (title) => _addHabit(c, title),
+                      onAdd: _persistHabit,
                       onDelete: _deleteHabit,
                     ),
                 ],
@@ -218,7 +213,7 @@ class _CategoryHabitsView extends StatelessWidget {
   final HabitCategory category;
   final bool Function(String title) isAdded;
   final String? Function(String title) addedId;
-  final Future<void> Function(String title) onAdd;
+  final Future<void> Function(HabitDefinition habit) onAdd;
   final Future<void> Function(String id) onDelete;
 
   const _CategoryHabitsView({
@@ -246,7 +241,7 @@ class _CategoryHabitsView extends StatelessWidget {
                 title: habit,
                 category: category,
                 isAdded: isAdded(habit),
-                onAdd: () => onAdd(habit),
+                onAdd: onAdd,
                 onDelete: () async {
                   final id = addedId(habit);
                   if (id != null) await onDelete(id);
@@ -318,7 +313,10 @@ class _LibraryHabitCard extends StatefulWidget {
 
   /// Whether this habit already exists in the user's habits.
   final bool isAdded;
-  final Future<void> Function() onAdd;
+
+  /// Persists the configured habit. The card builds the [HabitDefinition] from
+  /// the configure sheet and hands it off here.
+  final Future<void> Function(HabitDefinition habit) onAdd;
   final Future<void> Function() onDelete;
 
   const _LibraryHabitCard({
@@ -338,8 +336,18 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
 
   Future<void> _onAddTap() async {
     if (_busy) return;
+
+    // Open the configure sheet first — no spinner while the user is picking
+    // options. The spinner only appears once they tap "Add Habit".
+    final habit = await ConfigurePredefinedHabitSheet.show(
+      context,
+      category: widget.category,
+      title: widget.title,
+    );
+    if (habit == null || !mounted) return;
+
     setState(() => _busy = true);
-    await widget.onAdd();
+    await widget.onAdd(habit);
     if (mounted) setState(() => _busy = false);
   }
 
@@ -369,36 +377,43 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
   Widget build(BuildContext context) {
     final categoryColor = widget.category.color;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: kContainerColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kSecondaryGreyColor.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: categoryColor.withValues(alpha: 0.2),
-            child: Text(
-              widget.category.emoji,
-              style: const TextStyle(fontSize: 15),
-            ),
+    return GestureDetector(
+      // Tapping anywhere on an un-added tile opens the configure sheet; an
+      // already-added tile only responds to its − (remove) button.
+      onTap: widget.isAdded || _busy ? null : _onAddTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: kSecondaryGreyColor.withValues(alpha: 0.25),
           ),
-          Space.horizontal(12),
-          Expanded(
-            child: Text(
-              widget.title,
-              style: AppTextStyles.medium.copyWith(
-                fontSize: 13,
-                color: kWhiteColor,
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: categoryColor.withValues(alpha: 0.2),
+              child: Text(
+                widget.category.emoji,
+                style: const TextStyle(fontSize: 15),
               ),
             ),
-          ),
-          Space.horizontal(8),
-          _buildTrailing(),
-        ],
+            Space.horizontal(12),
+            Expanded(
+              child: Text(
+                widget.title,
+                style: AppTextStyles.medium.copyWith(
+                  fontSize: 13,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
+            Space.horizontal(8),
+            _buildTrailing(),
+          ],
+        ),
       ),
     );
   }

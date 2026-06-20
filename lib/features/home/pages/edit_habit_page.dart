@@ -46,7 +46,6 @@ class _EditHabitPageState extends State<EditHabitPage> {
   // ── Form ──────────────────────────────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _goalController;
   late final TextEditingController _reminderController;
 
   // ── Selections ────────────────────────────────────────────────────────────
@@ -86,7 +85,6 @@ class _EditHabitPageState extends State<EditHabitPage> {
     // Pre-fill every field from the existing habit definition.
     final h = widget.habit;
     _nameController = TextEditingController(text: h.title);
-    _goalController = TextEditingController(text: h.goal);
     _reminderController = TextEditingController(text: h.reminderTime);
     _selectedCategory = h.category;
     _isDaily = h.isDaily;
@@ -98,7 +96,6 @@ class _EditHabitPageState extends State<EditHabitPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _goalController.dispose();
     _reminderController.dispose();
     super.dispose();
   }
@@ -129,7 +126,6 @@ class _EditHabitPageState extends State<EditHabitPage> {
       category: _selectedCategory,
       isDaily: _isDaily,
       weekDays: weekDays,
-      goal: _goalController.text.trim(),
       reminderTime: _reminderController.text.trim(),
       startDate: _startDate,
       endDate: _endDate,
@@ -240,7 +236,7 @@ class _EditHabitPageState extends State<EditHabitPage> {
               const SizedBox(height: 24),
               _buildDateRangeSection(),
               const SizedBox(height: 24),
-              _buildGoalReminderSection(),
+              _buildReminderSection(),
               const SizedBox(height: 36),
               _buildSaveButton(),
             ],
@@ -575,38 +571,21 @@ class _EditHabitPageState extends State<EditHabitPage> {
     return null;
   }
 
-  // ── Section: Goal & Reminder ───────────────────────────────────────────────
+  // ── Section: Reminder ──────────────────────────────────────────────────────
 
-  Widget _buildGoalReminderSection() {
+  Widget _buildReminderSection() {
     return _Section(
-      label: 'GOAL & REMINDER',
-      child: Column(
-        children: [
-          CustomTextField(
-            controller: _goalController,
-            hintText: 'Goal (e.g. 5 km) — optional',
-            textCapitalization: TextCapitalization.sentences,
-            inputFormatters: [LengthLimitingTextInputFormatter(100)],
-            validator: (value) {
-              final v = value?.trim() ?? '';
-              if (v.isEmpty) return null;
-              if (v.length < 3) return 'Goal description is too short';
-              return null;
-            },
-          ),
-          const SizedBox(height: 12),
-          CustomTextField(
-            controller: _reminderController,
-            hintText: 'Reminder time — optional',
-            readOnly: true,
-            onTap: _pickReminderTime,
-            suffix: const Icon(
-              Icons.access_time_rounded,
-              color: kGreyColor,
-              size: 20,
-            ),
-          ),
-        ],
+      label: 'REMINDER',
+      child: CustomTextField(
+        controller: _reminderController,
+        hintText: 'Reminder time — optional',
+        readOnly: true,
+        onTap: _pickReminderTime,
+        suffix: const Icon(
+          Icons.access_time_rounded,
+          color: kGreyColor,
+          size: 20,
+        ),
       ),
     );
   }

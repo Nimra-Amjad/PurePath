@@ -212,8 +212,7 @@ class NotificationService {
   }
 
   String _bodyFor(HabitDefinition habit) {
-    final goal = habit.goal.trim();
-    return goal.isNotEmpty ? 'Goal: $goal' : 'Tap to mark it as done.';
+    return 'Tap to mark it as done.';
   }
 
   // ── Internals: helpers ─────────────────────────────────────────────────────

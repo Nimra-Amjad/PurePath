@@ -57,9 +57,6 @@ class HabitDefinition {
   /// Empty when [isDaily] is true.
   final List<int> weekDays;
 
-  /// User-supplied goal description, e.g. "5 km". Empty = no goal.
-  final String goal;
-
   /// Formatted reminder time string, e.g. "7:30 AM". Empty = no reminder.
   final String reminderTime;
 
@@ -80,16 +77,13 @@ class HabitDefinition {
     this.type = HabitType.custom,
     this.endDate,
     this.weekDays = const [],
-    this.goal = '',
     this.reminderTime = '',
   });
 
   // ── Derived helpers ────────────────────────────────────────────────────────
 
   /// Short subtitle shown in tile and daily view.
-  /// Uses the goal when set, otherwise falls back to the category label.
-  String get subtitle =>
-      goal.isNotEmpty ? '$goal · ${category.label}' : category.label;
+  String get subtitle => category.label;
 
   /// Human-readable frequency label.
   String get frequencyLabel => isDaily ? 'Daily' : 'Weekly';
@@ -118,7 +112,6 @@ class HabitDefinition {
     HabitType? type,
     bool? isDaily,
     List<int>? weekDays,
-    String? goal,
     String? reminderTime,
     DateTime? startDate,
     DateTime? endDate,
@@ -131,7 +124,6 @@ class HabitDefinition {
       type: type ?? this.type,
       isDaily: isDaily ?? this.isDaily,
       weekDays: weekDays ?? this.weekDays,
-      goal: goal ?? this.goal,
       reminderTime: reminderTime ?? this.reminderTime,
       startDate: startDate ?? this.startDate,
       endDate: clearEndDate ? null : (endDate ?? this.endDate),
@@ -148,7 +140,6 @@ class HabitDefinition {
       'type': type.name,
       'isDaily': isDaily,
       'weekDays': weekDays,
-      'goal': goal,
       'reminderTime': reminderTime,
       'startDateMillis': startDate.millisecondsSinceEpoch,
       'endDateMillis': endDate?.millisecondsSinceEpoch,
@@ -172,7 +163,6 @@ class HabitDefinition {
       weekDays:
           (map['weekDays'] as List?)?.map((e) => (e as num).toInt()).toList() ??
               const [],
-      goal: map['goal'] as String? ?? '',
       reminderTime: map['reminderTime'] as String? ?? '',
       startDate: start,
       endDate: endMillis != null
