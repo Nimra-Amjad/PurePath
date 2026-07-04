@@ -27,6 +27,11 @@ class NotificationService {
   static const String _channelDescription =
       'Notifications for your daily and weekly habits';
 
+  static const String _communityChannelId = 'community_activity';
+  static const String _communityChannelName = 'Community Activity';
+  static const String _communityChannelDescription =
+      'Likes, comments and replies on your community posts';
+
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -123,6 +128,46 @@ class NotificationService {
     }
   }
 
+  // ── Community activity ─────────────────────────────────────────────────────
+
+  /// Immediately shows a device notification for a community event (someone
+  /// liked / commented / replied). [id] should be stable per event so the
+  /// same event never produces duplicate system notifications.
+  Future<void> showCommunityNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    if (!_isInitialized) await initialize();
+
+    try {
+      await _plugin.show(
+        id,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _communityChannelId,
+            _communityChannelName,
+            channelDescription: _communityChannelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            color: Color(0xFF9B82E8),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: true,
+            presentAlert: true,
+            presentBadge: true,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('NotificationService.showCommunityNotification error: $e');
+    }
+  }
+
   // ── Internals: scheduling ──────────────────────────────────────────────────
 
   Future<void> _scheduleDaily(HabitDefinition habit, TimeOfDay time) {
@@ -175,7 +220,7 @@ class NotificationService {
   }
 
   Future<void> _createChannel() async {
-    const channel = AndroidNotificationChannel(
+    const habitChannel = AndroidNotificationChannel(
       _channelId,
       _channelName,
       description: _channelDescription,
@@ -184,11 +229,19 @@ class NotificationService {
       enableVibration: true,
     );
 
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
+    const communityChannel = AndroidNotificationChannel(
+      _communityChannelId,
+      _communityChannelName,
+      description: _communityChannelDescription,
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(habitChannel);
+    await android?.createNotificationChannel(communityChannel);
   }
 
   NotificationDetails _details() {

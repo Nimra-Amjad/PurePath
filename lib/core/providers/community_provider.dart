@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 //   community/<postId>
 //     { userId, content, imageUrl?, createdAt: Timestamp,
 //       likedBy: [String], commentCount: int }
-//
+//  
 //   community/<postId>/comments/<commentId>
 //     { userId, authorName, authorImgUrl?, text,
 //       createdAt: Timestamp, likedBy: [String], replyCount: int }

@@ -10,6 +10,7 @@ import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/app_version_repository.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
+import 'package:purepath/core/services/community_notification_listener.dart';
 import 'package:purepath/core/services/notification_service.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/core/providers/community_provider.dart';
@@ -127,6 +128,18 @@ class _RepositoryDI extends StatelessWidget {
           create: (ctx) => FirestoreCommunityRepository(
             provider: ctx.read<CommunityProvider>(),
           ),
+        ),
+        // Eager (lazy: false): must run for the whole session so community
+        // events surface as device notifications even when no widget ever
+        // reads it.
+        RepositoryProvider<CommunityNotificationListener>(
+          lazy: false,
+          create: (ctx) => CommunityNotificationListener(
+            communityRepository: ctx.read<CommunityRepository>(),
+            userRepository: ctx.read<UserRepository>(),
+            notificationService: ctx.read<NotificationService>(),
+          )..start(),
+          dispose: (l) => l.dispose(),
         ),
       ],
       child: child,
