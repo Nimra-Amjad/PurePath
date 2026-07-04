@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purepath/core/app/di.dart';
@@ -24,6 +25,13 @@ class _PurePathAppState extends State<PurePathApp> {
           key: const Key('material_app_key'),
           title: "PurePath",
           debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            // The app is dark-themed, so Cupertino widgets (e.g. the date and
+            // time pickers) must render their text in white.
+            cupertinoOverrideTheme: const CupertinoThemeData(
+              brightness: Brightness.dark,
+            ),
+          ),
           routerConfig: router,
         ),
       ),

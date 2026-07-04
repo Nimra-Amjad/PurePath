@@ -163,7 +163,7 @@ class NotificationService {
 
   InitializationSettings _initSettings() {
     return const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@mipmap/launcher_icon'),
       iOS: DarwinInitializationSettings(
         // We request permission explicitly via [requestPermission] so the
         // user-facing prompt fires at a deliberate moment, not on plugin init.
