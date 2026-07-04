@@ -18,6 +18,7 @@ import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -333,13 +334,9 @@ class ProfilePage extends StatelessWidget {
         ),
         _settingTile(
           context: context,
-          icon: Icons.star_rounded,
-          title: "Upgrade to Pro",
-        ),
-        _settingTile(
-          context: context,
           icon: Icons.lock_rounded,
           title: "Privacy & Data",
+          onTap: () => _openPrivacyPolicy(context),
         ),
         _settingTile(
           context: context,
@@ -363,6 +360,19 @@ class ProfilePage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  // ── Privacy policy ─────────────────────────────────────────────────────────
+
+  /// Opens the hosted privacy policy in the device browser.
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final opened = await launchUrl(
+      Uri.parse(kPrivacyPolicyUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && context.mounted) {
+      AppSnackBar.error(context, 'Could not open the privacy policy.');
+    }
   }
 
   // ── Invite friends ─────────────────────────────────────────────────────────

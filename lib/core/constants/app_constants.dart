@@ -14,3 +14,7 @@ const String kPlayStoreUrl =
     'https://play.google.com/store/apps/details?id=ai.purepath';
 // TODO: Replace with the real App Store link once the iOS app is published.
 const String kAppStoreUrl = 'https://apps.apple.com/app/purepath';
+
+// Legal
+const String kPrivacyPolicyUrl =
+    'https://www.freeprivacypolicy.com/live/9b400db2-ba32-48ad-bf46-8c563962b75c';
