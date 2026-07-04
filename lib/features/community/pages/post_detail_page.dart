@@ -8,12 +8,16 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/utils/snackbar.dart';
+import 'package:purepath/core/widgets/app_bottom_sheet.dart';
+import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_back_button.dart';
+import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
 import 'package:purepath/features/community/repositories/community_repository.dart';
+import 'package:purepath/features/community/widgets/post_card_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Post detail page
@@ -211,6 +215,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       // don't get torn down when a new comment is inserted.
                       key: ValueKey(c.id),
                       postId: post.id,
+                      postOwnerId: post.userId,
                       comment: c,
                       currentUid: currentUid,
                     );
@@ -306,6 +311,24 @@ class _FullPost extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (post.isOwnedBy(currentUid))
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => PostActionsSheet.show(
+                      context,
+                      post,
+                      // The post no longer exists — leave the detail page.
+                      onDeleted: () => context.pop(),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 22,
+                        color: kSecondaryGreyColor,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -394,12 +417,14 @@ class _FullPost extends StatelessWidget {
 
 class _CommentTile extends StatefulWidget {
   final String postId;
+  final String postOwnerId;
   final CommentModel comment;
   final String? currentUid;
 
   const _CommentTile({
     super.key,
     required this.postId,
+    required this.postOwnerId,
     required this.comment,
     required this.currentUid,
   });
@@ -452,6 +477,94 @@ class _CommentTileState extends State<_CommentTile> {
       commentId: widget.comment.id,
       userId: user.uid,
     );
+  }
+
+  // The comment author can edit + delete their own comment. The post owner
+  // can moderate (delete, but not edit) any other user's comment under
+  // their post.
+  bool get _isCommentOwner =>
+      widget.currentUid != null && widget.comment.userId == widget.currentUid;
+
+  bool get _canModerate =>
+      _isCommentOwner ||
+      (widget.currentUid != null && widget.postOwnerId == widget.currentUid);
+
+  Future<void> _showActions() {
+    return AppBottomSheet.show<void>(
+      context,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isCommentOwner) ...[
+              ActionTile(
+                icon: Icons.edit_outlined,
+                label: 'Edit comment',
+                color: kWhiteColor,
+                onTap: () {
+                  AppBottomSheet.hide(context);
+                  _editComment();
+                },
+              ),
+              Space.vertical(8),
+            ],
+            ActionTile(
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete comment',
+              color: red,
+              onTap: () {
+                AppBottomSheet.hide(context);
+                _deleteComment();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editComment() async {
+    final newText = await _EditCommentSheet.show(
+      context,
+      initialText: widget.comment.text,
+    );
+    if (newText == null || !mounted) return;
+
+    try {
+      await context.read<CommunityRepository>().updateComment(
+        postId: widget.postId,
+        commentId: widget.comment.id,
+        text: newText,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Could not update comment.');
+    }
+  }
+
+  Future<void> _deleteComment() async {
+    final confirmed = await AppDialog.show(
+      context,
+      icon: Icons.delete_outline_rounded,
+      iconColor: red,
+      title: 'Delete comment?',
+      subtitle:
+          'This comment and all its replies will be permanently removed.',
+      confirmText: 'Delete',
+      confirmColor: red,
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await context.read<CommunityRepository>().deleteComment(
+        postId: widget.postId,
+        commentId: widget.comment.id,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Could not delete comment.');
+    }
   }
 
   Future<void> _submitReply() async {
@@ -569,6 +682,19 @@ class _CommentTileState extends State<_CommentTile> {
                     ],
                   ),
                 ),
+                if (_canModerate)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _showActions,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 8),
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 18,
+                        color: kSecondaryGreyColor,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -725,6 +851,84 @@ class _CommentTileState extends State<_CommentTile> {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edit comment sheet — prefilled text field, pops with the new text
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EditCommentSheet extends StatefulWidget {
+  final String initialText;
+  const _EditCommentSheet({required this.initialText});
+
+  /// Opens the sheet and resolves to the edited text, or null when the user
+  /// dismissed it (or saved without changing anything).
+  static Future<String?> show(
+    BuildContext context, {
+    required String initialText,
+  }) {
+    return AppBottomSheet.show<String>(
+      context,
+      body: _EditCommentSheet(initialText: initialText),
+    );
+  }
+
+  @override
+  State<_EditCommentSheet> createState() => _EditCommentSheetState();
+}
+
+class _EditCommentSheetState extends State<_EditCommentSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final text = _controller.text.trim();
+    if (text.isEmpty || text == widget.initialText) {
+      context.pop();
+      return;
+    }
+    context.pop(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Edit comment',
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 16,
+              color: kWhiteColor,
+            ),
+          ),
+          Space.vertical(12),
+          CustomTextField(
+            controller: _controller,
+            maxLines: null,
+            textCapitalization: TextCapitalization.sentences,
+            hintText: 'Write a comment…',
+          ),
+          Space.vertical(16),
+          PrimaryButton(text: 'Save', onPressed: _save),
         ],
       ),
     );

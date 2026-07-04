@@ -70,6 +70,21 @@ abstract class CommunityRepository {
     required String text,
   });
 
+  /// Updates the text of an existing comment. Only offered to the comment
+  /// author in the UI; other fields (author, likes, createdAt) are untouched.
+  Future<void> updateComment({
+    required String postId,
+    required String commentId,
+    required String text,
+  });
+
+  /// Permanently removes a comment and all of its replies, and decrements
+  /// the parent post's denormalised comment counter.
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  });
+
   Future<void> toggleCommentLike({
     required String postId,
     required String commentId,

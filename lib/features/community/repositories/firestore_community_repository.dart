@@ -241,6 +241,34 @@ class FirestoreCommunityRepository implements CommunityRepository {
   }
 
   @override
+  Future<void> updateComment({
+    required String postId,
+    required String commentId,
+    required String text,
+  }) async {
+    await _commentsRef(postId).doc(commentId).update({'text': text});
+  }
+
+  @override
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  }) async {
+    // Cascade: replies go in the same batch as the comment itself, so the
+    // comment can never disappear while orphaned replies survive.
+    final replies = await _repliesRef(postId, commentId).get();
+    final batch = _firestore.batch();
+    for (final replyDoc in replies.docs) {
+      batch.delete(replyDoc.reference);
+    }
+    batch.delete(_commentsRef(postId).doc(commentId));
+    batch.update(_postsRef.doc(postId), {
+      'commentCount': FieldValue.increment(-1),
+    });
+    await batch.commit();
+  }
+
+  @override
   Future<void> toggleCommentLike({
     required String postId,
     required String commentId,

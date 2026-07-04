@@ -116,14 +116,28 @@ class PostActionsSheet extends StatelessWidget {
   // BuildContext is torn down the moment we pop, so we use this longer-lived
   // one to show the follow-up dialog and dispatch the delete event.
   final BuildContext parentContext;
+  // Invoked after a confirmed delete — lets the detail page pop itself.
+  final VoidCallback? onDeleted;
 
-  const PostActionsSheet._({required this.post, required this.parentContext});
+  const PostActionsSheet._({
+    required this.post,
+    required this.parentContext,
+    this.onDeleted,
+  });
 
   /// Opens the bottom sheet with Edit + Delete actions for the post owner.
-  static Future<void> show(BuildContext context, PostModel post) {
+  static Future<void> show(
+    BuildContext context,
+    PostModel post, {
+    VoidCallback? onDeleted,
+  }) {
     return AppBottomSheet.show<void>(
       context,
-      body: PostActionsSheet._(post: post, parentContext: context),
+      body: PostActionsSheet._(
+        post: post,
+        parentContext: context,
+        onDeleted: onDeleted,
+      ),
     );
   }
 
@@ -147,6 +161,7 @@ class PostActionsSheet extends StatelessWidget {
     );
     if (confirmed == true && parentContext.mounted) {
       parentContext.read<CommunityBloc>().add(CommunityPostDeleted(post.id));
+      onDeleted?.call();
     }
   }
 
@@ -157,14 +172,14 @@ class PostActionsSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ActionTile(
+          ActionTile(
             icon: Icons.edit_outlined,
             label: 'Edit post',
             color: kWhiteColor,
             onTap: () => _onEdit(context),
           ),
           Space.vertical(8),
-          _ActionTile(
+          ActionTile(
             icon: Icons.delete_outline_rounded,
             label: 'Delete post',
             color: red,
@@ -176,13 +191,16 @@ class PostActionsSheet extends StatelessWidget {
   }
 }
 
-class _ActionTile extends StatelessWidget {
+/// A single row inside an actions bottom sheet (edit / delete / …). Shared
+/// by the post actions sheet and the comment actions sheet.
+class ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionTile({
+  const ActionTile({
+    super.key,
     required this.icon,
     required this.label,
     required this.color,
