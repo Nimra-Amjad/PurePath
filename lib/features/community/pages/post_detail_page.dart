@@ -16,7 +16,7 @@ import 'package:purepath/core/widgets/custom_textfield.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/models/post_model.dart';
-import 'package:purepath/features/community/repositories/community_repository.dart';
+import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/features/community/widgets/post_card_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────

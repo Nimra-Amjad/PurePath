@@ -1,80 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/providers/home_provider.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Firestore home repository
 //
-// Habit definitions live in a per-user sub-collection; completions live in a
-// top-level collection keyed by (user, date):
+// Business-logic layer between the home/insights blocs and HomeProvider:
 //
-// 1) `users/{uid}/habits`  — habit definitions (one doc per habit the user has).
-//    {
-//      id:           <doc id, also stored as a field for convenience>
-//      userId:       <Firebase auth uid of the creator>
-//      title:        String
-//      category:     String   (HabitCategory.name)
-//      type:         String   (HabitType.name — "custom" when the user built it,
-//                              "predefined" when added from the habit library)
-//      isDaily:      bool
-//      weekDays:     [int]    (0 = Mon … 6 = Sun, empty when isDaily)
-//      reminderTime: String
-//      createdAt:    Timestamp
-//    }
+//   HomeBloc / ManageHabitsBloc / InsightsBloc
+//       → FirestoreHomeRepository → HomeProvider
 //
-// 2) `insights` — one doc per (user, date) recording which habits the user
-//    completed that day. Doc id is deterministic: `<uid>_<yyyymmdd>` so we
-//    can read 7 days at a time by direct doc id (no composite index needed).
-//    {
-//      userId:     <uid>
-//      date:       "yyyy-MM-dd"
-//      dateMillis: int    (millis since epoch at local midnight)
-//      habits:     [
-//        { id, hasDone }
-//      ]
-//    }
-//    Title/category/etc. are NOT duplicated here — they're looked up from
-//    the `habits` collection at read time. Habits not present in the array
-//    — or with hasDone=false — render as unchecked on home and unfilled in
-//    the insights bar chart.
+// The provider owns all raw Firestore access + the document schema. This
+// class owns everything on top of that: model mapping, habit ordering,
+// the week-summary join, and the streak walk.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FirestoreHomeRepository implements HomeRepository {
-  static const _kUsers = 'users';
-  static const _kHabits = 'habits';
-  static const _kInsights = 'insights';
+  final HomeProvider _provider;
 
-  final FirebaseFirestore _firestore;
-  final FirebaseAuth _auth;
+  FirestoreHomeRepository({required HomeProvider provider})
+      : _provider = provider;
 
-  FirestoreHomeRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
-
-  String? get _uid => _auth.currentUser?.uid;
-
-  /// The signed-in user's `users/{uid}/habits` sub-collection, or null when no
-  /// user is authenticated.
-  CollectionReference<Map<String, dynamic>>? get _habitsRef {
-    final uid = _uid;
-    if (uid == null) return null;
-    return _firestore.collection(_kUsers).doc(uid).collection(_kHabits);
-  }
-
-  CollectionReference<Map<String, dynamic>> get _insightsRef =>
-      _firestore.collection(_kInsights);
+  String? get _uid => _provider.currentUid;
 
   // ── HomeRepository implementation ──────────────────────────────────────────
 
   @override
   Future<List<HabitDefinition>> getAllHabits() async {
-    final habitsRef = _habitsRef;
-    if (habitsRef == null) return const [];
+    final uid = _uid;
+    if (uid == null) return const [];
 
-    final query = await habitsRef.get();
+    final docs = await _provider.fetchHabitDocs(uid);
 
     // Build the habits list and a side-map of createdAt millis in one pass.
     // Doing the lookup inline (instead of calling firstWhere/orElse later)
@@ -83,7 +42,7 @@ class FirestoreHomeRepository implements HomeRepository {
     // the package-private `_JsonQueryDocumentSnapshot`, which makes
     // `orElse: () => docs.first` fail its subtype check at runtime.
     final createdAtById = <String, int>{};
-    final habits = query.docs.map((doc) {
+    final habits = docs.map((doc) {
       final raw = doc.data();
       final ts = raw['createdAt'];
       createdAtById[doc.id] =
@@ -104,35 +63,26 @@ class FirestoreHomeRepository implements HomeRepository {
   @override
   Future<void> addHabit(HabitDefinition definition) async {
     final uid = _uid;
-    final habitsRef = _habitsRef;
-    if (uid == null || habitsRef == null) return;
-
-    final docRef = habitsRef.doc(); // Firestore-generated unique id.
-    await docRef.set({
-      ...definition.toMap(),
-      'id': docRef.id,
-      'userId': uid,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    if (uid == null) return;
+    await _provider.createHabit(uid, definition.toMap());
   }
 
   @override
   Future<void> deleteHabit(String id) async {
-    final habitsRef = _habitsRef;
-    if (habitsRef == null) return;
+    final uid = _uid;
+    if (uid == null) return;
 
     // Just remove the habit definition. Stale entries in `insights` docs are
     // harmless: getSummaryForWeek joins on the live habits list, so any
     // orphaned ids in the array are simply ignored.
-    await habitsRef.doc(id).delete();
+    await _provider.deleteHabit(uid, id);
   }
 
   @override
   Future<void> updateHabit(HabitDefinition definition) async {
-    final habitsRef = _habitsRef;
-    if (habitsRef == null) return;
-
-    await habitsRef.doc(definition.id).update(definition.toMap());
+    final uid = _uid;
+    if (uid == null) return;
+    await _provider.updateHabit(uid, definition.id, definition.toMap());
   }
 
   @override
@@ -144,19 +94,15 @@ class FirestoreHomeRepository implements HomeRepository {
     final uid = _uid;
     if (uid == null) return;
 
-    final dateOnly = _dateOnly(date);
-    final docRef = _insightsRef.doc(_insightsDocId(uid, dateOnly));
     final hasDone = progress >= 1.0;
 
     // Read-modify-write the day's habits array so flipping one habit doesn't
     // overwrite the others' completion state.
-    final snap = await docRef.get();
-    final List<Map<String, dynamic>> habits = snap.exists
-        ? (snap.data()?['habits'] as List? ?? const [])
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList()
-        : <Map<String, dynamic>>[];
+    final data = await _provider.fetchDayDoc(uid, date);
+    final habits = (data?['habits'] as List? ?? const [])
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
 
     final entry = <String, dynamic>{'id': habitId, 'hasDone': hasDone};
 
@@ -167,12 +113,7 @@ class FirestoreHomeRepository implements HomeRepository {
       habits.add(entry);
     }
 
-    await docRef.set({
-      'userId': uid,
-      'date': _dateString(dateOnly),
-      'dateMillis': dateOnly.millisecondsSinceEpoch,
-      'habits': habits,
-    });
+    await _provider.writeDayHabits(uid, date, habits);
   }
 
   @override
@@ -253,10 +194,10 @@ class FirestoreHomeRepository implements HomeRepository {
     return streak;
   }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
   Future<bool> _isDayCompleted(String uid, DateTime date) async {
-    final snap =
-        await _insightsRef.doc(_insightsDocId(uid, date)).get();
-    final data = snap.data();
+    final data = await _provider.fetchDayDoc(uid, date);
     if (data == null) return false;
     final habits = data['habits'] as List? ?? const [];
     for (final raw in habits) {
@@ -265,29 +206,17 @@ class FirestoreHomeRepository implements HomeRepository {
     return false;
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  /// Reads the 7 day-docs for the visible week in parallel and returns a
-  /// `<habitId>_<dateMillis>` → hasDone map. Direct doc lookups don't need a
-  /// composite index, so this works on a fresh project with no index setup.
+  /// Reads the 7 day-docs for the visible week and returns a
+  /// `<habitId>_<dateMillis>` → hasDone map.
   Future<Map<String, bool>> _fetchWeekHasDone(DateTime weekStart) async {
     final uid = _uid;
     if (uid == null) return const {};
 
-    final futures = List.generate(7, (i) {
-      final date = _dateOnly(weekStart.add(Duration(days: i)));
-      return _insightsRef.doc(_insightsDocId(uid, date)).get().then(
-            (snap) => MapEntry(date, snap.data()),
-          );
-    });
-
-    final results = await Future.wait(futures);
+    final docsByDate = await _provider.fetchWeekDocs(uid, weekStart);
 
     final out = <String, bool>{};
-    for (final entry in results) {
-      final date = entry.key;
-      final data = entry.value;
-      if (data == null) continue;
+    docsByDate.forEach((date, data) {
+      if (data == null) return;
       final list = data['habits'] as List? ?? const [];
       for (final raw in list) {
         if (raw is! Map) continue;
@@ -297,21 +226,9 @@ class FirestoreHomeRepository implements HomeRepository {
         if (habitId.isEmpty) continue;
         out['${habitId}_${date.millisecondsSinceEpoch}'] = hasDone;
       }
-    }
+    });
     return out;
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  /// Deterministic doc id so repeated toggles upsert a single record per day.
-  static String _insightsDocId(String uid, DateTime date) =>
-      '${uid}_${_dateString(date).replaceAll('-', '')}';
-
-  static String _dateString(DateTime date) {
-    final y = date.year.toString().padLeft(4, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    final d = date.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
-  }
-
 }

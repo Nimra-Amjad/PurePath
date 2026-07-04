@@ -1,27 +1,32 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:purepath/core/providers/user_firestore_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/features/auth/model/user_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UserRepository
 //
-// The only place that talks to Firestore for user data.
-// Delegates in-memory state to UserProvider.
+// Business-logic layer for user data:
 //
-// Pattern mirrors MacroPath's UserRepository:
-//   UserProvider ← UserRepository ← UserBloc
+//   UserBloc → UserRepository → UserProvider          (in-memory state)
+//                             → UserFirestoreProvider (raw Firestore access)
 //
-// SWAP GUIDE: If you move to a REST API later, only this file changes.
+// Owns the optimistic-update policy (update cache first, revert on failure)
+// and model mapping. Never touches Firestore directly.
+//
+// SWAP GUIDE: If you move to a REST API later, only UserFirestoreProvider
+// changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class UserRepository {
-  UserRepository({required this.userProvider});
+  UserRepository({
+    required this.userProvider,
+    required this.userFirestoreProvider,
+  });
 
   final UserProvider userProvider;
-
-  static const _kUsers = 'users';
+  final UserFirestoreProvider userFirestoreProvider;
 
   // ── Local state passthrough ───────────────────────────────────────────────
 
@@ -34,7 +39,7 @@ class UserRepository {
   void updateLocalUser(UserModel? user) => userProvider.updateLocalUser(user);
   void updateFirebaseUser(User? user) => userProvider.updateFirebaseUser(user);
 
-  // ── Firestore ─────────────────────────────────────────────────────────────
+  // ── Firestore-backed operations ───────────────────────────────────────────
 
   /// Fetch the user document for the currently signed-in Firebase user.
   Future<UserModel?> getUserDocumentByUid() async {
@@ -42,13 +47,9 @@ class UserRepository {
       final uid = firebaseUser?.uid;
       if (uid == null) return null;
 
-      final snap = await FirebaseFirestore.instance
-          .collection(_kUsers)
-          .doc(uid)
-          .get();
-
-      if (!snap.exists || snap.data() == null) return null;
-      return UserModel.fromMap(snap.data()!);
+      final data = await userFirestoreProvider.fetchUserDoc(uid);
+      if (data == null) return null;
+      return UserModel.fromMap(data);
     } catch (e) {
       debugPrint('UserRepository.getUserDocumentByUid error: $e');
       return null;
@@ -61,10 +62,7 @@ class UserRepository {
       final uid = firebaseUser?.uid;
       if (uid == null) return false;
 
-      await FirebaseFirestore.instance
-          .collection(_kUsers)
-          .doc(uid)
-          .update(data);
+      await userFirestoreProvider.updateUserDoc(uid, data);
       return true;
     } catch (e) {
       debugPrint('UserRepository.updateUserDocument error: $e');
@@ -73,56 +71,13 @@ class UserRepository {
   }
 
   /// Permanently deletes everything in Firestore that belongs to the current
-  /// user: their `users` doc, every `habits` doc they own, every per-day
-  /// `insights` doc, and every community post they authored (along with the
-  /// post's nested comments + replies subcollections).
-  ///
-  /// Comments and replies the user wrote on *other people's* posts are left
-  /// in place — walking every post in the database to find them would be
-  /// expensive, and they're effectively orphaned (no auth account left to
-  /// link back to). Their author name will simply persist as a tombstone.
-  ///
-  /// Must be called while the user is still authenticated; once the auth
-  /// account is deleted, security rules typically block follow-up writes.
+  /// user. Must be called while the user is still authenticated; once the
+  /// auth account is deleted, security rules typically block follow-up
+  /// writes.
   Future<void> deleteAllUserData() async {
     final uid = firebaseUser?.uid;
     if (uid == null) return;
-
-    final db = FirebaseFirestore.instance;
-
-    // ── Top-level collections owned by uid ────────────────────────────────
-    Future<void> deleteOwned(String collection) async {
-      final snap =
-          await db.collection(collection).where('userId', isEqualTo: uid).get();
-      for (final doc in snap.docs) {
-        await doc.reference.delete();
-      }
-    }
-
-    await deleteOwned('habits');
-    await deleteOwned('insights');
-
-    // ── Community posts (subcollections need explicit cascade) ────────────
-    final posts = await db
-        .collection('community')
-        .where('userId', isEqualTo: uid)
-        .get();
-    for (final postDoc in posts.docs) {
-      final comments = await postDoc.reference.collection('comments').get();
-      for (final commentDoc in comments.docs) {
-        final replies =
-            await commentDoc.reference.collection('replies').get();
-        for (final replyDoc in replies.docs) {
-          await replyDoc.reference.delete();
-        }
-        await commentDoc.reference.delete();
-      }
-      await postDoc.reference.delete();
-    }
-
-    // ── User profile doc (delete last so the field-based queries above
-    //    still have an authenticated context to run) ────────────────────────
-    await db.collection(_kUsers).doc(uid).delete();
+    await userFirestoreProvider.deleteAllUserData(uid);
   }
 
   /// Renames the current user. Updates Firestore + local cache so anything
@@ -157,12 +112,9 @@ class UserRepository {
     return ok;
   }
 
-  /// Persists the freshly computed day-streak. The streak itself is derived
+  /// Persists the freshly computed coin balance. The value itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.
-  ///
-  /// Doing it this way means backfilling a previously-missed day correctly
-  /// extends (or repairs) the streak — the recompute is the source of truth.
   Future<void> setCoins(int coins) async {
     final uid = firebaseUser?.uid;
     if (uid == null) return;
@@ -174,10 +126,7 @@ class UserRepository {
     updateLocalUser(current.copyWith(coins: coins));
 
     try {
-      await FirebaseFirestore.instance
-          .collection(_kUsers)
-          .doc(uid)
-          .update({'coins': coins});
+      await userFirestoreProvider.updateUserDoc(uid, {'coins': coins});
     } catch (e) {
       debugPrint('UserRepository.setCoins error: $e');
       updateLocalUser(current); // Revert on failure.

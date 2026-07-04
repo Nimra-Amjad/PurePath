@@ -3,19 +3,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
+import 'package:purepath/core/providers/app_version_provider.dart';
 import 'package:purepath/core/providers/firebase_auth_provider.dart';
+import 'package:purepath/core/providers/user_firestore_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/app_version_repository.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/services/notification_service.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
-import 'package:purepath/features/community/repositories/community_repository.dart';
-import 'package:purepath/features/community/repositories/firestore_community_repository.dart';
+import 'package:purepath/core/providers/community_provider.dart';
+import 'package:purepath/core/repositories/community_repository.dart';
+import 'package:purepath/core/repositories/firestore_community_repository.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
-import 'package:purepath/features/home/repositories/firestore_home_repository.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/providers/home_provider.dart';
+import 'package:purepath/core/repositories/firestore_home_repository.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 
@@ -66,6 +70,18 @@ class _ProviderDI extends StatelessWidget {
           create: (_) => UserProvider(),
           dispose: (p) => p.dispose(),
         ),
+        RepositoryProvider<UserFirestoreProvider>(
+          create: (_) => UserFirestoreProvider(),
+        ),
+        RepositoryProvider<AppVersionProvider>(
+          create: (_) => AppVersionProvider(),
+        ),
+        RepositoryProvider<HomeProvider>(
+          create: (_) => HomeProvider(),
+        ),
+        RepositoryProvider<CommunityProvider>(
+          create: (_) => CommunityProvider(),
+        ),
         RepositoryProvider<NotificationService>(
           create: (_) => NotificationService(),
         ),
@@ -94,16 +110,23 @@ class _RepositoryDI extends StatelessWidget {
         RepositoryProvider<UserRepository>(
           create: (ctx) => UserRepository(
             userProvider: ctx.read<UserProvider>(),
+            userFirestoreProvider: ctx.read<UserFirestoreProvider>(),
           ),
         ),
         RepositoryProvider<AppVersionRepository>(
-          create: (_) => AppVersionRepository(),
+          create: (ctx) => AppVersionRepository(
+            provider: ctx.read<AppVersionProvider>(),
+          ),
         ),
         RepositoryProvider<HomeRepository>(
-          create: (_) => FirestoreHomeRepository(),
+          create: (ctx) => FirestoreHomeRepository(
+            provider: ctx.read<HomeProvider>(),
+          ),
         ),
         RepositoryProvider<CommunityRepository>(
-          create: (_) => FirestoreCommunityRepository(),
+          create: (ctx) => FirestoreCommunityRepository(
+            provider: ctx.read<CommunityProvider>(),
+          ),
         ),
       ],
       child: child,

@@ -4,7 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/features/auth/model/user_model.dart';
 import 'package:purepath/features/community/models/post_model.dart';
-import 'package:purepath/features/community/repositories/community_repository.dart';
+import 'package:purepath/core/repositories/community_repository.dart';
 
 part 'community_event.dart';
 part 'community_state.dart';

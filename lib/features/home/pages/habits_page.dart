@@ -12,7 +12,7 @@ import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';

@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 
 part 'insights_event.dart';
 part 'insights_state.dart';

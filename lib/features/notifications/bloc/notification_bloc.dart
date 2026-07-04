@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/services/notification_service.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 
 part 'notification_event.dart';
 part 'notification_state.dart';

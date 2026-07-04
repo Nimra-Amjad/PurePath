@@ -1,6 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/repositories/home_repository.dart';
+import 'package:purepath/core/repositories/home_repository.dart';
 
 part 'manage_habits_event.dart';
 part 'manage_habits_state.dart';
