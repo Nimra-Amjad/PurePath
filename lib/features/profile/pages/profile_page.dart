@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
+import 'package:purepath/core/constants/app_constants.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
@@ -16,6 +17,7 @@ import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/profile/pages/badges_page.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -343,6 +345,7 @@ class ProfilePage extends StatelessWidget {
           context: context,
           icon: Icons.people_rounded,
           title: "Invite Friends",
+          onTap: _shareInviteLink,
         ),
         _settingTile(
           context: context,
@@ -359,6 +362,17 @@ class ProfilePage extends StatelessWidget {
           onTap: () => _showDeleteAccountSheet(context),
         ),
       ],
+    );
+  }
+
+  // ── Invite friends ─────────────────────────────────────────────────────────
+
+  /// Opens the system share sheet with the Play Store listing so the user
+  /// can send the app to friends over any installed app.
+  void _shareInviteLink() {
+    Share.share(
+      'I\'m building better habits with PurePath — join me!\n\n$kPlayStoreUrl',
+      subject: 'Join me on PurePath',
     );
   }
 
