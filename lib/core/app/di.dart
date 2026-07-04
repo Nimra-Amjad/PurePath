@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/providers/firebase_auth_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
+import 'package:purepath/core/repositories/app_version_repository.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/services/notification_service.dart';
@@ -94,6 +95,9 @@ class _RepositoryDI extends StatelessWidget {
           create: (ctx) => UserRepository(
             userProvider: ctx.read<UserProvider>(),
           ),
+        ),
+        RepositoryProvider<AppVersionRepository>(
+          create: (_) => AppVersionRepository(),
         ),
         RepositoryProvider<HomeRepository>(
           create: (_) => FirestoreHomeRepository(),
