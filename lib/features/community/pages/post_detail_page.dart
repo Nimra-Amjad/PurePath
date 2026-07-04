@@ -476,6 +476,7 @@ class _CommentTileState extends State<_CommentTile> {
       postId: widget.postId,
       commentId: widget.comment.id,
       userId: user.uid,
+      userName: user.fullName,
     );
   }
 
@@ -961,6 +962,7 @@ class _ReplyTile extends StatelessWidget {
       commentId: commentId,
       replyId: reply.id,
       userId: user.uid,
+      userName: user.fullName,
     );
   }
 

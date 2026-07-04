@@ -9,6 +9,7 @@ import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
 import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
 import 'package:purepath/features/community/models/post_model.dart';
+import 'package:purepath/features/community/pages/community_notifications_page.dart';
 import 'package:purepath/features/community/pages/post_detail_page.dart';
 import 'package:purepath/features/explore/pages/explore_habits_page.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
@@ -91,6 +92,11 @@ final router = GoRouter(
       path: AppRoute.postDetail.path,
       pageBuilder: (context, state) =>
           _fadePage(state, PostDetailPage(post: state.extra as PostModel)),
+    ),
+    GoRoute(
+      path: AppRoute.communityNotifications.path,
+      pageBuilder: (context, state) =>
+          _fadePage(state, const CommunityNotificationsPage()),
     ),
   ],
 );

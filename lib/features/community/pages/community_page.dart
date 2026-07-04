@@ -4,6 +4,8 @@ import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/pages/create_post_page.dart';
@@ -321,6 +323,8 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ),
+              const _NotificationBell(),
+              Space.horizontal(10),
               // Compose button
               GestureDetector(
                 onTap: onCreatePost,
@@ -355,6 +359,78 @@ class _Header extends StatelessWidget {
           // never butt up against the tab selector when the list is scrolled.
           Space.vertical(14),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Notification bell — live red badge with the unread count
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = context.select<UserBloc, String?>((b) => b.state.user?.uid);
+    if (uid == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => AppRoute.communityNotifications.push(context),
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: kContainerColor,
+                  shape: BoxShape.circle,
+                ),
+                margin: const EdgeInsets.all(2),
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  size: 20,
+                  color: kWhiteColor,
+                ),
+              ),
+            ),
+            StreamBuilder<int>(
+              stream: context
+                  .read<CommunityRepository>()
+                  .watchUnreadNotificationCount(uid),
+              builder: (context, snap) {
+                final unread = snap.data ?? 0;
+                if (unread == 0) return const SizedBox.shrink();
+                return Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    constraints: const BoxConstraints(minWidth: 17),
+                    decoration: BoxDecoration(
+                      color: red,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: kScaffoldColor, width: 1.5),
+                    ),
+                    child: Text(
+                      unread > 99 ? '99+' : '$unread',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bold.copyWith(
+                        fontSize: 9,
+                        color: kWhiteColor,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

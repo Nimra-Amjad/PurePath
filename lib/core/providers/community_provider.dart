@@ -25,11 +25,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // orchestration live in FirestoreCommunityRepository.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Result of a like toggle: whether the doc is now liked by the user, plus
+/// the doc owner + a content snippet so the repository can build a
+/// notification without a second read.
+typedef LikeToggleResult = ({bool nowLiked, String ownerId, String preview});
+
 class CommunityProvider {
   static const _kPosts = 'community';
   static const _kComments = 'comments';
   static const _kReplies = 'replies';
   static const _kUsers = 'users';
+  static const _kNotifications = 'notifications';
 
   final FirebaseFirestore _firestore;
 
@@ -50,6 +56,9 @@ class CommunityProvider {
     String commentId,
   ) =>
       _commentsRef(postId).doc(commentId).collection(_kReplies);
+
+  CollectionReference<Map<String, dynamic>> _notificationsRef(String uid) =>
+      _usersRef.doc(uid).collection(_kNotifications);
 
   // ── Posts ──────────────────────────────────────────────────────────────────
 
@@ -107,11 +116,17 @@ class CommunityProvider {
     await _postsRef.doc(postId).delete();
   }
 
-  Future<void> togglePostLike({
+  Future<LikeToggleResult> togglePostLike({
     required String postId,
     required String userId,
   }) {
-    return _toggleLike(_postsRef.doc(postId), userId);
+    return _toggleLike(_postsRef.doc(postId), userId, previewField: 'content');
+  }
+
+  /// Raw post document, or null when it no longer exists.
+  Future<Map<String, dynamic>?> fetchPostDoc(String postId) async {
+    final snap = await _postsRef.doc(postId).get();
+    return snap.data();
   }
 
   // ── Comments ───────────────────────────────────────────────────────────────
@@ -177,12 +192,25 @@ class CommunityProvider {
     await batch.commit();
   }
 
-  Future<void> toggleCommentLike({
+  Future<LikeToggleResult> toggleCommentLike({
     required String postId,
     required String commentId,
     required String userId,
   }) {
-    return _toggleLike(_commentsRef(postId).doc(commentId), userId);
+    return _toggleLike(
+      _commentsRef(postId).doc(commentId),
+      userId,
+      previewField: 'text',
+    );
+  }
+
+  /// Raw comment document, or null when it no longer exists.
+  Future<Map<String, dynamic>?> fetchCommentDoc(
+    String postId,
+    String commentId,
+  ) async {
+    final snap = await _commentsRef(postId).doc(commentId).get();
+    return snap.data();
   }
 
   // ── Replies ────────────────────────────────────────────────────────────────
@@ -222,13 +250,17 @@ class CommunityProvider {
     return replyRef.id;
   }
 
-  Future<void> toggleReplyLike({
+  Future<LikeToggleResult> toggleReplyLike({
     required String postId,
     required String commentId,
     required String replyId,
     required String userId,
   }) {
-    return _toggleLike(_repliesRef(postId, commentId).doc(replyId), userId);
+    return _toggleLike(
+      _repliesRef(postId, commentId).doc(replyId),
+      userId,
+      previewField: 'text',
+    );
   }
 
   // ── Users ──────────────────────────────────────────────────────────────────
@@ -251,16 +283,85 @@ class CommunityProvider {
     return out;
   }
 
+  // ── Notifications ──────────────────────────────────────────────────────────
+  //
+  //   users/<uid>/notifications/<notificationId>
+  //     { actorId, actorName, type, postId, commentId?,
+  //       preview, hasRead, createdAt: Timestamp }
+  //
+  // Stored per-user as a subcollection so the inbox and the unread count are
+  // plain single-field queries (no composite index required).
+
+  /// Live snapshots of [uid]'s notifications, newest first.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchNotifications(String uid) {
+    return _notificationsRef(uid)
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .snapshots();
+  }
+
+  /// Live snapshots of [uid]'s unread notifications (for the badge count).
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchUnreadNotifications(
+    String uid,
+  ) {
+    return _notificationsRef(uid)
+        .where('hasRead', isEqualTo: false)
+        .snapshots();
+  }
+
+  Future<void> createNotification({
+    required String recipientId,
+    required String actorId,
+    required String actorName,
+    required String type,
+    required String postId,
+    String? commentId,
+    required String preview,
+  }) async {
+    await _notificationsRef(recipientId).add({
+      'actorId': actorId,
+      'actorName': actorName,
+      'type': type,
+      'postId': postId,
+      'commentId': commentId,
+      'preview': preview,
+      'hasRead': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> markNotificationRead(String uid, String notificationId) async {
+    await _notificationsRef(uid).doc(notificationId).update({'hasRead': true});
+  }
+
+  Future<void> markAllNotificationsRead(String uid) async {
+    final unread =
+        await _notificationsRef(uid).where('hasRead', isEqualTo: false).get();
+    if (unread.docs.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final doc in unread.docs) {
+      batch.update(doc.reference, {'hasRead': true});
+    }
+    await batch.commit();
+  }
+
+  Future<void> deleteNotification(String uid, String notificationId) async {
+    await _notificationsRef(uid).doc(notificationId).delete();
+  }
+
   // ── Internal ───────────────────────────────────────────────────────────────
 
-  /// Transactionally adds/removes [userId] from a doc's `likedBy` array.
-  Future<void> _toggleLike(
+  /// Transactionally adds/removes [userId] from a doc's `likedBy` array and
+  /// reports the outcome (see [LikeToggleResult]).
+  Future<LikeToggleResult> _toggleLike(
     DocumentReference<Map<String, dynamic>> doc,
-    String userId,
-  ) async {
-    await _firestore.runTransaction((tx) async {
+    String userId, {
+    required String previewField,
+  }) async {
+    return _firestore.runTransaction((tx) async {
       final snap = await tx.get(doc);
-      final liked = (snap.data()?['likedBy'] as List? ?? const [])
+      final data = snap.data() ?? const <String, dynamic>{};
+      final liked = (data['likedBy'] as List? ?? const [])
           .cast<String>()
           .contains(userId);
       tx.update(doc, {
@@ -268,6 +369,11 @@ class CommunityProvider {
             ? FieldValue.arrayRemove([userId])
             : FieldValue.arrayUnion([userId]),
       });
+      return (
+        nowLiked: !liked,
+        ownerId: data['userId'] as String? ?? '',
+        preview: data[previewField] as String? ?? '',
+      );
     });
   }
 }

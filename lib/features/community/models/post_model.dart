@@ -49,9 +49,9 @@ class PostModel {
   String get authorInitial =>
       authorName.isNotEmpty ? authorName.trim()[0].toUpperCase() : '?';
 
-  Color get authorColor => _avatarColorFor(userId);
+  Color get authorColor => avatarColorFor(userId);
 
-  String get timeAgo => _timeAgo(createdAt);
+  String get timeAgo => timeAgoText(createdAt);
 
   int get likeCount => likedBy.length;
 
@@ -84,9 +84,9 @@ class CommentModel {
   String get authorInitial =>
       authorName.isNotEmpty ? authorName.trim()[0].toUpperCase() : '?';
 
-  Color get authorColor => _avatarColorFor(userId);
+  Color get authorColor => avatarColorFor(userId);
 
-  String get timeAgo => _timeAgo(createdAt);
+  String get timeAgo => timeAgoText(createdAt);
 
   int get likeCount => likedBy.length;
 
@@ -115,9 +115,9 @@ class ReplyModel {
   String get authorInitial =>
       authorName.isNotEmpty ? authorName.trim()[0].toUpperCase() : '?';
 
-  Color get authorColor => _avatarColorFor(userId);
+  Color get authorColor => avatarColorFor(userId);
 
-  String get timeAgo => _timeAgo(createdAt);
+  String get timeAgo => timeAgoText(createdAt);
 
   int get likeCount => likedBy.length;
 
@@ -141,7 +141,7 @@ const _avatarPalette = <Color>[
 
 /// Deterministic avatar color from a user id, so the same user always gets
 /// the same color across the app without needing a stored field.
-Color _avatarColorFor(String userId) {
+Color avatarColorFor(String userId) {
   if (userId.isEmpty) return _avatarPalette.first;
   final idx = userId.codeUnits.fold<int>(0, (a, b) => a + b) %
       _avatarPalette.length;
@@ -149,7 +149,7 @@ Color _avatarColorFor(String userId) {
 }
 
 /// Compact "5m ago", "2h ago", "3d ago" style relative time string.
-String _timeAgo(DateTime dt) {
+String timeAgoText(DateTime dt) {
   final diff = DateTime.now().difference(dt);
   if (diff.inSeconds < 30) return 'Just now';
   if (diff.inMinutes < 1) return '${diff.inSeconds}s ago';

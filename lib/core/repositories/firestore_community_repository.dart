@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:purepath/features/community/models/community_notification.dart';
 import 'package:purepath/features/community/models/post_model.dart';
 import 'package:purepath/core/providers/community_provider.dart';
 import 'package:purepath/core/repositories/community_repository.dart';
@@ -89,8 +91,39 @@ class FirestoreCommunityRepository implements CommunityRepository {
   Future<void> togglePostLike({
     required String postId,
     required String userId,
-  }) {
-    return _provider.togglePostLike(postId: postId, userId: userId);
+    required String userName,
+  }) async {
+    final result =
+        await _provider.togglePostLike(postId: postId, userId: userId);
+    if (result.nowLiked) {
+      await _notify(
+        recipientId: result.ownerId,
+        actorId: userId,
+        actorName: userName,
+        type: CommunityNotificationType.postLike,
+        postId: postId,
+        preview: result.preview,
+      );
+    }
+  }
+
+  @override
+  Future<PostModel?> getPostById(String postId) async {
+    final data = await _provider.fetchPostDoc(postId);
+    if (data == null) return null;
+    final post = PostModel(
+      id: postId,
+      userId: data['userId'] as String? ?? '',
+      authorName: data['authorName'] as String? ?? '',
+      authorImgUrl: data['authorImgUrl'] as String?,
+      content: data['content'] as String? ?? '',
+      imageUrl: data['imageUrl'] as String?,
+      createdAt: _readDate(data['createdAt']),
+      likedBy: (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
+      commentCount: (data['commentCount'] as num?)?.toInt() ?? 0,
+    );
+    final enriched = await _enrichWithAuthors([post]);
+    return enriched.first;
   }
 
   // ── Comments ───────────────────────────────────────────────────────────────
@@ -117,6 +150,18 @@ class FirestoreCommunityRepository implements CommunityRepository {
       authorImgUrl: authorImgUrl,
       text: text,
     );
+
+    // Tell the post owner someone commented (previewing the comment text).
+    final post = await _provider.fetchPostDoc(postId);
+    await _notify(
+      recipientId: post?['userId'] as String? ?? '',
+      actorId: userId,
+      actorName: authorName,
+      type: CommunityNotificationType.comment,
+      postId: postId,
+      preview: text,
+    );
+
     return CommentModel(
       id: id,
       userId: userId,
@@ -153,12 +198,24 @@ class FirestoreCommunityRepository implements CommunityRepository {
     required String postId,
     required String commentId,
     required String userId,
-  }) {
-    return _provider.toggleCommentLike(
+    required String userName,
+  }) async {
+    final result = await _provider.toggleCommentLike(
       postId: postId,
       commentId: commentId,
       userId: userId,
     );
+    if (result.nowLiked) {
+      await _notify(
+        recipientId: result.ownerId,
+        actorId: userId,
+        actorName: userName,
+        type: CommunityNotificationType.commentLike,
+        postId: postId,
+        commentId: commentId,
+        preview: result.preview,
+      );
+    }
   }
 
   // ── Replies ────────────────────────────────────────────────────────────────
@@ -190,6 +247,19 @@ class FirestoreCommunityRepository implements CommunityRepository {
       authorImgUrl: authorImgUrl,
       text: text,
     );
+
+    // Tell the comment owner someone replied (previewing the reply text).
+    final comment = await _provider.fetchCommentDoc(postId, commentId);
+    await _notify(
+      recipientId: comment?['userId'] as String? ?? '',
+      actorId: userId,
+      actorName: authorName,
+      type: CommunityNotificationType.reply,
+      postId: postId,
+      commentId: commentId,
+      preview: text,
+    );
+
     return ReplyModel(
       id: id,
       userId: userId,
@@ -206,13 +276,92 @@ class FirestoreCommunityRepository implements CommunityRepository {
     required String commentId,
     required String replyId,
     required String userId,
-  }) {
-    return _provider.toggleReplyLike(
+    required String userName,
+  }) async {
+    final result = await _provider.toggleReplyLike(
       postId: postId,
       commentId: commentId,
       replyId: replyId,
       userId: userId,
     );
+    if (result.nowLiked) {
+      await _notify(
+        recipientId: result.ownerId,
+        actorId: userId,
+        actorName: userName,
+        type: CommunityNotificationType.replyLike,
+        postId: postId,
+        commentId: commentId,
+        preview: result.preview,
+      );
+    }
+  }
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+
+  @override
+  Stream<List<CommunityNotification>> watchNotifications(String userId) {
+    return _provider.watchNotifications(userId).map(
+          (snap) => snap.docs
+              .map((d) => CommunityNotification.fromMap(d.id, d.data()))
+              .toList(),
+        );
+  }
+
+  @override
+  Stream<int> watchUnreadNotificationCount(String userId) {
+    return _provider
+        .watchUnreadNotifications(userId)
+        .map((snap) => snap.docs.length);
+  }
+
+  @override
+  Future<void> markNotificationRead({
+    required String userId,
+    required String notificationId,
+  }) {
+    return _provider.markNotificationRead(userId, notificationId);
+  }
+
+  @override
+  Future<void> markAllNotificationsRead(String userId) {
+    return _provider.markAllNotificationsRead(userId);
+  }
+
+  @override
+  Future<void> deleteNotification({
+    required String userId,
+    required String notificationId,
+  }) {
+    return _provider.deleteNotification(userId, notificationId);
+  }
+
+  /// Best-effort notification write. Skips self-notifications (acting on
+  /// your own content) and never lets a notification failure break the
+  /// action that triggered it.
+  Future<void> _notify({
+    required String recipientId,
+    required String actorId,
+    required String actorName,
+    required CommunityNotificationType type,
+    required String postId,
+    String? commentId,
+    required String preview,
+  }) async {
+    if (recipientId.isEmpty || recipientId == actorId) return;
+    try {
+      await _provider.createNotification(
+        recipientId: recipientId,
+        actorId: actorId,
+        actorName: actorName,
+        type: type.name,
+        postId: postId,
+        commentId: commentId,
+        preview: preview,
+      );
+    } catch (e) {
+      debugPrint('FirestoreCommunityRepository._notify error: $e');
+    }
   }
 
   // ── Author enrichment ─────────────────────────────────────────────────────

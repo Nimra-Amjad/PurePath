@@ -1,3 +1,4 @@
+import 'package:purepath/features/community/models/community_notification.dart';
 import 'package:purepath/features/community/models/post_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,11 +52,18 @@ abstract class CommunityRepository {
     String? imageUrl,
   });
 
-  /// Toggles whether [userId] likes [postId]: idempotent on the user's behalf.
+  /// Toggles whether [userId] likes [postId]: idempotent on the user's
+  /// behalf. [userName] is denormalised into the like notification sent to
+  /// the post owner.
   Future<void> togglePostLike({
     required String postId,
     required String userId,
+    required String userName,
   });
+
+  /// Fetches a single post (author-enriched), or null when it no longer
+  /// exists. Used to open a post from a notification.
+  Future<PostModel?> getPostById(String postId);
 
   // ── Comments ──────────────────────────────────────────────────────────────
 
@@ -89,6 +97,7 @@ abstract class CommunityRepository {
     required String postId,
     required String commentId,
     required String userId,
+    required String userName,
   });
 
   // ── Replies ───────────────────────────────────────────────────────────────
@@ -113,5 +122,26 @@ abstract class CommunityRepository {
     required String commentId,
     required String replyId,
     required String userId,
+    required String userName,
+  });
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+
+  /// Live stream of [userId]'s community notifications, newest first.
+  Stream<List<CommunityNotification>> watchNotifications(String userId);
+
+  /// Live count of unread notifications (drives the badge on the bell icon).
+  Stream<int> watchUnreadNotificationCount(String userId);
+
+  Future<void> markNotificationRead({
+    required String userId,
+    required String notificationId,
+  });
+
+  Future<void> markAllNotificationsRead(String userId);
+
+  Future<void> deleteNotification({
+    required String userId,
+    required String notificationId,
   });
 }

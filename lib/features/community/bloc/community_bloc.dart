@@ -205,7 +205,11 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     emit(state.copyWith(posts: updated));
 
     try {
-      await _repository.togglePostLike(postId: event.postId, userId: uid);
+      await _repository.togglePostLike(
+        postId: event.postId,
+        userId: uid,
+        userName: user.fullName,
+      );
     } catch (_) {
       // Stream emission will reconcile.
     }

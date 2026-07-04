@@ -15,7 +15,8 @@ enum AppRoute {
   editHabit('/editHabit'),
   badges('/badges'),
   reminders('/reminders'),
-  postDetail('/postDetail');
+  postDetail('/postDetail'),
+  communityNotifications('/communityNotifications');
 
   const AppRoute(this.path);
 
