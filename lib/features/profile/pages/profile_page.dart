@@ -346,6 +346,12 @@ class ProfilePage extends StatelessWidget {
         ),
         _settingTile(
           context: context,
+          icon: Icons.support_agent_rounded,
+          title: "Contact Support",
+          onTap: () => _contactSupport(context),
+        ),
+        _settingTile(
+          context: context,
           icon: Icons.logout_rounded,
           title: "Sign out",
           isDanger: true,
@@ -360,6 +366,30 @@ class ProfilePage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  // ── Contact support ────────────────────────────────────────────────────────
+
+  /// Opens the user's email app with a pre-addressed support draft.
+  Future<void> _contactSupport(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: kSupportEmail,
+      query: 'subject=${Uri.encodeComponent('PurePath Support')}',
+    );
+
+    try {
+      final opened = await launchUrl(uri);
+      if (!opened && context.mounted) {
+        AppSnackBar.error(context, 'No email app found. Write to $kSupportEmail');
+      }
+    } catch (_) {
+      // No mail client configured (common on emulators) — still surface the
+      // address so the user can reach us some other way.
+      if (context.mounted) {
+        AppSnackBar.error(context, 'No email app found. Write to $kSupportEmail');
+      }
+    }
   }
 
   // ── Privacy policy ─────────────────────────────────────────────────────────

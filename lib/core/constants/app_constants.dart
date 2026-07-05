@@ -18,3 +18,6 @@ const String kAppStoreUrl = 'https://apps.apple.com/app/purepath';
 // Legal
 const String kPrivacyPolicyUrl =
     'https://www.freeprivacypolicy.com/live/9b400db2-ba32-48ad-bf46-8c563962b75c';
+
+// Support
+const String kSupportEmail = 'softsync77@gmail.com';
