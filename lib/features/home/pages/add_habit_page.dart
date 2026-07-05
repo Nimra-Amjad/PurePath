@@ -199,10 +199,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               ),
             ),
             Space.vertical(8),
-            PrimaryButton(
-              text: "Add Time",
-              onPressed: () => context.pop(true),
-            ),
+            PrimaryButton(text: "Add Time", onPressed: () => context.pop(true)),
             Space.vertical(32),
           ],
         ),
@@ -211,7 +208,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
 
     if (confirmed == true && mounted) {
       setState(
-        () => _reminderController.text = DateFormat('h:mm a').format(tempPicked),
+        () =>
+            _reminderController.text = DateFormat('h:mm a').format(tempPicked),
       );
     }
   }
@@ -223,10 +221,24 @@ class _AddHabitPageState extends State<AddHabitPage> {
     return Scaffold(
       backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(),
+      // Fixed at the bottom, outside the scroll view, so it's always
+      // reachable no matter how long the form is.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: PrimaryButton(
+            text: "Create Habit",
+            isLoading: _isSubmitting,
+            onPressed: () {
+              _onCreateTapped();
+            },
+          ),
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -239,14 +251,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
               _buildDateRangeSection(),
               const SizedBox(height: 24),
               _buildReminderSection(),
-              const SizedBox(height: 36),
-              PrimaryButton(
-                text: "Create Habit",
-                isLoading: _isSubmitting,
-                onPressed: () {
-                  _onCreateTapped();
-                },
-              ),
             ],
           ),
         ),
@@ -574,10 +578,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               ),
             ),
             Space.vertical(8),
-            PrimaryButton(
-              text: "Set Date",
-              onPressed: () => context.pop(true),
-            ),
+            PrimaryButton(text: "Set Date", onPressed: () => context.pop(true)),
             Space.vertical(32),
           ],
         ),

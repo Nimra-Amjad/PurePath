@@ -221,10 +221,18 @@ class _EditHabitPageState extends State<EditHabitPage> {
     return Scaffold(
       backgroundColor: kScaffoldColor,
       appBar: _buildAppBar(),
+      // Fixed at the bottom, outside the scroll view, so it's always
+      // reachable no matter how long the form is.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: _buildSaveButton(),
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -237,8 +245,6 @@ class _EditHabitPageState extends State<EditHabitPage> {
               _buildDateRangeSection(),
               const SizedBox(height: 24),
               _buildReminderSection(),
-              const SizedBox(height: 36),
-              _buildSaveButton(),
             ],
           ),
         ),
