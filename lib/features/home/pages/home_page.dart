@@ -110,13 +110,14 @@ class _HomePageState extends State<HomePage> {
 
             // ── Section header ──────────────────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Today's Habits",
-                  style: AppTextStyles.semiBold.copyWith(
-                    fontSize: 16,
-                    color: kWhiteColor,
+                Expanded(
+                  child: Text(
+                    "Today's Habits",
+                    style: AppTextStyles.semiBold.copyWith(
+                      fontSize: 16,
+                      color: kWhiteColor,
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -138,6 +139,24 @@ class _HomePageState extends State<HomePage> {
                         size: 12,
                       ),
                     ],
+                  ),
+                ),
+                Space.horizontal(12),
+                // Quick "add habit" entry — jumps straight to the create form.
+                GestureDetector(
+                  onTap: () => AppRoute.addHabit.push(context),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      color: kPrimaryGreenColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: kBlackColor,
+                    ),
                   ),
                 ),
               ],
