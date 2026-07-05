@@ -72,11 +72,7 @@ class AppUpdateSheet extends StatelessWidget {
             ),
             Space.vertical(8),
             Text(
-              forceUpdate
-                  ? 'This version of PurePath is no longer supported. '
-                        'Please update to continue.'
-                  : 'A new version of PurePath is available with the latest '
-                        'improvements and fixes.',
+              'A new version of PurePath is out. Update for the best experience!',
               textAlign: TextAlign.center,
               style: AppTextStyles.normal.copyWith(
                 fontSize: 14,
