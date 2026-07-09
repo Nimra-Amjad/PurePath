@@ -16,6 +16,7 @@ import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/add_habit_page.dart';
 import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/pages/habits_page.dart';
+import 'package:purepath/features/paywall/pages/paywall_page.dart';
 import 'package:purepath/features/preferences/pages/preferences_page.dart';
 import 'package:purepath/features/preferences/pages/welcome_page.dart';
 import 'package:purepath/features/preferences/views/summary_page.dart';
@@ -97,6 +98,10 @@ final router = GoRouter(
       path: AppRoute.communityNotifications.path,
       pageBuilder: (context, state) =>
           _fadePage(state, const CommunityNotificationsPage()),
+    ),
+    GoRoute(
+      path: AppRoute.paywall.path,
+      pageBuilder: (context, state) => _fadePage(state, const PaywallPage()),
     ),
   ],
 );

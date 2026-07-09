@@ -16,7 +16,8 @@ enum AppRoute {
   badges('/badges'),
   reminders('/reminders'),
   postDetail('/postDetail'),
-  communityNotifications('/communityNotifications');
+  communityNotifications('/communityNotifications'),
+  paywall('/paywall');
 
   const AppRoute(this.path);
 
