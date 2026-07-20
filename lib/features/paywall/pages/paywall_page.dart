@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purepath/core/constants/app_constants.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/paywall/models/paywall_plan.dart';
 import 'package:purepath/features/paywall/widgets/paywall_feature_row.dart';
 import 'package:purepath/features/paywall/widgets/paywall_plan_card.dart';
@@ -27,7 +30,7 @@ class _PaywallPageState extends State<PaywallPage> {
       'Advanced analytics',
       'mood × habit patterns, yearly view, PDF reports',
     ),
-    (Icons.all_inclusive, 'Unlimited habits', 'free plan: 5 active habits'),
+    (Icons.all_inclusive, 'Unlimited habits', 'free plan: 3 active habits'),
     (Icons.groups, 'Exclusive challenges', 'Pro-only group challenges'),
     (
       Icons.ac_unit,
@@ -37,20 +40,20 @@ class _PaywallPageState extends State<PaywallPage> {
     (Icons.widgets, 'Widgets & wearables', 'home-screen widgets, watch sync'),
   ];
 
-  void _startFreeTrial() {
-    // TODO: Hook up in-app purchase flow for [_selectedPlan].
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Purchases coming soon (${_selectedPlan.title} plan)'),
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    // Load live Play Store prices (no-op if already loaded).
+    context.read<SubscriptionBloc>().add(PaywallPlansRequested());
+  }
+
+  void _startFreeTrial(SubscriptionState state) {
+    final option = state.options.firstWhere((o) => o.plan == _selectedPlan);
+    context.read<SubscriptionBloc>().add(PurchaseRequested(option));
   }
 
   void _restorePurchase() {
-    // TODO: Hook up restore-purchase flow.
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Purchases coming soon')));
+    context.read<SubscriptionBloc>().add(RestoreRequested());
   }
 
   Future<void> _openTerms() async {
@@ -60,46 +63,76 @@ class _PaywallPageState extends State<PaywallPage> {
     );
   }
 
+  void _onStatusChanged(BuildContext context, SubscriptionState state) {
+    switch (state.status) {
+      case PaywallStatus.purchaseSuccess:
+        AppSnackBar.success(context, 'Welcome to PurePath Pro!');
+        context.pop();
+      case PaywallStatus.restoreSuccess:
+        AppSnackBar.success(context, 'Your subscription has been restored.');
+        context.pop();
+      case PaywallStatus.restoreEmpty:
+        AppSnackBar.warning(
+          context,
+          'No active subscription found for this account.',
+        );
+      case PaywallStatus.failure:
+        AppSnackBar.error(
+          context,
+          state.errorMessage ?? 'Something went wrong. Please try again.',
+        );
+      default:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kScaffoldColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.close, color: kLightGreyColor),
-                ),
+    return BlocConsumer<SubscriptionBloc, SubscriptionState>(
+      listenWhen: (previous, current) => previous.status != current.status,
+      listener: _onStatusChanged,
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: kScaffoldColor,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.close, color: kLightGreyColor),
+                    ),
+                  ),
+                  _buildHeader(),
+                  const Space.vertical(28),
+                  for (final (icon, title, detail) in _features) ...[
+                    PaywallFeatureRow(icon: icon, title: title, detail: detail),
+                    const Space.vertical(16),
+                  ],
+                  const Space.vertical(12),
+                  _buildPlanCards(state),
+                  const Space.vertical(24),
+                  PrimaryButton(
+                    text: 'Start 7-day free trial',
+                    onPressed: () => _startFreeTrial(state),
+                    isLoading: state.isBusy,
+                    height: 54,
+                    borderRadius: 27,
+                    textFontWeight: FontWeight.w700,
+                  ),
+                  const Space.vertical(14),
+                  _buildFooterLinks(),
+                  const Space.vertical(24),
+                ],
               ),
-              _buildHeader(),
-              const Space.vertical(28),
-              for (final (icon, title, detail) in _features) ...[
-                PaywallFeatureRow(icon: icon, title: title, detail: detail),
-                const Space.vertical(16),
-              ],
-              const Space.vertical(12),
-              _buildPlanCards(),
-              const Space.vertical(24),
-              PrimaryButton(
-                text: 'Start 7-day free trial',
-                onPressed: _startFreeTrial,
-                height: 54,
-                borderRadius: 27,
-                textFontWeight: FontWeight.w700,
-              ),
-              const Space.vertical(14),
-              _buildFooterLinks(),
-              const Space.vertical(24),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -138,17 +171,17 @@ class _PaywallPageState extends State<PaywallPage> {
     );
   }
 
-  Widget _buildPlanCards() {
+  Widget _buildPlanCards(SubscriptionState state) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        for (final plan in PaywallPlan.values) ...[
-          if (plan != PaywallPlan.values.first) const Space.horizontal(14),
+        for (final option in state.options) ...[
+          if (option != state.options.first) const Space.horizontal(14),
           Expanded(
             child: PaywallPlanCard(
-              plan: plan,
-              selected: _selectedPlan == plan,
-              onTap: () => setState(() => _selectedPlan = plan),
+              option: option,
+              selected: _selectedPlan == option.plan,
+              onTap: () => setState(() => _selectedPlan = option.plan),
             ),
           ),
         ],

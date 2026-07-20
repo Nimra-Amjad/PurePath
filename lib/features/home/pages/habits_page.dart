@@ -17,6 +17,7 @@ import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/manage_habit_tile_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Manage habits page
@@ -164,7 +165,7 @@ class _LoadedView extends StatelessWidget {
               text: "Add Habit",
               isMainAxisSizeMin: true,
               onPressed: () {
-                AppRoute.addHabit.push(context);
+                openAddHabitGated(context);
               },
             ),
           ),

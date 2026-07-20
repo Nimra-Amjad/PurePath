@@ -13,6 +13,7 @@ import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Home page
@@ -142,9 +143,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 Space.horizontal(12),
-                // Quick "add habit" entry — jumps straight to the create form.
+                // Quick "add habit" entry — jumps straight to the create form
+                // (or the paywall once the free habit limit is reached).
                 GestureDetector(
-                  onTap: () => AppRoute.addHabit.push(context),
+                  onTap: () => openAddHabitGated(context),
                   child: Container(
                     width: 30,
                     height: 30,

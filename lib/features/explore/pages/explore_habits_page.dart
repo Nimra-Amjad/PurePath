@@ -17,6 +17,7 @@ import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/core/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Explore Habits (Habit Library)
@@ -95,6 +96,9 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
   /// Persists a habit the user already configured in the sheet. The card owns
   /// the spinner around this call, so it only spins during the actual save.
   Future<void> _persistHabit(HabitDefinition habit) async {
+    // Free plan is capped — opens the paywall instead once the limit is hit.
+    if (!await canAddHabit(context)) return;
+    if (!mounted) return;
     try {
       await context.read<HomeRepository>().addHabit(habit);
     } catch (_) {

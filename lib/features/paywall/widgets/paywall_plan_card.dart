@@ -7,16 +7,16 @@ import 'package:purepath/features/paywall/models/paywall_plan.dart';
 
 /// Selectable pricing card. The selected card gets a lime border and a
 /// lime-tinted fill; the plan's badge (e.g. "SAVE 50%") floats over the
-/// top edge.
+/// top edge. Prices come live from the Play Store via [PaywallPlanOption].
 class PaywallPlanCard extends StatelessWidget {
   const PaywallPlanCard({
     super.key,
-    required this.plan,
+    required this.option,
     required this.selected,
     required this.onTap,
   });
 
-  final PaywallPlan plan;
+  final PaywallPlanOption option;
   final bool selected;
   final VoidCallback onTap;
 
@@ -48,7 +48,7 @@ class PaywallPlanCard extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  plan.title,
+                  option.title,
                   style: AppTextStyles.medium.copyWith(
                     color: selected ? kWhiteColor : kLightGreyColor,
                     fontSize: 15,
@@ -56,7 +56,7 @@ class PaywallPlanCard extends StatelessWidget {
                 ),
                 const Space.vertical(4),
                 Text(
-                  plan.price,
+                  option.price,
                   style: AppTextStyles.bold.copyWith(
                     color: kWhiteColor,
                     fontSize: 24,
@@ -65,7 +65,7 @@ class PaywallPlanCard extends StatelessWidget {
                 ),
                 const Space.vertical(4),
                 Text(
-                  plan.caption,
+                  option.caption,
                   style: AppTextStyles.normal.copyWith(
                     color: kSecondaryGreyColor,
                     fontSize: 13,
@@ -74,7 +74,7 @@ class PaywallPlanCard extends StatelessWidget {
               ],
             ),
           ),
-          if (plan.badge != null)
+          if (option.badge != null)
             Positioned(
               top: -11,
               child: Container(
@@ -87,7 +87,7 @@ class PaywallPlanCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  plan.badge!,
+                  option.badge!,
                   style: AppTextStyles.bold.copyWith(
                     color: kBlackColor,
                     fontSize: 11,

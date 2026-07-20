@@ -15,6 +15,18 @@ const String kPlayStoreUrl =
 // TODO: Replace with the real App Store link once the iOS app is published.
 const String kAppStoreUrl = 'https://apps.apple.com/app/purepath';
 
+// RevenueCat (in-app purchases)
+//
+// Public Android SDK key (safe to ship — it is not the secret key).
+const String kRevenueCatAndroidApiKey = 'goog_ViDtpgaqAllXuprTowxAPvFScTo';
+
+// Entitlement identifier configured in the RevenueCat dashboard. A user whose
+// CustomerInfo has this entitlement active is a Pro subscriber.
+const String kProEntitlementId = 'Pro';
+
+// Free plan limit: adding a habit beyond this opens the paywall instead.
+const int kFreeHabitLimit = 3;
+
 // Legal
 const String kPrivacyPolicyUrl =
     'https://www.freeprivacypolicy.com/live/9b400db2-ba32-48ad-bf46-8c563962b75c';

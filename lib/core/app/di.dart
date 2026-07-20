@@ -5,10 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/providers/app_version_provider.dart';
 import 'package:purepath/core/providers/firebase_auth_provider.dart';
+import 'package:purepath/core/providers/subscription_provider.dart';
 import 'package:purepath/core/providers/user_firestore_provider.dart';
 import 'package:purepath/core/providers/user_provider.dart';
 import 'package:purepath/core/repositories/app_version_repository.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
+import 'package:purepath/core/repositories/subscription_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/services/community_notification_listener.dart';
 import 'package:purepath/core/services/notification_service.dart';
@@ -23,6 +25,7 @@ import 'package:purepath/core/repositories/firestore_home_repository.dart';
 import 'package:purepath/core/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DI  (Dependency Injection)
@@ -86,6 +89,10 @@ class _ProviderDI extends StatelessWidget {
         RepositoryProvider<NotificationService>(
           create: (_) => NotificationService(),
         ),
+        RepositoryProvider<SubscriptionProvider>(
+          create: (_) => SubscriptionProvider(),
+          dispose: (p) => p.dispose(),
+        ),
       ],
       child: child,
     );
@@ -128,6 +135,18 @@ class _RepositoryDI extends StatelessWidget {
           create: (ctx) => FirestoreCommunityRepository(
             provider: ctx.read<CommunityProvider>(),
           ),
+        ),
+        // Eager (lazy: false): RevenueCat must be configured at startup so
+        // entitlements are known before the user ever opens the paywall, and
+        // so the identity stays synced with Firebase Auth for the whole
+        // session.
+        RepositoryProvider<SubscriptionRepository>(
+          lazy: false,
+          create: (ctx) => SubscriptionRepository(
+            subscriptionProvider: ctx.read<SubscriptionProvider>(),
+            userRepository: ctx.read<UserRepository>(),
+          )..start(),
+          dispose: (r) => r.dispose(),
         ),
         // Eager (lazy: false): must run for the whole session so community
         // events surface as device notifications even when no widget ever
@@ -183,6 +202,11 @@ class _BlocDI extends StatelessWidget {
             repository: ctx.read<CommunityRepository>(),
             userRepository: ctx.read<UserRepository>(),
           )..add(CommunityStarted()),
+        ),
+        BlocProvider<SubscriptionBloc>(
+          create: (ctx) => SubscriptionBloc(
+            subscriptionRepository: ctx.read<SubscriptionRepository>(),
+          )..add(SubscriptionStarted()),
         ),
         BlocProvider<NotificationBloc>(
           create: (ctx) => NotificationBloc(
