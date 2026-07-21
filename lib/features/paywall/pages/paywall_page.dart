@@ -117,7 +117,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   _buildPlanCards(state),
                   const Space.vertical(24),
                   PrimaryButton(
-                    text: 'Start 7-day free trial',
+                    text: 'Start 3-day free trial',
                     onPressed: () => _startFreeTrial(state),
                     isLoading: state.isBusy,
                     height: 54,
