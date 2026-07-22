@@ -91,12 +91,35 @@ class SubscriptionRepository {
 
   void _onCustomerInfo(CustomerInfo info) {
     // Case-insensitive so a dashboard id of "Pro" vs "pro" can't break gating.
-    final isPro = info.entitlements.active.keys.any(
+    final active = info.entitlements.active.keys.any(
       (id) => id.toLowerCase() == kProEntitlementId.toLowerCase(),
     );
+    // Debug-only override; a no-op in release builds (see app_constants.dart).
+    final isPro = (kDebugMode && kDebugForceProOverride != null)
+        ? kDebugForceProOverride!
+        : active;
     if (isPro == _isPro) return;
     _isPro = isPro;
     _isProController.add(isPro);
+    _mirrorAccessToFirestore(isPro);
+  }
+
+  /// Writes the current access state onto the user's Firestore `users` doc so
+  /// it can be read outside the RevenueCat SDK (admin views, security rules,
+  /// backend queries). RevenueCat stays the source of truth — this is a
+  /// mirror: `true` right after a purchase/renewal, `false` once the
+  /// subscription lapses (expiry, cancellation past the paid period, or an
+  /// unresolved billing issue).
+  ///
+  /// Note: this only runs while the app is open. If a subscription expires
+  /// while the app is closed, the flag updates the next time that user opens
+  /// the app (when RevenueCat reports the change). For a client-only app that
+  /// gates features in-app this is enough; real-time server accuracy would
+  /// need a RevenueCat webhook → Cloud Function instead.
+  void _mirrorAccessToFirestore(bool hasAccess) {
+    // Fire-and-forget: updateUserDocument swallows its own errors and no-ops
+    // when signed out, so a Firestore hiccup never blocks entitlement updates.
+    unawaited(_userRepository.updateUserDocument({'allowAccess': hasAccess}));
   }
 
   Future<void> _syncIdentity(User? user) async {

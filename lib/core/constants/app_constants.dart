@@ -27,6 +27,13 @@ const String kProEntitlementId = 'Pro';
 // Free plan limit: adding a habit beyond this opens the paywall instead.
 const int kFreeHabitLimit = 3;
 
+// Debug-only Pro override for local testing (flutter run). Ignored entirely in
+// release/Play builds, so it can never affect real users.
+//   null  → use the real RevenueCat status
+//   false → force FREE  (test the 3-habit limit + paywall)
+//   true  → force PRO   (test unlocked features without buying)
+const bool? kDebugForceProOverride = null;
+
 // Legal
 const String kPrivacyPolicyUrl =
     'https://www.freeprivacypolicy.com/live/9b400db2-ba32-48ad-bf46-8c563962b75c';
