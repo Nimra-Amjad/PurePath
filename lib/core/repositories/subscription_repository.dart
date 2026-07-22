@@ -89,7 +89,18 @@ class SubscriptionRepository {
 
   // ── Internal ───────────────────────────────────────────────────────────────
 
-  void _onCustomerInfo(CustomerInfo info) {
+  void _onCustomerInfo(CustomerInfo info) => _applyCustomerInfo(info);
+
+  /// Recomputes Pro status from [info]. Emits on the stream only when it
+  /// actually changed; writes the Firestore mirror when it changed OR when
+  /// [forceMirror] is set.
+  ///
+  /// [forceMirror] is used right after login: at app start RevenueCat can
+  /// report a cached Pro status *before* the Firebase user is available, so
+  /// `_isPro` flips to true with no valid uid to write to. Once login happens
+  /// the status hasn't "changed" (still true), so without forcing we'd skip
+  /// the write and `allowAccess` would never land in Firestore.
+  void _applyCustomerInfo(CustomerInfo info, {bool forceMirror = false}) {
     // Case-insensitive so a dashboard id of "Pro" vs "pro" can't break gating.
     final active = info.entitlements.active.keys.any(
       (id) => id.toLowerCase() == kProEntitlementId.toLowerCase(),
@@ -98,10 +109,10 @@ class SubscriptionRepository {
     final isPro = (kDebugMode && kDebugForceProOverride != null)
         ? kDebugForceProOverride!
         : active;
-    if (isPro == _isPro) return;
+    final changed = isPro != _isPro;
     _isPro = isPro;
-    _isProController.add(isPro);
-    _mirrorAccessToFirestore(isPro);
+    if (changed) _isProController.add(isPro);
+    if (changed || forceMirror) _mirrorAccessToFirestore(isPro);
   }
 
   /// Writes the current access state onto the user's Firestore `users` doc so
@@ -125,7 +136,10 @@ class SubscriptionRepository {
   Future<void> _syncIdentity(User? user) async {
     try {
       if (user != null) {
-        await _provider.logIn(user.uid);
+        final result = await _provider.logIn(user.uid);
+        // A valid uid is finally available — force the Firestore mirror even
+        // if the cached Pro status hasn't changed since app start.
+        _applyCustomerInfo(result.customerInfo, forceMirror: true);
       } else if (!await _provider.isAnonymous) {
         await _provider.logOut();
       }
