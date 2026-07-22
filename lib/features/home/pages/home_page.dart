@@ -5,9 +5,11 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
+import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
+import 'package:purepath/features/home/widgets/no_habit_for_day_view.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
@@ -35,6 +37,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeStarted());
+    // Load the full habit list too so the empty state can tell "no habits at
+    // all" apart from "habits exist, just none scheduled for this day".
+    context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
     // Sync reminders for the current user. NotificationBloc also fires this
     // once at app start, but auth may not have settled yet at that point —
     // getAllHabits() would return an empty list. Re-syncing on home mount
@@ -167,7 +172,7 @@ class _HomePageState extends State<HomePage> {
 
             // ── Habit tiles ─────────────────────────────────────────────
             if (summary.habits.isEmpty)
-              const EmptyHabitView()
+              _buildEmptyState(context)
             else
               ...summary.habits.map(
                 (habit) => HabitTileWidget(
@@ -185,6 +190,27 @@ class _HomePageState extends State<HomePage> {
           ],
         );
     }
+  }
+
+  /// Chooses which empty state to show when the selected day has no habits:
+  ///   • no habits at all      → [EmptyHabitView] (create-your-first-habit)
+  ///   • habits exist, none today → [NoHabitForDayView] (informational)
+  Widget _buildEmptyState(BuildContext context) {
+    final manage = context.watch<ManageHabitsBloc>().state;
+
+    // Full list still loading — hold off so we don't flash the wrong view.
+    if (manage.status == ManageHabitsStatus.loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: CircularProgressIndicator(color: kPrimaryGreenColor),
+        ),
+      );
+    }
+
+    return manage.habits.isEmpty
+        ? const EmptyHabitView()
+        : const NoHabitForDayView();
   }
 }
 

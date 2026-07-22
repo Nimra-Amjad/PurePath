@@ -190,6 +190,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         'challenge': event.challenge,
         'activityLevel': event.activityLevel,
         'onboardingStatus': OnboardingStatus.completed.toValue(),
+        'allowAccess': false,
       });
 
       emit(OnboardingCompleted(user: updatedUser, firebaseUser: fbUser));
