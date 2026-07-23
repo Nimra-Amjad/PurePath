@@ -52,7 +52,14 @@ class UserFirestoreProvider {
       }
     }
 
-    await deleteOwned('habits');
+    // Habits live in the `habit/{uid}/habits` subcollection, so they need an
+    // explicit subcollection walk rather than a top-level userId query.
+    final habitDocs =
+        await _firestore.collection('habits').doc(uid).collection('habits').get();
+    for (final doc in habitDocs.docs) {
+      await doc.reference.delete();
+    }
+
     await deleteOwned('insights');
 
     // ── Community posts (subcollections need explicit cascade) ────────────

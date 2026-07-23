@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 // The only place that touches Firestore for habit + insights data. Owns the
 // schema:
 //
-// 1) `users/{uid}/habits`  — habit definitions (one doc per habit).
+// 1) `habit/{uid}/habits`  — habit definitions (one doc per habit).
 //    {
 //      id:           <doc id, also stored as a field for convenience>
 //      userId:       <Firebase auth uid of the creator>
@@ -35,7 +35,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeProvider {
-  static const _kUsers = 'users';
   static const _kHabits = 'habits';
   static const _kInsights = 'insights';
 
@@ -43,14 +42,14 @@ class HomeProvider {
   final FirebaseAuth _auth;
 
   HomeProvider({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   /// The signed-in user's uid, or null when no user is authenticated.
   String? get currentUid => _auth.currentUser?.uid;
 
   CollectionReference<Map<String, dynamic>> _habitsRef(String uid) =>
-      _firestore.collection(_kUsers).doc(uid).collection(_kHabits);
+      _firestore.collection(_kHabits).doc(uid).collection(_kHabits);
 
   CollectionReference<Map<String, dynamic>> get _insightsRef =>
       _firestore.collection(_kInsights);
@@ -105,9 +104,10 @@ class HomeProvider {
   ) async {
     final futures = List.generate(7, (i) {
       final date = _dateOnly(weekStart.add(Duration(days: i)));
-      return _insightsRef.doc(_insightsDocId(uid, date)).get().then(
-            (snap) => MapEntry(date, snap.data()),
-          );
+      return _insightsRef
+          .doc(_insightsDocId(uid, date))
+          .get()
+          .then((snap) => MapEntry(date, snap.data()));
     });
     final results = await Future.wait(futures);
     return Map.fromEntries(results);
