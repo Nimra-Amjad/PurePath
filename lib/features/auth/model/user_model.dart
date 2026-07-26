@@ -21,7 +21,7 @@ class UserModel {
     required this.password,
     this.fcmToken,
     this.imgUrl,
-    this.coins = 0,
+    this.streak = 0,
     this.stripeSubscriptionId = '',
     // ── Preferences ─────────────────────────────────────────────────────────
     this.goal,
@@ -43,7 +43,7 @@ class UserModel {
   /// Recomputed from the insights data after every habit toggle, so
   /// backfilling a missed day correctly extends (or repairs) the streak.
   /// Drives badge unlocks and the profile tier card.
-  final int coins;
+  final int streak;
 
   final String stripeSubscriptionId;
 
@@ -83,7 +83,7 @@ class UserModel {
     String? password,
     String? fcmToken,
     String? imgUrl,
-    int? coins,
+    int? streak,
     String? stripeSubscriptionId,
     String? goal,
     String? challenge,
@@ -98,7 +98,7 @@ class UserModel {
       password: password ?? this.password,
       fcmToken: fcmToken ?? this.fcmToken,
       imgUrl: imgUrl ?? this.imgUrl,
-      coins: coins ?? this.coins,
+      streak: streak ?? this.streak,
       stripeSubscriptionId: stripeSubscriptionId ?? this.stripeSubscriptionId,
       goal: goal ?? this.goal,
       challenge: challenge ?? this.challenge,
@@ -118,7 +118,7 @@ class UserModel {
       'password': password,
       'fcmToken': fcmToken,
       'imgUrl': imgUrl,
-      'coins': coins,
+      'streak': streak,
       'subscriptionId': stripeSubscriptionId,
       'goal': goal,
       'challenge': challenge,
@@ -138,7 +138,11 @@ class UserModel {
       password: map['password'] as String? ?? '',
       fcmToken: map['fcmToken'] as String?,
       imgUrl: map['imgUrl'] as String?,
-      coins: (map['coins'] as num?)?.toInt() ?? 0,
+      // Read the new `streak` key, falling back to the legacy `coins` key so
+      // existing users don't lose their streak before it's rewritten.
+      streak: (map['streak'] as num?)?.toInt() ??
+          (map['coins'] as num?)?.toInt() ??
+          0,
       stripeSubscriptionId: map['subscriptionId'] as String? ?? '',
       goal: map['goal'] as String?,
       challenge: map['challenge'] as String?,
@@ -174,7 +178,7 @@ class UserModel {
         other.password == password &&
         other.fcmToken == fcmToken &&
         other.imgUrl == imgUrl &&
-        other.coins == coins &&
+        other.streak == streak &&
         other.stripeSubscriptionId == stripeSubscriptionId &&
         other.goal == goal &&
         other.challenge == challenge &&
@@ -191,7 +195,7 @@ class UserModel {
         password.hashCode ^
         (fcmToken?.hashCode ?? 0) ^
         (imgUrl?.hashCode ?? 0) ^
-        coins.hashCode ^
+        streak.hashCode ^
         stripeSubscriptionId.hashCode ^
         (goal?.hashCode ?? 0) ^
         (challenge?.hashCode ?? 0) ^
@@ -209,6 +213,6 @@ class UserModel {
       'challenge: $challenge, '
       'activityLevel: $activityLevel, '
       'notificationsEnabled: $notificationsEnabled, '
-      'coins: $coins'
+      'streak: $streak'
       ')';
 }

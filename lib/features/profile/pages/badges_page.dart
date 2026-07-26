@@ -71,7 +71,7 @@ class BadgesPage extends StatelessWidget {
     BuildContext context, {
     int count = 4,
   }) {
-    final xp = context.read<UserBloc>().state.user?.coins ?? 0;
+    final xp = context.read<UserBloc>().state.user?.streak ?? 0;
     final earned = earnedCountForXp(xp);
     return _badges
         .take(earned)
@@ -87,7 +87,7 @@ class BadgesPage extends StatelessWidget {
     BuildContext context, {
     int count = 5,
   }) {
-    final xp = context.read<UserBloc>().state.user?.coins ?? 0;
+    final xp = context.read<UserBloc>().state.user?.streak ?? 0;
     return _badges
         .take(count)
         .map((b) => (emoji: b.emoji, name: b.name, isEarned: xp >= b.threshold))
@@ -97,9 +97,9 @@ class BadgesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.coins != b.user?.coins,
+      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
       builder: (context, state) {
-        final xp = state.user?.coins ?? 0;
+        final xp = state.user?.streak ?? 0;
         final earned = earnedCountForXp(xp);
         final total = _badges.length;
 

@@ -2,6 +2,28 @@ import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Streak break
+//
+// Describes a recently broken streak that can be repaired by "freezing" the
+// missed day(s). [recoveredStreak] is the streak length the user gets back if
+// they restore. Restoring is a Pro-only action — the paywall gate lives in the
+// UI, not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class StreakBreak {
+  const StreakBreak({
+    required this.missedDates,
+    required this.recoveredStreak,
+  });
+
+  /// The consecutive missed days (most recent first) that broke the streak.
+  final List<DateTime> missedDates;
+
+  /// Streak length restored once [missedDates] are frozen.
+  final int recoveredStreak;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Home repository — abstract interface
 //
 // HomeBloc depends only on this interface, not on any concrete implementation.
@@ -58,4 +80,16 @@ abstract class HomeRepository {
   /// the result depends only on the persisted data, not on the order of
   /// toggles.
   Future<int> calculateCurrentStreak();
+
+  // ── Streak restore (Pro) ───────────────────────────────────────────────────
+
+  /// Detects a recently broken streak that can be restored by freezing the
+  /// missed day(s). Returns null when there's nothing to restore (streak still
+  /// alive, no earlier streak to reconnect to, or the break is too old).
+  Future<StreakBreak?> findRestorableStreakBreak();
+
+  /// Repairs the streak by marking [dates] as frozen — a frozen day counts as
+  /// completed when the streak is recomputed. Callers must gate this on the
+  /// Pro entitlement.
+  Future<void> restoreStreak(List<DateTime> dates);
 }

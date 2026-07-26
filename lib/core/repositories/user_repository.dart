@@ -93,7 +93,7 @@ class UserRepository {
   }
 
   /// Flips the user's "notifications enabled" master switch. Mirrors the
-  /// optimistic-update pattern used by [setCoins] / [updateFullName]:
+  /// optimistic-update pattern used by [setStreak] / [updateFullName]:
   ///   1. Update the local cache so any listener (profile tab, notification
   ///      bloc) reacts instantly.
   ///   2. Patch Firestore.
@@ -115,20 +115,20 @@ class UserRepository {
   /// Persists the freshly computed coin balance. The value itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.
-  Future<void> setCoins(int coins) async {
+  Future<void> setStreak(int streak) async {
     final uid = firebaseUser?.uid;
     if (uid == null) return;
 
     final current = localUser;
-    if (current == null || current.coins == coins) return;
+    if (current == null || current.streak == streak) return;
 
     // Optimistic local update so profile/badges/tier card react instantly.
-    updateLocalUser(current.copyWith(coins: coins));
+    updateLocalUser(current.copyWith(streak: streak));
 
     try {
-      await userFirestoreProvider.updateUserDoc(uid, {'coins': coins});
+      await userFirestoreProvider.updateUserDoc(uid, {'streak': streak});
     } catch (e) {
-      debugPrint('UserRepository.setCoins error: $e');
+      debugPrint('UserRepository.setStreak error: $e');
       updateLocalUser(current); // Revert on failure.
     }
   }

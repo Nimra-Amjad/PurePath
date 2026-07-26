@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 // The only place that touches Firestore for habit + insights data. Owns the
 // schema:
 //
-// 1) `habit/{uid}/habits`  — habit definitions (one doc per habit).
+// 1) `habits/{uid}/habits`  — habit definitions (one doc per habit).
 //    {
 //      id:           <doc id, also stored as a field for convenience>
 //      userId:       <Firebase auth uid of the creator>
@@ -20,14 +20,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 //      createdAt:    Timestamp
 //    }
 //
-// 2) `insights` — one doc per (user, date) recording which habits the user
-//    completed that day. Doc id is deterministic: `<uid>_<yyyymmdd>` so we
-//    can read 7 days at a time by direct doc id (no composite index needed).
+// 2) `insights/{uid}/days/{yyyymmdd}` — one doc per (user, date) recording
+//    which habits the user completed that day. Days live in a per-user
+//    subcollection and the day is the doc id, so we can read 7 days at a time
+//    by direct doc id (no composite index needed) and security rules gate on
+//    the {uid} path segment. The uid is implicit in the path, so it's no
+//    longer stored as a field.
 //    {
-//      userId:     <uid>
 //      date:       "yyyy-MM-dd"
 //      dateMillis: int    (millis since epoch at local midnight)
-//      habits:     [ { id, hasDone } ]
+//      habits:     [ { id, hasDone, doneAt } ]
+//                  doneAt = local-midnight millis of the day the habit was
+//                  marked done. The streak counts a completion only when
+//                  doneAt matches the habit's own day (on-time); a late
+//                  backfill is recorded but doesn't repair a broken streak.
+//      frozen:     bool   (optional — true = streak-restored day, counts as
+//                          completed even with no habit done)
 //    }
 //
 // Works with raw snapshots / maps only — model mapping and business rules
@@ -37,6 +45,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 class HomeProvider {
   static const _kHabits = 'habits';
   static const _kInsights = 'insights';
+  static const _kDays = 'days';
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -51,8 +60,10 @@ class HomeProvider {
   CollectionReference<Map<String, dynamic>> _habitsRef(String uid) =>
       _firestore.collection(_kHabits).doc(uid).collection(_kHabits);
 
-  CollectionReference<Map<String, dynamic>> get _insightsRef =>
-      _firestore.collection(_kInsights);
+  /// Per-user subcollection of daily completion docs:
+  /// `insights/{uid}/days/{yyyymmdd}`.
+  CollectionReference<Map<String, dynamic>> _daysRef(String uid) =>
+      _firestore.collection(_kInsights).doc(uid).collection(_kDays);
 
   // ── Habits ─────────────────────────────────────────────────────────────────
 
@@ -92,7 +103,7 @@ class HomeProvider {
 
   /// Raw insights doc for (uid, date), or null when the day has no record.
   Future<Map<String, dynamic>?> fetchDayDoc(String uid, DateTime date) async {
-    final snap = await _insightsRef.doc(_insightsDocId(uid, date)).get();
+    final snap = await _daysRef(uid).doc(_dayDocId(date)).get();
     return snap.data();
   }
 
@@ -104,8 +115,8 @@ class HomeProvider {
   ) async {
     final futures = List.generate(7, (i) {
       final date = _dateOnly(weekStart.add(Duration(days: i)));
-      return _insightsRef
-          .doc(_insightsDocId(uid, date))
+      return _daysRef(uid)
+          .doc(_dayDocId(date))
           .get()
           .then((snap) => MapEntry(date, snap.data()));
     });
@@ -120,21 +131,33 @@ class HomeProvider {
     List<Map<String, dynamic>> habits,
   ) async {
     final dateOnly = _dateOnly(date);
-    await _insightsRef.doc(_insightsDocId(uid, dateOnly)).set({
-      'userId': uid,
+    await _daysRef(uid).doc(_dayDocId(dateOnly)).set({
       'date': _dateString(dateOnly),
       'dateMillis': dateOnly.millisecondsSinceEpoch,
       'habits': habits,
     });
   }
 
+  /// Marks (uid, date) as a frozen / streak-restored day. Merges so an
+  /// existing habits array on that day is preserved, and creates the doc when
+  /// the day was never recorded (a truly missed day).
+  Future<void> freezeDay(String uid, DateTime date) async {
+    final dateOnly = _dateOnly(date);
+    await _daysRef(uid).doc(_dayDocId(dateOnly)).set({
+      'date': _dateString(dateOnly),
+      'dateMillis': dateOnly.millisecondsSinceEpoch,
+      'frozen': true,
+    }, SetOptions(merge: true));
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// Deterministic doc id so repeated toggles upsert a single record per day.
-  static String _insightsDocId(String uid, DateTime date) =>
-      '${uid}_${_dateString(date).replaceAll('-', '')}';
+  /// Deterministic day doc id (`yyyymmdd`) so repeated toggles upsert a single
+  /// record per day. The uid lives in the path, not the id.
+  static String _dayDocId(DateTime date) =>
+      _dateString(date).replaceAll('-', '');
 
   static String _dateString(DateTime date) {
     final y = date.year.toString().padLeft(4, '0');

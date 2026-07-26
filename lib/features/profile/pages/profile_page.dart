@@ -114,9 +114,9 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- STAT WIDGET --------------------------
   Widget _statsRow() {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.coins != b.user?.coins,
+      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
       builder: (context, state) {
-        final xp = state.user?.coins ?? 0;
+        final xp = state.user?.streak ?? 0;
         final earnedBadges = BadgesPage.earnedCountForXp(xp);
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -159,9 +159,9 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- TIER WIDGET --------------------------
   Widget _tierCard() {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.coins != b.user?.coins,
+      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
       builder: (context, state) {
-        final xp = state.user?.coins ?? 0;
+        final xp = state.user?.streak ?? 0;
         final tier = _Tier.forXp(xp);
         final next = tier.next;
 
@@ -220,7 +220,7 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- BADGES SECTION --------------------------
   Widget _badgesSection(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.coins != b.user?.coins,
+      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
       builder: (context, _) {
         final previews = BadgesPage.firstNPreviews(context);
         return Column(

@@ -31,12 +31,17 @@ class HomeState {
   /// Non-null only when [status] == HomeStatus.error.
   final String? errorMessage;
 
+  /// Set when the user's streak just broke and can be restored (Pro action).
+  /// Null when there's nothing to restore. Drives the home restore banner.
+  final StreakBreak? restorableBreak;
+
   const HomeState({
     required this.status,
     required this.selectedDate,
     required this.visibleWeekStart,
     required this.weekData,
     this.errorMessage,
+    this.restorableBreak,
   });
 
   // ── Convenience getter ─────────────────────────────────────────────────────
@@ -53,6 +58,10 @@ class HomeState {
     DateTime? visibleWeekStart,
     Map<DateTime, DaySummary>? weekData,
     String? errorMessage,
+    StreakBreak? restorableBreak,
+    // restorableBreak is nullable and sometimes needs to be *cleared* (set to
+    // null), which the `?? this` pattern can't express — this flag does it.
+    bool clearRestorableBreak = false,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -60,6 +69,8 @@ class HomeState {
       visibleWeekStart: visibleWeekStart ?? this.visibleWeekStart,
       weekData: weekData ?? this.weekData,
       errorMessage: errorMessage ?? this.errorMessage,
+      restorableBreak:
+          clearRestorableBreak ? null : (restorableBreak ?? this.restorableBreak),
     );
   }
 }

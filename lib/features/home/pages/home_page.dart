@@ -13,8 +13,10 @@ import 'package:purepath/features/home/widgets/no_habit_for_day_view.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
+import 'package:purepath/features/home/widgets/streak_restore_banner.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
+import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,6 +49,17 @@ class _HomePageState extends State<HomePage> {
     context.read<NotificationBloc>().add(const HabitNotificationsSynced());
   }
 
+  /// Restore is Pro-only: Pro users repair the streak immediately, everyone
+  /// else is sent to the paywall to subscribe first.
+  void _onRestoreStreak(BuildContext context) {
+    final isPro = context.read<SubscriptionBloc>().state.isPro;
+    if (isPro) {
+      context.read<HomeBloc>().add(StreakRestoreRequested());
+    } else {
+      AppRoute.paywall.push(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeBloc, HomeState>(
@@ -73,6 +86,15 @@ class _HomePageState extends State<HomePage> {
               ),
 
               Space.vertical(20),
+
+              // ── Streak restore (Pro) ──────────────────────────────────────
+              if (state.restorableBreak != null) ...[
+                StreakRestoreBanner(
+                  recoveredStreak: state.restorableBreak!.recoveredStreak,
+                  onRestore: () => _onRestoreStreak(context),
+                ),
+                Space.vertical(20),
+              ],
 
               // ── Explore habit library entry ───────────────────────────────
               const _HabitLibraryBanner(),

@@ -16,6 +16,8 @@ class HomeHeaderWidget extends StatelessWidget {
         final firstName = state.user?.firstName.trim() ?? '';
         final displayName = firstName.isEmpty ? 'there' : firstName;
         final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
+        // Streak is persisted on the user doc (the `streak` field).
+        final streak = state.user?.streak ?? 0;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -37,15 +39,22 @@ class HomeHeaderWidget extends StatelessWidget {
                 ),
               ],
             ),
-            CircleAvatar(
-              backgroundColor: kContainerColor,
-              child: Text(
-                initial,
-                style: AppTextStyles.bold.copyWith(
-                  fontSize: 20,
-                  color: kWhiteColor,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _StreakChip(streak: streak),
+                Space.horizontal(12),
+                CircleAvatar(
+                  backgroundColor: kContainerColor,
+                  child: Text(
+                    initial,
+                    style: AppTextStyles.bold.copyWith(
+                      fontSize: 20,
+                      color: kWhiteColor,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         );
@@ -60,5 +69,38 @@ class HomeHeaderWidget extends StatelessWidget {
     if (hour < 12) return 'GOOD MORNING';
     if (hour < 17) return 'GOOD AFTERNOON';
     return 'GOOD EVENING';
+  }
+}
+
+/// Compact streak counter shown at the top of the home screen: 🔥 + the
+/// current consecutive-day streak.
+class _StreakChip extends StatelessWidget {
+  const _StreakChip({required this.streak});
+
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: kContainerColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 15)),
+          Space.horizontal(6),
+          Text(
+            '$streak',
+            style: AppTextStyles.bold.copyWith(
+              fontSize: 15,
+              color: kPrimaryGreenColor,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
