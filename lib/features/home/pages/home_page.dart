@@ -172,22 +172,23 @@ class _HomePageState extends State<HomePage> {
                 Space.horizontal(12),
                 // Quick "add habit" entry — jumps straight to the create form
                 // (or the paywall once the free habit limit is reached).
-                GestureDetector(
-                  onTap: () => openAddHabitGated(context),
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: const BoxDecoration(
-                      color: kPrimaryGreenColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.add_rounded,
-                      size: 20,
-                      color: kBlackColor,
+                if (summary.habits.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => openAddHabitGated(context),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: kPrimaryGreenColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: kBlackColor,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             Space.vertical(12),

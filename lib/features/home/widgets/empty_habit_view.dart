@@ -25,7 +25,7 @@ class EmptyHabitView extends StatelessWidget {
             ),
             Space.vertical(16),
             Text(
-              'No habits yet',
+              'No habist yet!',
               style: AppTextStyles.bold.copyWith(
                 fontSize: 18,
                 color: kWhiteColor,
@@ -33,7 +33,7 @@ class EmptyHabitView extends StatelessWidget {
             ),
             Space.vertical(8),
             Text(
-              'Tap the + button on the home screen\nto create your first habit.',
+              'Small steps, big changes. Start your first habit today.',
               style: AppTextStyles.normal.copyWith(color: textSecondary),
               textAlign: TextAlign.center,
             ),
