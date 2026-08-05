@@ -34,6 +34,7 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     on<InsightsStarted>(_onStarted);
     on<InsightsWeekChanged>(_onWeekChanged);
     on<InsightsRefreshRequested>(_onRefreshRequested);
+    on<InsightsCompletionToggled>(_onCompletionToggled);
   }
 
   /// How many days of completion history to pull for the collection heatmaps.
@@ -53,6 +54,10 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
   static DateTime _mondayOf(DateTime date) {
     return date.subtract(Duration(days: date.weekday - 1));
   }
+
+  /// [date] with the time stripped (local midnight) so it matches the keys used
+  /// in [InsightsState.completionHistory] and [InsightsState.weekData].
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
   // ── Event handlers ────────────────────────────────────────────────────────
 
@@ -136,6 +141,48 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     } catch (_) {
       // Non-fatal: keep showing the previous (slightly stale) data.
     }
+  }
+
+  /// Optimistically reflects a home-screen toggle in the cached state so the
+  /// collection dot (and the weekly bar/stats, if that day is loaded) update
+  /// instantly — without re-reading Firestore, which would race the write home
+  /// is still persisting.
+  void _onCompletionToggled(
+    InsightsCompletionToggled event,
+    Emitter<InsightsState> emit,
+  ) {
+    final date = _dateOnly(event.date);
+
+    // 1) Completion history → drives the collection heatmap dots.
+    final history = {...state.completionHistory};
+    final completedIds = {...(history[date] ?? const <String>{})};
+    if (event.completed) {
+      completedIds.add(event.habitId);
+    } else {
+      completedIds.remove(event.habitId);
+    }
+    history[date] = completedIds;
+
+    // 2) Week data → keeps the bar chart + weekly stats in sync when that day
+    //    is already cached. (Untouched otherwise.)
+    final weekData = {...state.weekData};
+    final summary = weekData[date];
+    if (summary != null) {
+      final updatedHabits = summary.habits.map((h) {
+        if (h.id != event.habitId) return h;
+        return HabitModel(
+          id: h.id,
+          title: h.title,
+          subtitle: h.subtitle,
+          category: h.category,
+          isDaily: h.isDaily,
+          progress: event.completed ? 1.0 : 0.0,
+        );
+      }).toList();
+      weekData[date] = DaySummary(date: summary.date, habits: updatedHabits);
+    }
+
+    emit(state.copyWith(completionHistory: history, weekData: weekData));
   }
 
   // ── Cache helpers ─────────────────────────────────────────────────────────

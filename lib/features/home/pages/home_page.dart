@@ -201,11 +201,21 @@ class _HomePageState extends State<HomePage> {
                 (habit) => HabitTileWidget(
                   habit: habit,
                   onTap: () {
-                    context.read<HomeBloc>().add(HabitToggled(habit.id));
-                    // Keep insights in sync — its weekly stats depend on
-                    // the same completion record we just toggled.
+                    final home = context.read<HomeBloc>();
+                    // The new state is the opposite of the current one.
+                    final nowCompleted = !habit.isCompleted;
+                    home.add(HabitToggled(habit.id));
+                    // Mirror the toggle into insights in memory so the dot /
+                    // weekly stats update instantly. An in-place update (not a
+                    // re-fetch) avoids racing the Firestore write home just
+                    // started — the read could otherwise return the old value
+                    // and leave the dot a toggle behind.
                     context.read<InsightsBloc>().add(
-                      InsightsRefreshRequested(),
+                      InsightsCompletionToggled(
+                        habitId: habit.id,
+                        date: home.state.selectedDate,
+                        completed: nowCompleted,
+                      ),
                     );
                   },
                 ),
