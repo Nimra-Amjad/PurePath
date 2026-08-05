@@ -14,6 +14,7 @@ enum AppRoute {
   exploreHabits('/exploreHabits'),
   editHabit('/editHabit'),
   badges('/badges'),
+  habitCollection('/habitCollection'),
   reminders('/reminders'),
   postDetail('/postDetail'),
   communityNotifications('/communityNotifications'),

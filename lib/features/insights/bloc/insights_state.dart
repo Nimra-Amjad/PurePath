@@ -53,6 +53,14 @@ class InsightsState {
   /// Cache of all fetched summaries. Keys are date-only DateTimes (midnight).
   final Map<DateTime, DaySummary> weekData;
 
+  /// All habits the user has created, in creation order. Drives the dot-grid
+  /// collection cards (schedule + title + frequency all come from here).
+  final List<HabitDefinition> habits;
+
+  /// Per-day completion history for the collection heatmaps: date (midnight) →
+  /// set of habit ids completed that day. Covers roughly the last few months.
+  final Map<DateTime, Set<String>> completionHistory;
+
   /// Non-null only when [status] == InsightsStatus.error.
   final String? errorMessage;
 
@@ -60,6 +68,8 @@ class InsightsState {
     required this.status,
     required this.visibleWeekStart,
     required this.weekData,
+    this.habits = const [],
+    this.completionHistory = const {},
     this.errorMessage,
   });
 
@@ -110,12 +120,16 @@ class InsightsState {
     InsightsStatus? status,
     DateTime? visibleWeekStart,
     Map<DateTime, DaySummary>? weekData,
+    List<HabitDefinition>? habits,
+    Map<DateTime, Set<String>>? completionHistory,
     String? errorMessage,
   }) {
     return InsightsState(
       status: status ?? this.status,
       visibleWeekStart: visibleWeekStart ?? this.visibleWeekStart,
       weekData: weekData ?? this.weekData,
+      habits: habits ?? this.habits,
+      completionHistory: completionHistory ?? this.completionHistory,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

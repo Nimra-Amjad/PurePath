@@ -16,6 +16,7 @@ import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/add_habit_page.dart';
 import 'package:purepath/features/home/pages/edit_habit_page.dart';
 import 'package:purepath/features/home/pages/habits_page.dart';
+import 'package:purepath/features/insights/pages/habit_collection_page.dart';
 import 'package:purepath/features/paywall/pages/paywall_page.dart';
 import 'package:purepath/features/preferences/pages/preferences_page.dart';
 import 'package:purepath/features/preferences/pages/welcome_page.dart';
@@ -84,6 +85,11 @@ final router = GoRouter(
     GoRoute(
       path: AppRoute.badges.path,
       pageBuilder: (context, state) => _fadePage(state, const BadgesPage()),
+    ),
+    GoRoute(
+      path: AppRoute.habitCollection.path,
+      pageBuilder: (context, state) =>
+          _fadePage(state, const HabitCollectionPage()),
     ),
     GoRoute(
       path: AppRoute.reminders.path,

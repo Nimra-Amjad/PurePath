@@ -124,6 +124,20 @@ class HomeProvider {
     return Map.fromEntries(results);
   }
 
+  /// The most recent [limit] day-docs for [uid], newest first. Uses a single
+  /// ordered query (one round-trip) instead of [limit] individual doc reads.
+  /// Days the user never recorded simply aren't returned.
+  Future<List<Map<String, dynamic>>> fetchRecentDayDocs(
+    String uid,
+    int limit,
+  ) async {
+    final query = await _daysRef(uid)
+        .orderBy('dateMillis', descending: true)
+        .limit(limit)
+        .get();
+    return query.docs.map((d) => d.data()).toList();
+  }
+
   /// Upserts the (uid, date) insights doc with the given habits array.
   Future<void> writeDayHabits(
     String uid,

@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
+import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/core/repositories/home_repository.dart';
 
@@ -35,6 +36,11 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     on<InsightsRefreshRequested>(_onRefreshRequested);
   }
 
+  /// How many days of completion history to pull for the collection heatmaps.
+  /// ~15 weeks fills the dot grid comfortably while keeping the read cheap
+  /// (a single ordered Firestore query, not one read per day).
+  static const historyDays = 105;
+
   // ── Static helpers ────────────────────────────────────────────────────────
 
   /// Today's date with time stripped (always midnight).
@@ -57,10 +63,22 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     Emitter<InsightsState> emit,
   ) async {
     try {
-      final weekData = await _repository.getSummaryForWeek(
-        state.visibleWeekStart,
+      // Fetch the visible week, the habit list, and the completion history in
+      // parallel — the collection heatmaps need the last two.
+      final results = await Future.wait([
+        _repository.getSummaryForWeek(state.visibleWeekStart),
+        _repository.getAllHabits(),
+        _repository.getCompletionHistory(historyDays),
+      ]);
+
+      emit(
+        state.copyWith(
+          status: InsightsStatus.loaded,
+          weekData: results[0] as Map<DateTime, DaySummary>,
+          habits: results[1] as List<HabitDefinition>,
+          completionHistory: results[2] as Map<DateTime, Set<String>>,
+        ),
       );
-      emit(state.copyWith(status: InsightsStatus.loaded, weekData: weekData));
     } catch (e) {
       emit(
         state.copyWith(
@@ -101,10 +119,20 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     Emitter<InsightsState> emit,
   ) async {
     try {
-      final weekData = await _repository.getSummaryForWeek(
-        state.visibleWeekStart,
+      final results = await Future.wait([
+        _repository.getSummaryForWeek(state.visibleWeekStart),
+        _repository.getAllHabits(),
+        _repository.getCompletionHistory(historyDays),
+      ]);
+
+      emit(
+        state.copyWith(
+          status: InsightsStatus.loaded,
+          weekData: results[0] as Map<DateTime, DaySummary>,
+          habits: results[1] as List<HabitDefinition>,
+          completionHistory: results[2] as Map<DateTime, Set<String>>,
+        ),
       );
-      emit(state.copyWith(status: InsightsStatus.loaded, weekData: weekData));
     } catch (_) {
       // Non-fatal: keep showing the previous (slightly stale) data.
     }

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/extensions/color.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/insights/widgets/bar_chat_widget.dart';
 import 'package:purepath/features/insights/widgets/barchart_calendar_widget.dart';
+import 'package:purepath/features/insights/widgets/habit_collection_card.dart';
 import 'package:purepath/features/insights/widgets/progress_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,6 +120,22 @@ class _LoadedView extends StatelessWidget {
           BarChartWidget(summaries: summaries),
           Space.vertical(24),
 
+          // ── Habit collection preview ─────────────────────────────────────
+          // One habit's dot-grid history, with a "View All" overlay opening
+          // the full collection of every habit.
+          if (state.habits.isNotEmpty) ...[
+            Text(
+              'Habit Collection',
+              style: AppTextStyles.semiBold.copyWith(
+                fontSize: 16,
+                color: kWhiteColor,
+              ),
+            ),
+            Space.vertical(12),
+            _CollectionPreview(state: state),
+            Space.vertical(24),
+          ],
+
           // ── Per-habit weekly stats ───────────────────────────────────────
           if (stats.isNotEmpty) ...[
             Text(
@@ -136,6 +155,61 @@ class _LoadedView extends StatelessWidget {
           ],
 
           Space.vertical(20),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collection preview
+//
+// Shows the first habit's dot-grid card with a "View All" pill stacked in the
+// top-right corner. Tapping anywhere opens the full collection page.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CollectionPreview extends StatelessWidget {
+  final InsightsState state;
+  const _CollectionPreview({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final habit = state.habits.first;
+
+    return GestureDetector(
+      onTap: () => AppRoute.habitCollection.push(context),
+      child: Stack(
+        children: [
+          HabitCollectionCard(
+            habit: habit,
+            history: state.completionHistory,
+            days: InsightsBloc.historyDays,
+            showFrequency: false,
+          ),
+          Positioned(
+            top: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: purple.withOpacityValue(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View All',
+                    style: AppTextStyles.medium.copyWith(
+                      fontSize: 12,
+                      color: purple,
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 16, color: purple),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

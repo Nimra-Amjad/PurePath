@@ -175,6 +175,38 @@ class FirestoreHomeRepository implements HomeRepository {
   }
 
   @override
+  Future<Map<DateTime, Set<String>>> getCompletionHistory(int days) async {
+    final uid = _uid;
+    if (uid == null) return const {};
+
+    // Best-effort: a rules/network hiccup should leave the heatmaps empty, not
+    // blow up the whole insights screen.
+    List<Map<String, dynamic>> docs;
+    try {
+      docs = await _provider.fetchRecentDayDocs(uid, days);
+    } catch (_) {
+      return const {};
+    }
+
+    final out = <DateTime, Set<String>>{};
+    for (final data in docs) {
+      final millis = (data['dateMillis'] as num?)?.toInt();
+      if (millis == null) continue;
+      final date = _dateOnly(DateTime.fromMillisecondsSinceEpoch(millis));
+
+      final done = <String>{};
+      final list = data['habits'] as List? ?? const [];
+      for (final raw in list) {
+        if (raw is! Map || raw['hasDone'] != true) continue;
+        final id = raw['id'] as String? ?? '';
+        if (id.isNotEmpty) done.add(id);
+      }
+      out[date] = done;
+    }
+    return out;
+  }
+
+  @override
   Future<int> calculateCurrentStreak() async {
     final uid = _uid;
     if (uid == null) return 0;

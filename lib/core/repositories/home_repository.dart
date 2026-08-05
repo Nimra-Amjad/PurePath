@@ -40,6 +40,13 @@ abstract class HomeRepository {
   /// Returns a map of date → [DaySummary] with exactly 7 entries (Mon → Sun).
   Future<Map<DateTime, DaySummary>> getSummaryForWeek(DateTime weekStart);
 
+  /// Fetches per-day completion history for roughly the last [days] days.
+  ///
+  /// Returns a map of date (local midnight) → the set of habit ids that were
+  /// completed on that day. Days with no record simply don't appear in the
+  /// map. Powers the dot-grid habit collection heatmaps on the insights screen.
+  Future<Map<DateTime, Set<String>>> getCompletionHistory(int days);
+
   // ── Habit management ───────────────────────────────────────────────────────
 
   /// Returns the complete list of habits the user has created, in creation order.
