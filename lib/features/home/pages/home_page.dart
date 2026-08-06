@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
+import 'package:purepath/features/home/widgets/first_completion_dialog.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/no_habit_for_day_view.dart';
 import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
@@ -199,24 +204,61 @@ class _HomePageState extends State<HomePage> {
             else
               ...summary.habits.map(
                 (habit) => HabitTileWidget(
+                  key: ValueKey(habit.id),
                   habit: habit,
-                  onTap: () {
+                  onTap: () async {
                     final home = context.read<HomeBloc>();
+                    final insights = context.read<InsightsBloc>();
+                    final userRepo = context.read<UserRepository>();
                     // The new state is the opposite of the current one.
                     final nowCompleted = !habit.isCompleted;
+
+                    // Guard against accidental un-marking: a completed habit
+                    // asks for confirmation before its completion is removed.
+                    // Blocs are captured above so no BuildContext is used
+                    // across the await.
+                    if (!nowCompleted) {
+                      final confirmed = await AppDialog.show(
+                        context,
+                        icon: Icons.undo_rounded,
+                        iconColor: red,
+                        title: 'Unmark habit?',
+                        subtitle:
+                            'This removes today\'s completion for '
+                            '"${habit.title}".',
+                        confirmText: 'Unmark',
+                        confirmColor: red,
+                      );
+                      if (confirmed != true) return;
+                    }
+
                     home.add(HabitToggled(habit.id));
                     // Mirror the toggle into insights in memory so the dot /
                     // weekly stats update instantly. An in-place update (not a
                     // re-fetch) avoids racing the Firestore write home just
                     // started — the read could otherwise return the old value
                     // and leave the dot a toggle behind.
-                    context.read<InsightsBloc>().add(
+                    insights.add(
                       InsightsCompletionToggled(
                         habitId: habit.id,
                         date: home.state.selectedDate,
                         completed: nowCompleted,
                       ),
                     );
+
+                    // First-ever completion → one-time motivational popup.
+                    // The flag is persisted so it only ever shows once; the
+                    // write is fire-and-forget so nothing is blocked.
+                    if (nowCompleted &&
+                        userRepo.localUser?.hasCelebratedFirstCompletion ==
+                            false) {
+                      unawaited(userRepo.markFirstCompletionCelebrated());
+                      // Let the completion animation land first, then pause a
+                      // beat before celebrating.
+                      await Future.delayed(const Duration(seconds: 3));
+                      if (!context.mounted) return;
+                      await FirstCompletionDialog.show(context);
+                    }
                   },
                 ),
               ),

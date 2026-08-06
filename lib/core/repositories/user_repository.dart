@@ -112,6 +112,24 @@ class UserRepository {
     return ok;
   }
 
+  /// Records that the one-time "first habit completed" celebration has been
+  /// shown, so it never fires again. Same optimistic pattern as
+  /// [setNotificationsEnabled]: patch the local cache first, then Firestore,
+  /// reverting on failure.
+  Future<void> markFirstCompletionCelebrated() async {
+    final current = localUser;
+    if (current == null || current.hasCelebratedFirstCompletion) return;
+
+    updateLocalUser(current.copyWith(hasCelebratedFirstCompletion: true));
+
+    final ok = await updateUserDocument({
+      'hasCelebratedFirstCompletion': true,
+    });
+    if (!ok) {
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
   /// Persists the freshly computed coin balance. The value itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.

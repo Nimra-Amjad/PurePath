@@ -28,6 +28,7 @@ class UserModel {
     this.challenge,
     this.activityLevel,
     this.notificationsEnabled = false,
+    this.hasCelebratedFirstCompletion = false,
   });
 
   // ── Core identity ──────────────────────────────────────────────────────────
@@ -52,6 +53,10 @@ class UserModel {
   final String? challenge;
   final String? activityLevel;
   final bool notificationsEnabled;
+
+  /// True once the user has been shown the one-time "first habit completed"
+  /// motivational popup. Persisted so the celebration never repeats.
+  final bool hasCelebratedFirstCompletion;
 
   // ── Convenience getters ────────────────────────────────────────────────────
 
@@ -89,6 +94,7 @@ class UserModel {
     String? challenge,
     String? activityLevel,
     bool? notificationsEnabled,
+    bool? hasCelebratedFirstCompletion,
   }) {
     return UserModel(
       fullName: fullName ?? this.fullName,
@@ -104,6 +110,8 @@ class UserModel {
       challenge: challenge ?? this.challenge,
       activityLevel: activityLevel ?? this.activityLevel,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      hasCelebratedFirstCompletion:
+          hasCelebratedFirstCompletion ?? this.hasCelebratedFirstCompletion,
     );
   }
 
@@ -124,6 +132,7 @@ class UserModel {
       'challenge': challenge,
       'activityLevel': activityLevel,
       'notificationsEnabled': notificationsEnabled,
+      'hasCelebratedFirstCompletion': hasCelebratedFirstCompletion,
     };
   }
 
@@ -148,6 +157,8 @@ class UserModel {
       challenge: map['challenge'] as String?,
       activityLevel: map['activityLevel'] as String?,
       notificationsEnabled: map['notificationsEnabled'] as bool? ?? false,
+      hasCelebratedFirstCompletion:
+          map['hasCelebratedFirstCompletion'] as bool? ?? false,
     );
   }
 
@@ -183,7 +194,8 @@ class UserModel {
         other.goal == goal &&
         other.challenge == challenge &&
         other.activityLevel == activityLevel &&
-        other.notificationsEnabled == notificationsEnabled;
+        other.notificationsEnabled == notificationsEnabled &&
+        other.hasCelebratedFirstCompletion == hasCelebratedFirstCompletion;
   }
 
   @override
@@ -200,7 +212,8 @@ class UserModel {
         (goal?.hashCode ?? 0) ^
         (challenge?.hashCode ?? 0) ^
         (activityLevel?.hashCode ?? 0) ^
-        notificationsEnabled.hashCode;
+        notificationsEnabled.hashCode ^
+        hasCelebratedFirstCompletion.hashCode;
   }
 
   @override

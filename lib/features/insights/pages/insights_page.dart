@@ -5,10 +5,12 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/insights/widgets/bar_chat_widget.dart';
 import 'package:purepath/features/insights/widgets/barchart_calendar_widget.dart';
 import 'package:purepath/features/insights/widgets/habit_collection_card.dart';
+import 'package:purepath/features/insights/widgets/insights_empty_view.dart';
 import 'package:purepath/features/insights/widgets/progress_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,59 +107,75 @@ class _LoadedView extends StatelessWidget {
               color: kWhiteColor,
             ),
           ),
-          Space.vertical(20),
 
-          // ── Week navigator ───────────────────────────────────────────────
-          BarchartCalendarWidget(
-            weekStart: state.visibleWeekStart,
-            weekEnd: state.visibleWeekEnd,
-            onPrevWeek: () => _onPrevWeek(context),
-            onNextWeek: () => _onNextWeek(context),
-          ),
-          Space.vertical(20),
-
-          // ── Bar chart ────────────────────────────────────────────────────
-          BarChartWidget(summaries: summaries),
-          Space.vertical(24),
-
-          // ── Habit collection preview ─────────────────────────────────────
-          // One habit's dot-grid history, with a "View All" overlay opening
-          // the full collection of every habit.
-          if (state.habits.isNotEmpty) ...[
-            Text(
-              'Habit Collection',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 16,
-                color: kWhiteColor,
-              ),
-            ),
-            Space.vertical(12),
-            _CollectionPreview(state: state),
-            Space.vertical(24),
-          ],
-
-          // ── Per-habit weekly stats ───────────────────────────────────────
-          if (stats.isNotEmpty) ...[
-            Text(
-              'Habit Progress',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 16,
-                color: kWhiteColor,
-              ),
-            ),
-            Space.vertical(12),
-            ...stats.map(
-              (stat) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: ProgressWidget(stat: stat),
-              ),
-            ),
-          ],
+          // ── New-user empty state ─────────────────────────────────────────
+          // With no habits there's nothing to chart, so replace the empty
+          // week navigator + bars with a welcoming onboarding view.
+          if (state.habits.isEmpty) ...[
+            const InsightsEmptyView(),
+            Space.vertical(20),
+          ] else
+            ..._buildCharts(context, stats, summaries),
 
           Space.vertical(20),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildCharts(
+    BuildContext context,
+    List<HabitWeeklyStat> stats,
+    List<DaySummary> summaries,
+  ) {
+    return [
+      Space.vertical(20),
+
+      // ── Week navigator ───────────────────────────────────────────────
+      BarchartCalendarWidget(
+        weekStart: state.visibleWeekStart,
+        weekEnd: state.visibleWeekEnd,
+        onPrevWeek: () => _onPrevWeek(context),
+        onNextWeek: () => _onNextWeek(context),
+      ),
+      Space.vertical(20),
+
+      // ── Bar chart ────────────────────────────────────────────────────
+      BarChartWidget(summaries: summaries),
+      Space.vertical(24),
+
+      // ── Habit collection preview ─────────────────────────────────────
+      // One habit's dot-grid history, with a "View All" overlay opening
+      // the full collection of every habit.
+      Text(
+        'Habit Collection',
+        style: AppTextStyles.semiBold.copyWith(
+          fontSize: 16,
+          color: kWhiteColor,
+        ),
+      ),
+      Space.vertical(12),
+      _CollectionPreview(state: state),
+      Space.vertical(24),
+
+      // ── Per-habit weekly stats ───────────────────────────────────────
+      if (stats.isNotEmpty) ...[
+        Text(
+          'Habit Progress',
+          style: AppTextStyles.semiBold.copyWith(
+            fontSize: 16,
+            color: kWhiteColor,
+          ),
+        ),
+        Space.vertical(12),
+        ...stats.map(
+          (stat) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: ProgressWidget(stat: stat),
+          ),
+        ),
+      ],
+    ];
   }
 }
 
@@ -192,7 +210,7 @@ class _CollectionPreview extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: purple.withOpacityValue(0.15),
+                color: kPurpleColor.withOpacityValue(0.09),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -202,10 +220,14 @@ class _CollectionPreview extends StatelessWidget {
                     'View All',
                     style: AppTextStyles.medium.copyWith(
                       fontSize: 12,
-                      color: purple,
+                      color: kPurpleColor,
                     ),
                   ),
-                  const Icon(Icons.chevron_right, size: 16, color: purple),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: kPurpleColor,
+                  ),
                 ],
               ),
             ),
