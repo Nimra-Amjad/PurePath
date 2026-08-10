@@ -7,7 +7,7 @@ const String kPrimaryFontFamily = 'Inter';
 // after the `+`). The splash screen compares it against the `buildNo` stored
 // in the Firestore `appVersionConfig` collection to decide whether to show
 // the update sheet.
-const int kBuildNo = 2;
+const int kBuildNo = 3;
 
 // Store listing URLs opened by the update sheet.
 const String kPlayStoreUrl =
