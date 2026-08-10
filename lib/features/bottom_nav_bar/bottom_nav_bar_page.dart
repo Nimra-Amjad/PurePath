@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/utils/utils.dart';
 import 'package:purepath/features/community/pages/community_page.dart';
 import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/insights/pages/insights_page.dart';
+import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/profile/pages/profile_page.dart';
 
 class BottomNavBarPage extends StatefulWidget {
@@ -20,12 +23,25 @@ class BottomNavBarPage extends StatefulWidget {
 class _BottomNavBarPageState extends State<BottomNavBarPage> {
   int _index = 0;
 
+  // Insights is a Pro-only tab. Its position in [_tabs] / the nav bar.
+  static const _insightsIndex = 1;
+
   static const _tabs = <_HomeTab>[
     _HomeTab(label: 'Home', icon: Assets.svgHomeIcon),
     _HomeTab(label: 'Insights', icon: Assets.svgInsightsIcon),
     _HomeTab(label: 'Community', icon: Assets.svgCommunityIcon),
     _HomeTab(label: 'Profile', icon: Assets.svgUserIcon),
   ];
+
+  // Free users tapping Insights get the paywall instead of the tab; the
+  // current tab stays selected. Pro (or any other tab) switches normally.
+  void _onTabTapped(int i) {
+    if (i == _insightsIndex && !context.read<SubscriptionBloc>().state.isPro) {
+      AppRoute.paywall.push(context);
+      return;
+    }
+    setState(() => _index = i);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +86,7 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
             ),
             child: BottomNavigationBar(
               currentIndex: _index,
-              onTap: (i) => setState(() => _index = i),
+              onTap: _onTabTapped,
               type: BottomNavigationBarType.fixed,
               elevation: 0,
               backgroundColor: kScaffoldColor,

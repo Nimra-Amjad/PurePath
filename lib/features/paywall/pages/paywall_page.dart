@@ -23,21 +23,26 @@ class PaywallPage extends StatefulWidget {
 class _PaywallPageState extends State<PaywallPage> {
   PaywallPlan _selectedPlan = PaywallPlan.yearly;
 
+  // Only features that actually ship in the app. Each maps to a real Pro gate:
+  //   • Unlimited habits  → kFreeHabitLimit (free plan caps at 3)
+  //   • Insights tab      → gated in BottomNavBarPage
+  //   • Streak restore    → gated in HomePage._onRestoreStreak
   static const _features = <(IconData, String, String)>[
-    (Icons.auto_awesome, 'Unlimited AI coach', 'free plan: 3 chats/day'),
+    (
+      Icons.all_inclusive,
+      'Unlimited habits',
+      'Free plan is limited to 3 active habits',
+    ),
     (
       Icons.insights,
-      'Advanced analytics',
-      'mood × habit patterns, yearly view, PDF reports',
+      'Insights & analytics',
+      'Weekly charts, habit history and progress stats',
     ),
-    (Icons.all_inclusive, 'Unlimited habits', 'free plan: 3 active habits'),
-    (Icons.groups, 'Exclusive challenges', 'Pro-only group challenges'),
     (
       Icons.ac_unit,
-      '5 streak freezes / month',
-      'plus auto-freeze on sick days',
+      'Streak restore',
+      'Repair a broken streak after a missed day',
     ),
-    (Icons.widgets, 'Widgets & wearables', 'home-screen widgets, watch sync'),
   ];
 
   @override
