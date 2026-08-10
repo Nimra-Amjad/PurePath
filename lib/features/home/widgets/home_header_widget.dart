@@ -15,7 +15,6 @@ class HomeHeaderWidget extends StatelessWidget {
       builder: (context, state) {
         final firstName = state.user?.firstName.trim() ?? '';
         final displayName = firstName.isEmpty ? 'there' : firstName;
-        final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
         // Streak is persisted on the user doc (the `streak` field).
         final streak = state.user?.streak ?? 0;
 
@@ -39,23 +38,7 @@ class HomeHeaderWidget extends StatelessWidget {
                 ),
               ],
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _StreakChip(streak: streak),
-                Space.horizontal(12),
-                CircleAvatar(
-                  backgroundColor: kContainerColor,
-                  child: Text(
-                    initial,
-                    style: AppTextStyles.bold.copyWith(
-                      fontSize: 20,
-                      color: kWhiteColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _StreakChip(streak: streak),
           ],
         );
       },
