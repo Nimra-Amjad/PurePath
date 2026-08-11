@@ -25,6 +25,11 @@ class PostModel {
   final String id;
   final String userId;
   final String authorName;
+
+  /// Author's handle (e.g. `nimraamjad_5`). Filled in live during author
+  /// enrichment, so it stays current and works for older posts too. Null when
+  /// the author has no username yet.
+  final String? authorUsername;
   final String? authorImgUrl;
   final String content;
   final String? imageUrl;
@@ -36,6 +41,7 @@ class PostModel {
     required this.id,
     required this.userId,
     required this.authorName,
+    this.authorUsername,
     this.authorImgUrl,
     required this.content,
     this.imageUrl,
@@ -143,8 +149,8 @@ const _avatarPalette = <Color>[
 /// the same color across the app without needing a stored field.
 Color avatarColorFor(String userId) {
   if (userId.isEmpty) return _avatarPalette.first;
-  final idx = userId.codeUnits.fold<int>(0, (a, b) => a + b) %
-      _avatarPalette.length;
+  final idx =
+      userId.codeUnits.fold<int>(0, (a, b) => a + b) % _avatarPalette.length;
   return _avatarPalette[idx];
 }
 

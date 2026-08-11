@@ -48,12 +48,36 @@ class AuthorRowWidget extends StatelessWidget {
                 ],
               ),
               Space.vertical(1),
-              Text(
-                post.timeAgo,
-                style: AppTextStyles.normal.copyWith(
-                  fontSize: 12,
-                  color: kLightGreyColor,
-                ),
+              Row(
+                children: [
+                  if (post.authorUsername != null &&
+                      post.authorUsername!.isNotEmpty) ...[
+                    Flexible(
+                      child: Text(
+                        '@${post.authorUsername}',
+                        style: AppTextStyles.normal.copyWith(
+                          fontSize: 12,
+                          color: kPrimaryGreenColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      '  ·  ',
+                      style: AppTextStyles.normal.copyWith(
+                        fontSize: 12,
+                        color: kLightGreyColor,
+                      ),
+                    ),
+                  ],
+                  Text(
+                    post.timeAgo,
+                    style: AppTextStyles.normal.copyWith(
+                      fontSize: 12,
+                      color: kLightGreyColor,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

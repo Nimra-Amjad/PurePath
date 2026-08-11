@@ -73,6 +73,7 @@ class ProfilePage extends StatelessWidget {
       builder: (context, state) {
         final user = state.user;
         final fullName = (user?.fullName ?? '').trim();
+        final username = (user?.username ?? '').trim();
         final email = user?.email ?? '';
         final displayName = fullName.isEmpty ? 'Welcome' : fullName;
         final initial = fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
@@ -98,6 +99,16 @@ class ProfilePage extends StatelessWidget {
                 color: kWhiteColor,
               ),
             ),
+            if (username.isNotEmpty) ...[
+              Space.vertical(2),
+              Text(
+                '@$username',
+                style: AppTextStyles.normal.copyWith(
+                  fontSize: 14,
+                  color: kPrimaryGreenColor,
+                ),
+              ),
+            ],
             if (email.isNotEmpty) ...[
               Space.vertical(4),
               Text(
@@ -381,13 +392,19 @@ class ProfilePage extends StatelessWidget {
     try {
       final opened = await launchUrl(uri);
       if (!opened && context.mounted) {
-        AppSnackBar.error(context, 'No email app found. Write to $kSupportEmail');
+        AppSnackBar.error(
+          context,
+          'No email app found. Write to $kSupportEmail',
+        );
       }
     } catch (_) {
       // No mail client configured (common on emulators) — still surface the
       // address so the user can reach us some other way.
       if (context.mounted) {
-        AppSnackBar.error(context, 'No email app found. Write to $kSupportEmail');
+        AppSnackBar.error(
+          context,
+          'No email app found. Write to $kSupportEmail',
+        );
       }
     }
   }

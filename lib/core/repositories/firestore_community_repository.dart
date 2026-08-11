@@ -22,7 +22,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
   final CommunityProvider _provider;
 
   FirestoreCommunityRepository({required CommunityProvider provider})
-      : _provider = provider;
+    : _provider = provider;
 
   // Session-level cache of user docs (uid → data) so successive feed
   // snapshots only fetch authors we haven't seen yet. Reset implicitly on
@@ -93,8 +93,10 @@ class FirestoreCommunityRepository implements CommunityRepository {
     required String userId,
     required String userName,
   }) async {
-    final result =
-        await _provider.togglePostLike(postId: postId, userId: userId);
+    final result = await _provider.togglePostLike(
+      postId: postId,
+      userId: userId,
+    );
     if (result.nowLiked) {
       await _notify(
         recipientId: result.ownerId,
@@ -301,7 +303,9 @@ class FirestoreCommunityRepository implements CommunityRepository {
 
   @override
   Stream<List<CommunityNotification>> watchNotifications(String userId) {
-    return _provider.watchNotifications(userId).map(
+    return _provider
+        .watchNotifications(userId)
+        .map(
           (snap) => snap.docs
               .map((d) => CommunityNotification.fromMap(d.id, d.data()))
               .toList(),
@@ -388,6 +392,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
         id: p.id,
         userId: p.userId,
         authorName: (u['fullName'] as String?) ?? '',
+        authorUsername: u['username'] as String?,
         authorImgUrl: u['imgUrl'] as String?,
         content: p.content,
         imageUrl: p.imageUrl,
@@ -412,8 +417,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
       content: data['content'] as String? ?? '',
       imageUrl: data['imageUrl'] as String?,
       createdAt: _readDate(data['createdAt']),
-      likedBy:
-          (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
+      likedBy: (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
       commentCount: (data['commentCount'] as num?)?.toInt() ?? 0,
     );
   }
@@ -429,8 +433,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
       authorImgUrl: data['authorImgUrl'] as String?,
       text: data['text'] as String? ?? '',
       createdAt: _readDate(data['createdAt']),
-      likedBy:
-          (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
+      likedBy: (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
       replyCount: (data['replyCount'] as num?)?.toInt() ?? 0,
     );
   }
@@ -446,8 +449,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
       authorImgUrl: data['authorImgUrl'] as String?,
       text: data['text'] as String? ?? '',
       createdAt: _readDate(data['createdAt']),
-      likedBy:
-          (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
+      likedBy: (data['likedBy'] as List?)?.cast<String>() ?? const <String>[],
     );
   }
 
