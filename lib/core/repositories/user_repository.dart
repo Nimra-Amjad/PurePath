@@ -70,6 +70,17 @@ class UserRepository {
     }
   }
 
+  /// Whether [username] is already taken by another account. The current
+  /// user's own document is excluded so re-confirming their existing username
+  /// never reports a false conflict.
+  Future<bool> isUsernameTaken(String username) async {
+    final uid = firebaseUser?.uid;
+    return userFirestoreProvider.isUsernameTaken(
+      username.trim(),
+      excludeUid: uid,
+    );
+  }
+
   /// Permanently deletes everything in Firestore that belongs to the current
   /// user. Must be called while the user is still authenticated; once the
   /// auth account is deleted, security rules typically block follow-up
@@ -122,9 +133,7 @@ class UserRepository {
 
     updateLocalUser(current.copyWith(hasCelebratedFirstCompletion: true));
 
-    final ok = await updateUserDocument({
-      'hasCelebratedFirstCompletion': true,
-    });
+    final ok = await updateUserDocument({'hasCelebratedFirstCompletion': true});
     if (!ok) {
       updateLocalUser(current); // Revert on failure.
     }

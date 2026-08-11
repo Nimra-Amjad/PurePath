@@ -41,11 +41,13 @@ class LoadUser extends UserEvent {
 /// The notifications master toggle is owned by [NotificationBloc] —
 /// `preferences_page` dispatches that event in parallel with this one.
 class SaveOnboardingData extends UserEvent {
+  final String username;
   final String goal;
   final String challenge;
   final String activityLevel;
 
   SaveOnboardingData({
+    required this.username,
     required this.goal,
     required this.challenge,
     required this.activityLevel,

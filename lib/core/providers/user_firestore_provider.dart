@@ -15,7 +15,7 @@ class UserFirestoreProvider {
   final FirebaseFirestore _firestore;
 
   UserFirestoreProvider({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Raw user document for [uid], or null when it doesn't exist.
   Future<Map<String, dynamic>?> fetchUserDoc(String uid) async {
@@ -27,6 +27,20 @@ class UserFirestoreProvider {
   /// Patches arbitrary fields on the user document.
   Future<void> updateUserDoc(String uid, Map<String, dynamic> data) async {
     await _firestore.collection(_kUsers).doc(uid).update(data);
+  }
+
+  /// Whether [username] is already used by an account. Usernames are stored
+  /// lowercase, so an exact-match query is effectively case-insensitive.
+  /// [excludeUid] lets a user keep their own username (their doc doesn't
+  /// count as a conflict).
+  Future<bool> isUsernameTaken(String username, {String? excludeUid}) async {
+    final snap = await _firestore
+        .collection(_kUsers)
+        .where('username', isEqualTo: username)
+        .limit(2)
+        .get();
+
+    return snap.docs.any((doc) => doc.id != excludeUid);
   }
 
   /// Permanently deletes everything in Firestore that belongs to [uid]:
@@ -54,8 +68,11 @@ class UserFirestoreProvider {
 
     // Habits live in the `habit/{uid}/habits` subcollection, so they need an
     // explicit subcollection walk rather than a top-level userId query.
-    final habitDocs =
-        await _firestore.collection('habits').doc(uid).collection('habits').get();
+    final habitDocs = await _firestore
+        .collection('habits')
+        .doc(uid)
+        .collection('habits')
+        .get();
     for (final doc in habitDocs.docs) {
       await doc.reference.delete();
     }
@@ -70,8 +87,7 @@ class UserFirestoreProvider {
     for (final postDoc in posts.docs) {
       final comments = await postDoc.reference.collection('comments').get();
       for (final commentDoc in comments.docs) {
-        final replies =
-            await commentDoc.reference.collection('replies').get();
+        final replies = await commentDoc.reference.collection('replies').get();
         for (final replyDoc in replies.docs) {
           await replyDoc.reference.delete();
         }

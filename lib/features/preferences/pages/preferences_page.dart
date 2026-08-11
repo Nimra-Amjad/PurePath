@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -13,6 +14,7 @@ import 'package:purepath/features/preferences/views/activity_level_view.dart';
 import 'package:purepath/features/preferences/views/challenge_view.dart';
 import 'package:purepath/features/preferences/views/goal_view.dart';
 import 'package:purepath/features/preferences/views/notification_view.dart';
+import 'package:purepath/features/preferences/views/username_view.dart';
 
 class PreferencesPage extends StatefulWidget {
   const PreferencesPage({super.key});
@@ -28,15 +30,37 @@ class _PreferencesPageState extends State<PreferencesPage> {
   // ── Onboarding selections ─────────────────────────────────────────────────
   // Initialised with the default (first) option of each view so we always
   // have a value even if the user never taps anything.
+  final TextEditingController _usernameController = TextEditingController();
+  final GlobalKey<FormState> _usernameFormKey = GlobalKey<FormState>();
+
+  /// Server-side username error (already taken / lookup failed). Surfaced on
+  /// the field via [UsernameView.asyncError]; cleared as the user edits.
+  String? _usernameError;
+
+  /// True while the uniqueness query runs, so the Next button shows a spinner.
+  bool _checkingUsername = false;
+
   String _selectedGoal = '🏃‍♂️ Fitness & Health';
   String _selectedChallenge = 'I forget to do them';
   String _selectedActivityLevel = '🌱 Beginner';
 
   // ── Steps ─────────────────────────────────────────────────────────────────
-  // GoalView and ChallengeView get callbacks to bubble selections up here.
-  // NotificationView is stateless — the button itself captures allow/skip.
+  // UsernameView is validated (step 0). GoalView and ChallengeView get
+  // callbacks to bubble selections up here. NotificationView is stateless —
+  // the button itself captures allow/skip.
 
   List<Widget> get _steps => [
+    UsernameView(
+      formKey: _usernameFormKey,
+      controller: _usernameController,
+      asyncError: _usernameError,
+      onChanged: (_) {
+        // A fresh keystroke invalidates the previous "taken" result.
+        if (_usernameError != null) {
+          setState(() => _usernameError = null);
+        }
+      },
+    ),
     GoalView(onGoalChanged: (v) => _selectedGoal = v),
     ChallengeView(onChallengeChanged: (v) => _selectedChallenge = v),
     ActivityLevelView(
@@ -47,8 +71,13 @@ class _PreferencesPageState extends State<PreferencesPage> {
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
-  void _next() {
+  Future<void> _next() async {
+    // Step 0 (username): format check, then a live uniqueness query.
+    if (_currentStep == 0 && !await _validateUsername()) return;
+    if (!mounted) return;
+
     if (_currentStep < _steps.length - 1) {
+      FocusScope.of(context).unfocus();
       _pageController.nextPage(
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
@@ -56,10 +85,44 @@ class _PreferencesPageState extends State<PreferencesPage> {
     }
   }
 
+  /// Runs on every Next tap at step 0. Returns true only when the username
+  /// passes format rules *and* a fresh Firestore query confirms it is unique.
+  Future<bool> _validateUsername() async {
+    // 1. Local format rules.
+    if (!(_usernameFormKey.currentState?.validate() ?? false)) return false;
+
+    // 2. Live uniqueness lookup (a new query each time the button is tapped).
+    // Read the repository before the await so we don't touch context across
+    // the async gap.
+    final userRepository = context.read<UserRepository>();
+    setState(() => _checkingUsername = true);
+    final username = _usernameController.text.trim();
+    try {
+      final taken = await userRepository.isUsernameTaken(username);
+      if (!mounted) return false;
+      if (taken) {
+        setState(() => _usernameError = 'This username is already taken');
+        _usernameFormKey.currentState?.validate(); // surface the message
+        return false;
+      }
+      return true;
+    } catch (_) {
+      if (!mounted) return false;
+      setState(
+        () => _usernameError = "Couldn't check username. Please try again.",
+      );
+      _usernameFormKey.currentState?.validate();
+      return false;
+    } finally {
+      if (mounted) setState(() => _checkingUsername = false);
+    }
+  }
+
   void _finish({required bool notificationsEnabled}) {
     // Persist goal + challenge + onboarding completion via UserBloc.
     context.read<UserBloc>().add(
       SaveOnboardingData(
+        username: _usernameController.text.trim(),
         goal: _selectedGoal,
         challenge: _selectedChallenge,
         activityLevel: _selectedActivityLevel,
@@ -88,6 +151,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -188,6 +252,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
                     text: _currentStep == steps.length - 1
                         ? 'Allow notifications'
                         : 'Next',
+                    isLoading: _currentStep == 0 && _checkingUsername,
                     onPressed: _currentStep == steps.length - 1
                         ? () => _finish(notificationsEnabled: true)
                         : _next,

@@ -76,6 +76,32 @@ abstract class Validators {
     return null;
   }
 
+  /// Handle-style username, e.g. `nimraamjad_5`.
+  ///
+  /// Rules: lowercase letters, digits and underscores only; must start with a
+  /// letter; 3–20 characters. No spaces or capitals.
+  static String? username(String? input) {
+    final value = input?.trim() ?? '';
+
+    if (value.isEmpty) {
+      return 'Please choose a username';
+    }
+    if (value.length < 3) {
+      return 'Use at least 3 characters';
+    }
+    if (value.length > 20) {
+      return 'Use at most 20 characters';
+    }
+    if (!RegExp(r'^[a-z]').hasMatch(value)) {
+      return 'Must start with a letter';
+    }
+    if (!RegExp(r'^[a-z0-9_]+$').hasMatch(value)) {
+      return 'Only lowercase letters, numbers and _';
+    }
+
+    return null;
+  }
+
   static String? firstName(String? input) {
     if (input == null || input.trim().isEmpty) {
       return 'Please enter your first name';
