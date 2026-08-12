@@ -9,6 +9,7 @@ enum AppRoute {
   summary('/summary'),
   login('/login'),
   signup('/signup'),
+  forgotPassword('/forgotPassword'),
   addHabit('/addHabit'),
   habits('/habits'),
   exploreHabits('/exploreHabits'),

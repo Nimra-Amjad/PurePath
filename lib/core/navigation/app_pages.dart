@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:purepath/core/app/pure_path_app.dart';
 import 'package:purepath/core/extensions/print_log.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/features/auth/pages/forgot_password_page.dart';
 import 'package:purepath/features/auth/pages/login_page.dart';
 import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
@@ -43,6 +44,11 @@ final router = GoRouter(
     GoRoute(
       path: AppRoute.signup.path,
       pageBuilder: (context, state) => _fadePage(state, const SignupPage()),
+    ),
+    GoRoute(
+      path: AppRoute.forgotPassword.path,
+      pageBuilder: (context, state) =>
+          _fadePage(state, const ForgotPasswordPage()),
     ),
     GoRoute(
       path: AppRoute.preferences.path,

@@ -34,6 +34,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<LoginRequested>(_onLoginRequested);
     on<SignupRequested>(_onSignupRequested);
     on<LogoutRequested>(_onLogoutRequested);
+    on<PasswordResetRequested>(_onPasswordResetRequested);
     on<LoadUser>(_onLoadUser);
     on<SaveOnboardingData>(_onSaveOnboardingData);
     on<_SyncFirebaseUser>(_onSyncFirebaseUser);
@@ -123,6 +124,19 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     userRepository.updateLocalUser(null);
     userRepository.updateFirebaseUser(null);
     emit(const UserLoggedOut());
+  }
+
+  Future<void> _onPasswordResetRequested(
+    PasswordResetRequested event,
+    Emitter<UserState> emit,
+  ) async {
+    emit(const PasswordResetLoading());
+    try {
+      await firebaseAuthRepository.sendPasswordResetEmail(event.email);
+      emit(PasswordResetSent(event.email));
+    } catch (e) {
+      emit(PasswordResetFailure(_mapError(e)));
+    }
   }
 
   // ── Session restore (Splash) ───────────────────────────────────────────────

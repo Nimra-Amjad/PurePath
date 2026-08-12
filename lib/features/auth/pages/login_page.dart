@@ -151,7 +151,35 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-                      Space.vertical(30),
+                      Space.vertical(12),
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 340),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {
+                              context.push(AppRoute.forgotPassword.path);
+                            },
+                            child: ColoredBox(
+                              color: kTransparentColor,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Text(
+                                  "Forgot Password?",
+                                  style: AppTextStyles.semiBold.copyWith(
+                                    color: kSecondaryGreyColor,
+                                    fontSize: 14,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Space.vertical(18),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 380),
                         child: PrimaryButton(

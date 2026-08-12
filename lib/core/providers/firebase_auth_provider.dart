@@ -54,6 +54,11 @@ class FirebaseAuthProvider {
 
   Future<void> logout() => auth.signOut();
 
+  /// Sends a Firebase password-reset email to [email]. Firebase handles the
+  /// reset link and the hosted page where the user picks a new password.
+  Future<void> sendPasswordResetEmail(String email) =>
+      auth.sendPasswordResetEmail(email: email);
+
   /// Re-runs the recent-login check that Firebase requires before sensitive
   /// operations (password change, account deletion). Throws a
   /// [FirebaseAuthException] with code `wrong-password` /

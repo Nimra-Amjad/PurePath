@@ -25,6 +25,9 @@ class FirebaseAuthRepository {
 
   Future<void> logout() => firebaseAuthProvider.logout();
 
+  Future<void> sendPasswordResetEmail(String email) =>
+      firebaseAuthProvider.sendPasswordResetEmail(email);
+
   Future<void> updatePassword({
     required String currentPassword,
     required String newPassword,

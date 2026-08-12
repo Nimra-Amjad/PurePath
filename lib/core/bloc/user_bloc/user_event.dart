@@ -24,6 +24,13 @@ class SignupRequested extends UserEvent {
 
 class LogoutRequested extends UserEvent {}
 
+/// Fired from the Forgot Password screen. Triggers a Firebase password-reset
+/// email to [email].
+class PasswordResetRequested extends UserEvent {
+  final String email;
+  PasswordResetRequested({required this.email});
+}
+
 // ── Splash / session restore ──────────────────────────────────────────────────
 
 /// Fired from SplashPage to check whether a Firebase session already exists

@@ -68,6 +68,26 @@ class AuthFailure extends UserState {
   const AuthFailure(this.message) : super(user: null, firebaseUser: null);
 }
 
+// ── Password reset ────────────────────────────────────────────────────────────
+// Dedicated states so the Forgot Password screen has its own loading / success
+// / failure signals that don't trip the login & signup listeners (which react
+// to AuthLoading / AuthFailure / UserSignedIn).
+
+class PasswordResetLoading extends UserState {
+  const PasswordResetLoading() : super(user: null, firebaseUser: null);
+}
+
+class PasswordResetSent extends UserState {
+  final String email;
+  const PasswordResetSent(this.email) : super(user: null, firebaseUser: null);
+}
+
+class PasswordResetFailure extends UserState {
+  final String message;
+  const PasswordResetFailure(this.message)
+      : super(user: null, firebaseUser: null);
+}
+
 class UserNotFound extends UserState {
   const UserNotFound() : super(user: null, firebaseUser: null);
 }
