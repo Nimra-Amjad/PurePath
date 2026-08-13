@@ -16,7 +16,7 @@ const String kPlayStoreUrl =
 const String kAppStoreUrl = 'https://apps.apple.com/app/purepath';
 
 // RevenueCat (in-app purchases)
-//
+//  
 // Public Android SDK key (safe to ship — it is not the secret key).
 const String kRevenueCatAndroidApiKey = 'goog_ViDtpgaqAllXuprTowxAPvFScTo';
 

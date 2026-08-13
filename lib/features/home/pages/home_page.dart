@@ -153,31 +153,32 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => AppRoute.habits.push(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'View All',
-                        style: AppTextStyles.medium.copyWith(
-                          fontSize: 13,
-                          color: kPrimaryGreenColor,
+                if (summary.habits.isNotEmpty) ...[
+                  GestureDetector(
+                    onTap: () => AppRoute.habits.push(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View All',
+                          style: AppTextStyles.medium.copyWith(
+                            fontSize: 13,
+                            color: kPrimaryGreenColor,
+                          ),
                         ),
-                      ),
-                      Space.horizontal(4),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: kPrimaryGreenColor,
-                        size: 12,
-                      ),
-                    ],
+                        Space.horizontal(4),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: kPrimaryGreenColor,
+                          size: 12,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Space.horizontal(12),
-                // Quick "add habit" entry — jumps straight to the create form
-                // (or the paywall once the free habit limit is reached).
-                if (summary.habits.isNotEmpty)
+                  Space.horizontal(12),
+
+                  // Quick "add habit" entry — jumps straight to the create form
+                  // (or the paywall once the free habit limit is reached).
                   GestureDetector(
                     onTap: () => openAddHabitGated(context),
                     child: Container(
@@ -194,6 +195,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             Space.vertical(12),
