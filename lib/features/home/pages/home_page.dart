@@ -255,9 +255,9 @@ class _HomePageState extends State<HomePage> {
                         userRepo.localUser?.hasCelebratedFirstCompletion ==
                             false) {
                       unawaited(userRepo.markFirstCompletionCelebrated());
-                      // Let the completion animation land first, then pause a
-                      // beat before celebrating.
-                      await Future.delayed(const Duration(seconds: 3));
+                      // Let the completion animation land first, then celebrate
+                      // right after so the reward stays tied to the tap.
+                      await Future.delayed(const Duration(milliseconds: 800));
                       if (!context.mounted) return;
                       await FirstCompletionDialog.show(context);
                     }
