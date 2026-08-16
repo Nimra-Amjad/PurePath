@@ -1,3 +1,4 @@
+import 'package:purepath/features/home/models/daily_reflection.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 
@@ -99,4 +100,18 @@ abstract class HomeRepository {
   /// completed when the streak is recomputed. Callers must gate this on the
   /// Pro entitlement.
   Future<void> restoreStreak(List<DateTime> dates);
+
+  // ── Daily reflection (mood + note) ─────────────────────────────────────────
+
+  /// Reads the mood + note logged for [date], or null when the day has no
+  /// record at all. A day that exists but was never reflected on returns an
+  /// empty [DailyReflection] (no mood, empty note).
+  Future<DailyReflection?> getReflection(DateTime date);
+
+  /// Persists the [reflection] for [date], upserting alongside that day's
+  /// habit completions without disturbing them.
+  Future<void> setReflection({
+    required DateTime date,
+    required DailyReflection reflection,
+  });
 }

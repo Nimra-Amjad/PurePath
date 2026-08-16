@@ -7,11 +7,13 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/home/bloc/daily_reflection_bloc.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
 import 'package:purepath/features/home/widgets/daily_progress_card.dart';
+import 'package:purepath/features/home/widgets/daily_reflection_card.dart';
 import 'package:purepath/features/home/widgets/first_completion_dialog.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/no_habit_for_day_view.dart';
@@ -47,6 +49,11 @@ class _HomePageState extends State<HomePage> {
     // Load the full habit list too so the empty state can tell "no habits at
     // all" apart from "habits exist, just none scheduled for this day".
     context.read<ManageHabitsBloc>().add(ManageHabitsStarted());
+    // Pre-load the reflection for the initially selected day (today) so the
+    // card renders its real state without a flash of the empty prompt.
+    context.read<DailyReflectionBloc>().add(
+      ReflectionRequested(context.read<HomeBloc>().state.selectedDate),
+    );
     // Sync reminders for the current user. NotificationBloc also fires this
     // once at app start, but auth may not have settled yet at that point —
     // getAllHabits() would return an empty list. Re-syncing on home mount
@@ -67,7 +74,15 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<HomeBloc, HomeState>(
+    return BlocConsumer<HomeBloc, HomeState>(
+      // When the user picks a different day, load that day's reflection. The
+      // bloc no-ops on a cache hit, so re-selecting a seen day is free.
+      listenWhen: (prev, curr) => prev.selectedDate != curr.selectedDate,
+      listener: (context, state) {
+        context.read<DailyReflectionBloc>().add(
+          ReflectionRequested(state.selectedDate),
+        );
+      },
       builder: (context, state) {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -139,6 +154,10 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DailyProgressCard(summary: summary),
+            Space.vertical(20),
+
+            // ── Daily reflection (mood + note) ──────────────────────────
+            DailyReflectionCard(date: state.selectedDate),
             Space.vertical(20),
 
             // ── Section header ──────────────────────────────────────────

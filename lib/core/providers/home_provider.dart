@@ -36,6 +36,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 //                  backfill is recorded but doesn't repair a broken streak.
 //      frozen:     bool   (optional — true = streak-restored day, counts as
 //                          completed even with no habit done)
+//      mood:       String (optional — Mood.name, the day's logged mood)
+//      note:       String (optional — the day's free-text journal note)
 //    }
 //
 // Works with raw snapshots / maps only — model mapping and business rules
@@ -139,6 +141,11 @@ class HomeProvider {
   }
 
   /// Upserts the (uid, date) insights doc with the given habits array.
+  ///
+  /// Merges so the write only touches `habits` (plus the date keys) and leaves
+  /// any sibling fields on the day — `frozen`, `mood`, `note` — untouched. The
+  /// habits array itself is still replaced wholesale, which is correct: callers
+  /// read-modify-write the full array before calling this.
   Future<void> writeDayHabits(
     String uid,
     DateTime date,
@@ -149,7 +156,25 @@ class HomeProvider {
       'date': _dateString(dateOnly),
       'dateMillis': dateOnly.millisecondsSinceEpoch,
       'habits': habits,
-    });
+    }, SetOptions(merge: true));
+  }
+
+  /// Upserts the (uid, date) reflection onto the day doc, merging so it sits
+  /// alongside that day's habits without disturbing them. A null [mood] clears
+  /// any previously logged mood for the day.
+  Future<void> writeDayReflection(
+    String uid,
+    DateTime date, {
+    required String? mood,
+    required String note,
+  }) async {
+    final dateOnly = _dateOnly(date);
+    await _daysRef(uid).doc(_dayDocId(dateOnly)).set({
+      'date': _dateString(dateOnly),
+      'dateMillis': dateOnly.millisecondsSinceEpoch,
+      'mood': mood,
+      'note': note,
+    }, SetOptions(merge: true));
   }
 
   /// Marks (uid, date) as a frozen / streak-restored day. Merges so an

@@ -18,6 +18,7 @@ import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/core/providers/community_provider.dart';
 import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/core/repositories/firestore_community_repository.dart';
+import 'package:purepath/features/home/bloc/daily_reflection_bloc.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/providers/home_provider.dart';
@@ -192,6 +193,10 @@ class _BlocDI extends StatelessWidget {
         BlocProvider<ManageHabitsBloc>(
           create: (ctx) =>
               ManageHabitsBloc(repository: ctx.read<HomeRepository>()),
+        ),
+        BlocProvider<DailyReflectionBloc>(
+          create: (ctx) =>
+              DailyReflectionBloc(repository: ctx.read<HomeRepository>()),
         ),
         BlocProvider<InsightsBloc>(
           create: (ctx) =>

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:purepath/features/home/models/daily_reflection.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
@@ -273,6 +274,42 @@ class FirestoreHomeRepository implements HomeRepository {
     for (final date in dates) {
       await _provider.freezeDay(uid, _dateOnly(date));
     }
+  }
+
+  // ── Daily reflection (mood + note) ─────────────────────────────────────────
+
+  @override
+  Future<DailyReflection?> getReflection(DateTime date) async {
+    final uid = _uid;
+    if (uid == null) return null;
+
+    // Best-effort, mirroring the other insights reads: a rules/network hiccup
+    // should leave the reflection card in its empty state, not error the page.
+    Map<String, dynamic>? data;
+    try {
+      data = await _provider.fetchDayDoc(uid, date);
+    } catch (_) {
+      return null;
+    }
+
+    if (data == null) return null;
+    return DailyReflection.fromMap(data);
+  }
+
+  @override
+  Future<void> setReflection({
+    required DateTime date,
+    required DailyReflection reflection,
+  }) async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    await _provider.writeDayReflection(
+      uid,
+      date,
+      mood: reflection.mood?.name,
+      note: reflection.note.trim(),
+    );
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
