@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purepath/core/bloc/user_bloc/user_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
+import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -185,6 +187,102 @@ class PostActionsSheet extends StatelessWidget {
             color: red,
             onTap: () => _onDelete(context),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Viewer actions sheet — Hide post / Block user
+//
+// Shown on posts authored by *other* users (the owner gets [PostActionsSheet]
+// instead). Both actions delegate to [UserBloc]; the feed reacts on its own
+// once the block / hide lists change.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PostViewerActionsSheet extends StatelessWidget {
+  final PostModel post;
+  // The card's context — outlives the sheet's own (torn down on pop), so we
+  // use it to dispatch events and show the confirm dialog / snackbar.
+  final BuildContext parentContext;
+  // Invoked after a hide/block completes. The feed leaves this null (the post
+  // just disappears via the filter); the detail page passes a pop so it
+  // leaves the now-hidden post.
+  final VoidCallback? onDone;
+
+  const PostViewerActionsSheet._({
+    required this.post,
+    required this.parentContext,
+    this.onDone,
+  });
+
+  /// Opens the bottom sheet with Hide + Block actions for a post the current
+  /// user does not own.
+  static Future<void> show(
+    BuildContext context,
+    PostModel post, {
+    VoidCallback? onDone,
+  }) {
+    return AppBottomSheet.show<void>(
+      context,
+      body: PostViewerActionsSheet._(
+        post: post,
+        parentContext: context,
+        onDone: onDone,
+      ),
+    );
+  }
+
+  void _onHide(BuildContext context) {
+    context.pop();
+    if (!parentContext.mounted) return;
+    parentContext.read<UserBloc>().add(PostHidden(post.id));
+    AppSnackBar.success(parentContext, 'Post hidden from your feed.');
+    onDone?.call();
+  }
+
+  Future<void> _onBlock(BuildContext context) async {
+    context.pop();
+    if (!parentContext.mounted) return;
+    final confirmed = await AppDialog.show(
+      parentContext,
+      icon: Icons.block_rounded,
+      iconColor: red,
+      title: 'Block ${post.authorName}?',
+      subtitle:
+          "You won't see any posts from ${post.authorName} anymore. You can "
+          'unblock them later from Settings.',
+      confirmText: 'Block',
+      confirmColor: red,
+    );
+    if (confirmed != true || !parentContext.mounted) return;
+    parentContext.read<UserBloc>().add(UserBlocked(post.userId));
+    AppSnackBar.success(parentContext, 'You blocked ${post.authorName}.');
+    onDone?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ActionTile(
+            icon: Icons.visibility_off_outlined,
+            label: 'Hide this post',
+            color: kWhiteColor,
+            onTap: () => _onHide(context),
+          ),
+          Space.vertical(8),
+          ActionTile(
+            icon: Icons.block_rounded,
+            label: 'Block ${post.authorName}',
+            color: red,
+            onTap: () => _onBlock(context),
+          ),
+          Space.vertical(30),
         ],
       ),
     );

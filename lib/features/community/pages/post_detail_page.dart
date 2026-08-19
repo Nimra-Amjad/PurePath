@@ -311,24 +311,30 @@ class _FullPost extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (post.isOwnedBy(currentUid))
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => PostActionsSheet.show(
-                      context,
-                      post,
-                      // The post no longer exists — leave the detail page.
-                      onDeleted: () => context.pop(),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.more_horiz_rounded,
-                        size: 22,
-                        color: kSecondaryGreyColor,
-                      ),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => post.isOwnedBy(currentUid)
+                      ? PostActionsSheet.show(
+                          context,
+                          post,
+                          // The post no longer exists — leave the detail page.
+                          onDeleted: () => context.pop(),
+                        )
+                      : PostViewerActionsSheet.show(
+                          context,
+                          post,
+                          // Hidden/blocked from here → leave the detail page.
+                          onDone: () => context.pop(),
+                        ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 22,
+                      color: kSecondaryGreyColor,
                     ),
                   ),
+                ),
               ],
             ),
           ),

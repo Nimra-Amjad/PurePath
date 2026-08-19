@@ -10,6 +10,7 @@ import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/core/utils/snackbar.dart';
 import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/auth/model/user_model.dart';
 import 'package:purepath/features/community/models/community_notification.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +31,11 @@ class CommunityNotificationsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = context.select<UserBloc, String?>((b) => b.state.user?.uid);
+    // The viewer drives both the uid and the moderation filter below, so the
+    // inbox hides events from blocked users / hidden posts and rebuilds live
+    // when those lists change.
+    final viewer = context.select<UserBloc, UserModel?>((b) => b.state.user);
+    final uid = viewer?.uid;
     final repository = context.read<CommunityRepository>();
 
     return Scaffold(
@@ -79,7 +84,15 @@ class CommunityNotificationsPage extends StatelessWidget {
                   );
                 }
 
-                final notifications = snap.data ?? const [];
+                final all = snap.data ?? const <CommunityNotification>[];
+                final notifications = viewer == null
+                    ? all
+                    : all
+                        .where((n) => !viewer.suppressesNotification(
+                              actorId: n.actorId,
+                              postId: n.postId,
+                            ))
+                        .toList();
                 if (notifications.isEmpty) return const _EmptyState();
 
                 return ListView.builder(

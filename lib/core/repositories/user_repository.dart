@@ -139,6 +139,107 @@ class UserRepository {
     }
   }
 
+  // ── Community moderation (block user / hide post) ──────────────────────────
+  //
+  // Two independent per-user lists on the user's own document:
+  //   • hiddenPosts  — individual post ids the user never wants to see again.
+  //   • blockedUsers — user ids whose posts are all filtered out of the feed.
+  //
+  // Both follow the same optimistic pattern as [setNotificationsEnabled]:
+  // update the local cache first (so the feed reacts instantly through the
+  // user stream), then write to Firestore, reverting only on failure.
+  // Firestore field names are shared with [UserModel.toMap].
+
+  static const _kHiddenPosts = 'hiddenPosts';
+  static const _kBlockedUsers = 'blockedUsers';
+
+  /// Hides a single [postId] from the current user's feed. Idempotent.
+  Future<void> hidePost(String postId) async {
+    final uid = firebaseUser?.uid;
+    final current = localUser;
+    if (uid == null || current == null) return;
+    if (current.hiddenPosts.contains(postId)) return;
+
+    updateLocalUser(
+      current.copyWith(hiddenPosts: [...current.hiddenPosts, postId]),
+    );
+    try {
+      await userFirestoreProvider.addToArrayField(uid, _kHiddenPosts, postId);
+    } catch (e) {
+      debugPrint('UserRepository.hidePost error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
+  /// Un-hides a previously hidden [postId]. Idempotent.
+  Future<void> unhidePost(String postId) async {
+    final uid = firebaseUser?.uid;
+    final current = localUser;
+    if (uid == null || current == null) return;
+    if (!current.hiddenPosts.contains(postId)) return;
+
+    updateLocalUser(
+      current.copyWith(
+        hiddenPosts: current.hiddenPosts.where((id) => id != postId).toList(),
+      ),
+    );
+    try {
+      await userFirestoreProvider.removeFromArrayField(
+        uid,
+        _kHiddenPosts,
+        postId,
+      );
+    } catch (e) {
+      debugPrint('UserRepository.unhidePost error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
+  /// Blocks [userId] so none of their posts appear in the current user's
+  /// feed. Idempotent, and never blocks the user themselves.
+  Future<void> blockUser(String userId) async {
+    final uid = firebaseUser?.uid;
+    final current = localUser;
+    if (uid == null || current == null) return;
+    if (userId.isEmpty || userId == uid) return;
+    if (current.blockedUsers.contains(userId)) return;
+
+    updateLocalUser(
+      current.copyWith(blockedUsers: [...current.blockedUsers, userId]),
+    );
+    try {
+      await userFirestoreProvider.addToArrayField(uid, _kBlockedUsers, userId);
+    } catch (e) {
+      debugPrint('UserRepository.blockUser error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
+  /// Unblocks a previously blocked [userId]. Idempotent.
+  Future<void> unblockUser(String userId) async {
+    final uid = firebaseUser?.uid;
+    final current = localUser;
+    if (uid == null || current == null) return;
+    if (!current.blockedUsers.contains(userId)) return;
+
+    updateLocalUser(
+      current.copyWith(
+        blockedUsers:
+            current.blockedUsers.where((id) => id != userId).toList(),
+      ),
+    );
+    try {
+      await userFirestoreProvider.removeFromArrayField(
+        uid,
+        _kBlockedUsers,
+        userId,
+      );
+    } catch (e) {
+      debugPrint('UserRepository.unblockUser error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
   /// Persists the freshly computed coin balance. The value itself is derived
   /// from the insights data via [HomeRepository.calculateCurrentStreak], so
   /// this method just stores the result and patches the local cache.

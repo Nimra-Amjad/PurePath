@@ -7,6 +7,7 @@ import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/core/widgets/space.dart';
+import 'package:purepath/features/auth/model/user_model.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
 import 'package:purepath/features/community/pages/create_post_page.dart';
 import 'package:purepath/features/community/widgets/post_card_widget.dart';
@@ -180,9 +181,17 @@ class _FeedViewState extends State<_FeedView> {
       );
     }
 
+    // The feed hides posts the viewer has hidden and posts by users they've
+    // blocked. Selecting the two lists (not the whole user) keeps rebuilds
+    // scoped to moderation changes. "My Posts" is intentionally unfiltered —
+    // hide/block only ever applies to *other* users' posts.
+    final viewer = widget.onlyMine
+        ? null
+        : context.select<UserBloc, UserModel?>((b) => b.state.user);
+
     final posts = widget.onlyMine
         ? state.myPosts(widget.currentUid)
-        : state.posts;
+        : state.visiblePosts(viewer);
 
     if (posts.isEmpty) {
       return _EmptyFeed(

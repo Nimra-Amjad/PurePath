@@ -80,9 +80,17 @@ class CommunityNotificationListener {
       return;
     }
 
+    // Respect the viewer's moderation lists: never banner an event from a
+    // blocked user or about a hidden post.
+    final viewer = userRepository.localUser;
+
     for (final n in notifications) {
       if (!_seenIds.add(n.id)) continue; // already known
       if (n.hasRead) continue;
+      if (viewer != null &&
+          viewer.suppressesNotification(actorId: n.actorId, postId: n.postId)) {
+        continue;
+      }
 
       notificationService.showCommunityNotification(
         // Stable per event → re-emissions can't duplicate the banner.

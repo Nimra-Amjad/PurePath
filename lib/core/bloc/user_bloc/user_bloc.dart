@@ -37,6 +37,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<PasswordResetRequested>(_onPasswordResetRequested);
     on<LoadUser>(_onLoadUser);
     on<SaveOnboardingData>(_onSaveOnboardingData);
+    on<PostHidden>(_onPostHidden);
+    on<PostUnhidden>(_onPostUnhidden);
+    on<UserBlocked>(_onUserBlocked);
+    on<UserUnblocked>(_onUserUnblocked);
     on<_SyncFirebaseUser>(_onSyncFirebaseUser);
     on<_SyncLocalUser>(_onSyncLocalUser);
   }
@@ -218,6 +222,29 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         );
       }
     }
+  }
+
+  // ── Community moderation ───────────────────────────────────────────────────
+  //
+  // These simply delegate to UserRepository. It optimistically updates the
+  // local user, whose stream emission comes back as [_SyncLocalUser] and
+  // re-emits UserLoaded with the new block/hide lists — so the community feed
+  // (which reads these lists) rebuilds automatically. No state is emitted here.
+
+  Future<void> _onPostHidden(PostHidden event, Emitter<UserState> emit) {
+    return userRepository.hidePost(event.postId);
+  }
+
+  Future<void> _onPostUnhidden(PostUnhidden event, Emitter<UserState> emit) {
+    return userRepository.unhidePost(event.postId);
+  }
+
+  Future<void> _onUserBlocked(UserBlocked event, Emitter<UserState> emit) {
+    return userRepository.blockUser(event.userId);
+  }
+
+  Future<void> _onUserUnblocked(UserUnblocked event, Emitter<UserState> emit) {
+    return userRepository.unblockUser(event.userId);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

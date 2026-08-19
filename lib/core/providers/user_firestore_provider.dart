@@ -29,6 +29,26 @@ class UserFirestoreProvider {
     await _firestore.collection(_kUsers).doc(uid).update(data);
   }
 
+  /// Atomically appends [value] to the array [field] on the user document
+  /// (no-op if it's already present). Used for the community block / hide
+  /// lists so concurrent writes never clobber each other.
+  Future<void> addToArrayField(String uid, String field, String value) async {
+    await _firestore.collection(_kUsers).doc(uid).update({
+      field: FieldValue.arrayUnion([value]),
+    });
+  }
+
+  /// Atomically removes [value] from the array [field] on the user document.
+  Future<void> removeFromArrayField(
+    String uid,
+    String field,
+    String value,
+  ) async {
+    await _firestore.collection(_kUsers).doc(uid).update({
+      field: FieldValue.arrayRemove([value]),
+    });
+  }
+
   /// Whether [username] is already used by an account. Usernames are stored
   /// lowercase, so an exact-match query is effectively case-insensitive.
   /// [excludeUid] lets a user keep their own username (their doc doesn't

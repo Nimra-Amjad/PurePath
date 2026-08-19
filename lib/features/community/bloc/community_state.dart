@@ -37,6 +37,21 @@ class CommunityState {
     return posts.where((p) => p.userId == uid).toList();
   }
 
+  /// The feed as [viewer] should see it: posts they've hidden and posts by
+  /// users they've blocked are filtered out. The two lists are independent —
+  /// [UserModel.hiddenPosts] targets individual posts, [UserModel.blockedUsers]
+  /// targets authors. Returns [posts] unchanged when the viewer has neither.
+  List<PostModel> visiblePosts(UserModel? viewer) {
+    if (viewer == null) return posts;
+    if (viewer.hiddenPosts.isEmpty && viewer.blockedUsers.isEmpty) return posts;
+
+    final hidden = viewer.hiddenPosts.toSet();
+    final blocked = viewer.blockedUsers.toSet();
+    return posts
+        .where((p) => !hidden.contains(p.id) && !blocked.contains(p.userId))
+        .toList();
+  }
+
   CommunityState copyWith({
     CommunityStatus? status,
     List<PostModel>? posts,

@@ -82,19 +82,21 @@ class AuthorRowWidget extends StatelessWidget {
             ],
           ),
         ),
-        if (isOwn)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => PostActionsSheet.show(context, post),
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(
-                Icons.more_horiz_rounded,
-                size: 22,
-                color: kSecondaryGreyColor,
-              ),
+        // Owner → edit / delete. Everyone else → hide post / block author.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => isOwn
+              ? PostActionsSheet.show(context, post)
+              : PostViewerActionsSheet.show(context, post),
+          child: const Padding(
+            padding: EdgeInsets.all(4),
+            child: Icon(
+              Icons.more_horiz_rounded,
+              size: 22,
+              color: kSecondaryGreyColor,
             ),
           ),
+        ),
       ],
     );
   }
