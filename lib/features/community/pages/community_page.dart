@@ -9,6 +9,7 @@ import 'package:purepath/core/repositories/community_repository.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/auth/model/user_model.dart';
 import 'package:purepath/features/community/bloc/community_bloc.dart';
+import 'package:purepath/features/community/models/community_notification.dart';
 import 'package:purepath/features/community/pages/create_post_page.dart';
 import 'package:purepath/features/community/widgets/post_card_widget.dart';
 
@@ -382,7 +383,12 @@ class _NotificationBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = context.select<UserBloc, String?>((b) => b.state.user?.uid);
+    // Select the whole viewer (not just the uid) so the badge respects the
+    // moderation lists and rebuilds when they change: a notification from a
+    // blocked user / hidden post must not count toward the unread badge, just
+    // as it's already excluded from the banner and the inbox list.
+    final viewer = context.select<UserBloc, UserModel?>((b) => b.state.user);
+    final uid = viewer?.uid;
     if (uid == null) return const SizedBox.shrink();
 
     return GestureDetector(
@@ -407,12 +413,24 @@ class _NotificationBell extends StatelessWidget {
                 ),
               ),
             ),
-            StreamBuilder<int>(
+            StreamBuilder<List<CommunityNotification>>(
+              // Count off the full notification stream (not the server-side
+              // aggregate) so we can drop events from blocked users / hidden
+              // posts before counting — keeping the badge in sync with the
+              // filtered inbox.
               stream: context
                   .read<CommunityRepository>()
-                  .watchUnreadNotificationCount(uid),
+                  .watchNotifications(uid),
               builder: (context, snap) {
-                final unread = snap.data ?? 0;
+                final all = snap.data ?? const <CommunityNotification>[];
+                final unread = all
+                    .where((n) =>
+                        !n.hasRead &&
+                        !viewer!.suppressesNotification(
+                          actorId: n.actorId,
+                          postId: n.postId,
+                        ))
+                    .length;
                 if (unread == 0) return const SizedBox.shrink();
                 return Positioned(
                   top: 0,
