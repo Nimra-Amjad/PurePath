@@ -243,8 +243,14 @@ class _FeedViewState extends State<_FeedView> {
           if (postIdx >= posts.length) {
             return _LoadMoreRow(isLoading: state.isLoadingMore);
           }
+          final post = posts[postIdx];
           return PostCard(
-            post: posts[postIdx],
+            // Stable identity so the optimistic prepend → stream-replace swap
+            // re-uses existing card elements (and their loaded images) instead
+            // of rebuilding every row by index — that index-matching was the
+            // visible "jerk" when a new post lands at the top of the feed.
+            key: ValueKey(post.id),
+            post: post,
             currentUid: widget.currentUid,
           );
         },

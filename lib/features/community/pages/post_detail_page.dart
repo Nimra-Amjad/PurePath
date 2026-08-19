@@ -85,6 +85,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
       return;
     }
 
+    // Clear the field up front so it empties the instant the user hits send,
+    // not after the Firestore round-trip. Restored below if the write fails.
+    _commentCtrl.clear();
+    _commentFocus.unfocus();
+
     setState(() => _submittingComment = true);
     try {
       await context.read<CommunityRepository>().addComment(
@@ -94,10 +99,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
         authorImgUrl: user.imgUrl,
         text: text,
       );
-      _commentCtrl.clear();
-      _commentFocus.unfocus();
     } catch (_) {
       if (!mounted) return;
+      _commentCtrl.text = text; // Put the draft back so it isn't lost.
       AppSnackBar.error(context, 'Could not post comment.');
     } finally {
       if (mounted) setState(() => _submittingComment = false);
@@ -585,7 +589,17 @@ class _CommentTileState extends State<_CommentTile> {
       return;
     }
 
-    setState(() => _submittingReply = true);
+    // Clear + collapse the composer up front so it empties the instant the
+    // user hits send, not after the Firestore round-trip. Restored below if
+    // the write fails.
+    _replyController.clear();
+    _replyFocus.unfocus();
+
+    setState(() {
+      _submittingReply = true;
+      _showReplies = true;
+      _showReplyInput = false;
+    });
     try {
       // Make sure we're subscribed before the new reply lands so the stream
       // emission updates the local list without an extra fetch.
@@ -598,14 +612,11 @@ class _CommentTileState extends State<_CommentTile> {
         authorImgUrl: user.imgUrl,
         text: text,
       );
-      _replyController.clear();
-      setState(() {
-        _showReplies = true;
-        _showReplyInput = false;
-      });
-      _replyFocus.unfocus();
     } catch (_) {
       if (!mounted) return;
+      // Put the draft back and reopen the composer so it isn't lost.
+      _replyController.text = text;
+      setState(() => _showReplyInput = true);
       AppSnackBar.error(context, 'Could not post reply.');
     } finally {
       if (mounted) setState(() => _submittingReply = false);
