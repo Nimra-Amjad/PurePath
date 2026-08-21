@@ -21,6 +21,7 @@ import 'package:purepath/features/home/widgets/habit_tile_widget.dart';
 import 'package:purepath/features/home/widgets/home_header_widget.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
 import 'package:purepath/features/home/widgets/streak_restore_banner.dart';
+import 'package:purepath/features/home/widgets/weekly_overview_sheet.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
@@ -103,6 +104,13 @@ class _HomePageState extends State<HomePage> {
                 onWeekChanged: (weekStart) {
                   context.read<HomeBloc>().add(HomeWeekChanged(weekStart));
                 },
+                // Calendar icon → per-habit overview of the visible week. Reads
+                // the already-loaded weekData, so it opens without a fetch.
+                onOverviewTap: () => WeeklyOverviewSheet.show(
+                  context,
+                  weekStart: state.visibleWeekStart,
+                  weekData: state.weekData,
+                ),
               ),
 
               Space.vertical(20),

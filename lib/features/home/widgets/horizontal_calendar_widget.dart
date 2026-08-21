@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/widgets/space.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Training Calendar
@@ -27,12 +28,17 @@ class TrainingCalendar extends StatefulWidget {
   /// Passes the Monday of the newly visible week.
   final ValueChanged<DateTime> onWeekChanged;
 
+  /// Called when the user taps the calendar icon in the header. Null hides the
+  /// icon entirely. Used to open the weekly overview sheet.
+  final VoidCallback? onOverviewTap;
+
   const TrainingCalendar({
     super.key,
     required this.selectedDate,
     required this.visibleWeekStart,
     required this.onDateSelected,
     required this.onWeekChanged,
+    this.onOverviewTap,
   });
 
   @override
@@ -93,7 +99,10 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _CalendarHeader(weekStart: widget.visibleWeekStart),
+          _CalendarHeader(
+            weekStart: widget.visibleWeekStart,
+            onOverviewTap: widget.onOverviewTap,
+          ),
           const SizedBox(height: 14),
           // Fixed height prevents the card from resizing when a tile is selected.
           SizedBox(
@@ -141,7 +150,10 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
 class _CalendarHeader extends StatelessWidget {
   final DateTime weekStart; // always a Monday
 
-  const _CalendarHeader({required this.weekStart});
+  /// Tap handler for the weekly-overview icon. Null hides the icon.
+  final VoidCallback? onOverviewTap;
+
+  const _CalendarHeader({required this.weekStart, this.onOverviewTap});
 
   static const _monthNames = [
     'Jan',
@@ -165,23 +177,41 @@ class _CalendarHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            const Text('📅', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: 6),
-            Text(
-              'This Week',
-              style: AppTextStyles.semiBold.copyWith(
-                fontSize: 15,
-                color: kWhiteColor,
-              ),
+        if (onOverviewTap != null) ...[
+          // Weekly-overview entry point — opens the per-habit week sheet.
+          GestureDetector(
+            onTap: onOverviewTap,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Text(
+                  'Weekly overview',
+                  style: AppTextStyles.medium.copyWith(
+                    fontSize: 16,
+                    color: kWhiteColor,
+                  ),
+                ),
+                Space.horizontal(10),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: kPrimaryGreenColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month,
+                    color: kPrimaryGreenColor,
+                    size: 18,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
         Text(
           _label,
-          style: AppTextStyles.normal.copyWith(
-            fontSize: 13,
+          style: AppTextStyles.medium.copyWith(
+            fontSize: 16,
             color: kWhiteColor,
           ),
         ),
