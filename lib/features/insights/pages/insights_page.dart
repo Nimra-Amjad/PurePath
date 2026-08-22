@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/day_summary.dart';
@@ -145,14 +144,21 @@ class _LoadedView extends StatelessWidget {
       Space.vertical(24),
 
       // ── Habit collection preview ─────────────────────────────────────
-      // One habit's dot-grid history, with a "View All" overlay opening
-      // the full collection of every habit.
-      Text(
-        'Habit Collection',
-        style: AppTextStyles.semiBold.copyWith(
-          fontSize: 16,
-          color: kWhiteColor,
-        ),
+      // One habit's dot-grid history, with a "View All" action in the header
+      // opening the full collection of every habit.
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Habit Collection',
+              style: AppTextStyles.semiBold.copyWith(
+                fontSize: 16,
+                color: kWhiteColor,
+              ),
+            ),
+          ),
+          _ViewAllButton(onTap: () => AppRoute.habitCollection.push(context)),
+        ],
       ),
       Space.vertical(12),
       _CollectionPreview(state: state),
@@ -182,8 +188,8 @@ class _LoadedView extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Collection preview
 //
-// Shows the first habit's dot-grid card with a "View All" pill stacked in the
-// top-right corner. Tapping anywhere opens the full collection page.
+// Shows the first habit's dot-grid card. Tapping anywhere opens the full
+// collection page (the "View All" action in the section header does the same).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CollectionPreview extends StatelessWidget {
@@ -196,42 +202,39 @@ class _CollectionPreview extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => AppRoute.habitCollection.push(context),
-      child: Stack(
+      child: HabitCollectionCard(
+        habit: habit,
+        history: state.completionHistory,
+        days: InsightsBloc.historyDays,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "View All" pill — a tappable header action opening the full collection.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ViewAllButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ViewAllButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          HabitCollectionCard(
-            habit: habit,
-            history: state.completionHistory,
-            days: InsightsBloc.historyDays,
-            showFrequency: false,
-          ),
-          Positioned(
-            top: 14,
-            right: 14,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: kPurpleColor.withOpacityValue(0.09),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'View All',
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 12,
-                      color: kPurpleColor,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: kPurpleColor,
-                  ),
-                ],
-              ),
+          Text(
+            'View All',
+            style: AppTextStyles.medium.copyWith(
+              fontSize: 14,
+              color: kPrimaryGreyColor,
             ),
           ),
+          const Icon(Icons.chevron_right, size: 18, color: kPrimaryGreyColor),
         ],
       ),
     );

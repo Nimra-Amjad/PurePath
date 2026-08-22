@@ -12,8 +12,7 @@ import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
-import 'package:purepath/features/home/widgets/daily_progress_card.dart';
-import 'package:purepath/features/home/widgets/daily_reflection_card.dart';
+import 'package:purepath/features/home/widgets/daily_overview_card.dart';
 import 'package:purepath/features/home/widgets/first_completion_dialog.dart';
 import 'package:purepath/features/home/widgets/empty_habit_view.dart';
 import 'package:purepath/features/home/widgets/no_habit_for_day_view.dart';
@@ -161,12 +160,11 @@ class _HomePageState extends State<HomePage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DailyProgressCard(summary: summary),
-            Space.vertical(20),
-            
-
-            // ── Daily reflection (mood + note) ──────────────────────────
-            DailyReflectionCard(date: state.selectedDate),
+            // ── Daily overview (progress ring + mood/note reflection) ────
+            DailyOverviewCard(
+              summary: summary,
+              date: state.selectedDate,
+            ),
             Space.vertical(20),
 
             // ── Section header ──────────────────────────────────────────

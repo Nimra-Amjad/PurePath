@@ -102,10 +102,11 @@ class _DailyReflectionSheetState extends State<DailyReflectionSheet> {
 
           // ── Mood ──────────────────────────────────────────────────────────
           Text(
-            'How did the day feel?',
-            style: AppTextStyles.medium.copyWith(
-              fontSize: 14,
-              color: kWhiteColor,
+            'HOW DID THE DAY FEEL?',
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 12,
+              color: kLightGreyColor,
+              letterSpacing: 1.2,
             ),
           ),
           Space.vertical(14),
@@ -117,10 +118,11 @@ class _DailyReflectionSheetState extends State<DailyReflectionSheet> {
 
           // ── Note ──────────────────────────────────────────────────────────
           Text(
-            'Notes',
-            style: AppTextStyles.medium.copyWith(
-              fontSize: 14,
-              color: kWhiteColor,
+            'NOTES',
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 12,
+              color: kLightGreyColor,
+              letterSpacing: 1.2,
             ),
           ),
           Space.vertical(10),

@@ -9,7 +9,16 @@ import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit progress widget
 //
-// Shows one row for a single habit's weekly completion.
+// A single habit's weekly completion card:
+//
+//   ┌────────────────────────────────────────────┐
+//   │  [icon]  Title                        57%   │
+//   │          4 of 7 days                        │
+//   │  ▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+//   └────────────────────────────────────────────┘
+//
+// The full-width bar makes progress readable at a glance, and everything is
+// tinted with the habit's category [color] so rows stay visually distinct.
 //
 // [stat] → a [HabitWeeklyStat] from [InsightsState.habitWeeklyStats]
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,82 +31,143 @@ class ProgressWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = stat.category.color;
+    final percent = (stat.progress * 100).round();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kContainerColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kWhiteColor.withOpacityValue(0.05)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Category emoji inside a tinted circle
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withOpacityValue(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                stat.category.emoji,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-          ),
-          Space.horizontal(12),
-
-          // Title + completion label
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stat.title,
-                  style: AppTextStyles.medium.copyWith(
-                    fontSize: 14,
-                    color: kWhiteColor,
-                  ),
-                ),
-                Space.vertical(2),
-                Text(
-                  '${stat.completedDays} / ${stat.totalDays} days',
-                  style: AppTextStyles.normal.copyWith(
-                    fontSize: 12,
-                    color: kSecondaryGreyColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Space.horizontal(12),
-
-          // Progress bar + percentage
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                '${(stat.progress * 100).round()}%',
-                style: AppTextStyles.semiBold.copyWith(
-                  fontSize: 13,
-                  color: color,
+              // ── Category emoji inside a tinted rounded tile ──────────────
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withOpacityValue(0.16),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: color.withOpacityValue(0.22)),
+                ),
+                child: Center(
+                  child: Text(
+                    stat.category.emoji,
+                    style: const TextStyle(fontSize: 20),
+                  ),
                 ),
               ),
-              Space.vertical(6),
-              SizedBox(
-                width: 90,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: stat.progress,
-                    minHeight: 7,
-                    backgroundColor: color.withOpacityValue(0.15),
-                    valueColor: AlwaysStoppedAnimation(color),
+              Space.horizontal(12),
+
+              // ── Title + completion label ─────────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stat.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.semiBold.copyWith(
+                        fontSize: 15,
+                        color: kWhiteColor,
+                      ),
+                    ),
+                    Space.vertical(2),
+                    Text(
+                      '${stat.completedDays} of ${stat.totalDays} days',
+                      style: AppTextStyles.normal.copyWith(
+                        fontSize: 12.5,
+                        color: kSecondaryGreyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Space.horizontal(10),
+
+              // ── Percentage badge ─────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withOpacityValue(0.14),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$percent%',
+                  style: AppTextStyles.bold.copyWith(
+                    fontSize: 13,
+                    color: color,
                   ),
                 ),
               ),
             ],
+          ),
+          Space.vertical(14),
+
+          // ── Full-width progress bar ────────────────────────────────────────
+          _ProgressBar(value: stat.progress, color: color),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A rounded, gradient-filled progress bar with a soft glow.
+//
+// Built on a Stack instead of [LinearProgressIndicator] so the fill can carry
+// a gradient + shadow and the corners stay fully rounded at any value.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProgressBar extends StatelessWidget {
+  final double value;
+  final Color color;
+
+  const _ProgressBar({required this.value, required this.color});
+
+  static const double _height = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = value.clamp(0.0, 1.0);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(_height),
+      child: Stack(
+        children: [
+          // Track
+          Container(
+            height: _height,
+            width: double.infinity,
+            color: color.withOpacityValue(0.12),
+          ),
+          // Fill
+          FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: clamped,
+            child: Container(
+              height: _height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_height),
+                gradient: LinearGradient(
+                  colors: [color.withOpacityValue(0.65), color],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacityValue(0.45),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

@@ -93,8 +93,9 @@ class _TopSnackBarState extends State<TopSnackBar>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: kWhiteColor,
+            color: kContainerColor,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kWhiteColor.withOpacityValue(0.06)),
           ),
           child: Row(
             children: [
@@ -108,7 +109,7 @@ class _TopSnackBarState extends State<TopSnackBar>
                   widget.message,
                   style: AppTextStyles.normal.copyWith(
                     fontSize: 14,
-                    color: kBlackColor,
+                    color: kWhiteColor,
                   ),
                 ),
               ),
@@ -117,7 +118,7 @@ class _TopSnackBarState extends State<TopSnackBar>
                 onTap: _dismiss,
                 child: CircleAvatar(
                   radius: 14,
-                  backgroundColor: kBlackColor.withOpacityValue(0.4),
+                  backgroundColor: kWhiteColor.withOpacityValue(0.12),
                   child: const Icon(Icons.close, color: kWhiteColor, size: 22),
                 ),
               ),
