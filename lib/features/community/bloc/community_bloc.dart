@@ -35,6 +35,16 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   StreamSubscription<PostsPage>? _feedSub;
   int _currentLimit = _pageSize;
 
+  // Ids of posts this device just created that the live Firestore snapshot
+  // hasn't caught up to yet. A new post is written with a server timestamp,
+  // which reads as null locally until the server acks — and null sorts LAST
+  // under `orderBy(createdAt, descending)`, so the snapshot would briefly
+  // place the fresh post at the bottom (or past the page limit) and then
+  // snap it back to the top once the timestamp resolves. We keep these ids
+  // pinned at the top of the feed across snapshots so the card never bounces
+  // position — that reorder was the visible "jerk" when a post is published.
+  final Set<String> _pendingPostIds = {};
+
   CommunityBloc({
     required CommunityRepository repository,
     required UserRepository userRepository,
@@ -102,8 +112,14 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
         content: event.content,
         imageUrl: event.imageUrl,
       );
-      // Optimistic prepend so the author sees their post instantly. The
-      // stream will emit shortly with the canonical doc and replace this.
+      // Firestore's local cache can deliver the live snapshot before this
+      // await returns; if the post is already in the feed, prepending it
+      // again would put two cards with the same id in the list (a duplicate
+      // key that flickers). Skip the optimistic prepend in that case.
+      if (state.posts.any((p) => p.id == created.id)) return;
+
+      // Optimistic prepend so the author sees their post instantly, pinned to
+      // the top until the live snapshot catches up (see [_pendingPostIds]).
       final newPost = PostModel(
         id: created.id,
         userId: user.uid,
@@ -115,6 +131,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
         likedBy: created.likedBy,
         commentCount: created.commentCount,
       );
+      _pendingPostIds.add(created.id);
       emit(state.copyWith(posts: [newPost, ...state.posts]));
     } catch (_) {
       emit(state.copyWith(
@@ -130,6 +147,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   ) async {
     final before = state.posts;
     // Optimistic removal — stream will reconcile if the delete fails.
+    _pendingPostIds.remove(event.postId);
     emit(state.copyWith(
       posts: before.where((p) => p.id != event.postId).toList(),
     ));
@@ -219,9 +237,23 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     _CommunityFeedReceived event,
     Emitter<CommunityState> emit,
   ) {
+    final incoming = event.page.posts;
+    final incomingIds = incoming.map((p) => p.id).toSet();
+
+    // A pending post has "landed" once the snapshot includes it (its server
+    // timestamp has resolved) — stop pinning it and let the canonical doc
+    // take over.
+    _pendingPostIds.removeWhere(incomingIds.contains);
+
+    // Any post still pending isn't in this snapshot yet (timestamp still
+    // resolving). Keep it pinned at the top so the freshly published card
+    // stays put instead of vanishing and re-sorting back in — the jerk.
+    final pinned =
+        state.posts.where((p) => _pendingPostIds.contains(p.id)).toList();
+
     emit(state.copyWith(
       status: CommunityStatus.loaded,
-      posts: event.page.posts,
+      posts: [...pinned, ...incoming],
       hasMore: event.page.hasMore,
       isLoadingMore: false,
     ));
