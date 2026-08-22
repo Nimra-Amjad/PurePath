@@ -191,18 +191,11 @@ class _CalendarHeader extends StatelessWidget {
                     color: kWhiteColor,
                   ),
                 ),
-                Space.horizontal(10),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: kPrimaryGreenColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: const Icon(
-                    Icons.calendar_month,
-                    color: kPrimaryGreenColor,
-                    size: 18,
-                  ),
+                Space.horizontal(6),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: kLightGreyColor,
+                  size: 16,
                 ),
               ],
             ),

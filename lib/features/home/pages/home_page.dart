@@ -163,6 +163,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             DailyProgressCard(summary: summary),
             Space.vertical(20),
+            
 
             // ── Daily reflection (mood + note) ──────────────────────────
             DailyReflectionCard(date: state.selectedDate),
