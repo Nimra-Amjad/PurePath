@@ -89,33 +89,47 @@ class _BarItem extends StatelessWidget {
         ),
         Space.vertical(4),
 
-        // Bar
+        // Bar — clipped to the rounded pill so the animated fill can never
+        // paint outside the track while it grows.
         SizedBox(
           height: 120,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              // Background track
-              Container(
-                width: 36,
-                decoration: BoxDecoration(
-                  color: kPrimaryGreyColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-
-              // Filled portion
-              FractionallySizedBox(
-                heightFactor: progress.clamp(0.0, 1.0),
-                child: Container(
+          width: 36,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                // Background track
+                Container(
                   width: 36,
                   decoration: BoxDecoration(
-                    color: barColor,
+                    color: kPrimaryGreyColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-              ),
-            ],
+
+                // Filled portion — grows up from the bottom on first build and
+                // eases to a new height whenever the progress changes.
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, animatedValue, child) {
+                    return FractionallySizedBox(
+                      heightFactor: animatedValue,
+                      child: child,
+                    );
+                  },
+                  child: Container(
+                    width: 36,
+                    decoration: BoxDecoration(
+                      color: barColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         Space.vertical(8),

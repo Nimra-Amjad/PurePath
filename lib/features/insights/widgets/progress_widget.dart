@@ -149,10 +149,19 @@ class _ProgressBar extends StatelessWidget {
             width: double.infinity,
             color: color.withOpacityValue(0.12),
           ),
-          // Fill
-          FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: clamped,
+          // Fill — animates from empty to [clamped] on first build, and eases
+          // to the new value whenever [value] changes.
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: clamped),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, child) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: animatedValue,
+                child: child,
+              );
+            },
             child: Container(
               height: _height,
               decoration: BoxDecoration(
