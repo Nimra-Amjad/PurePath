@@ -17,15 +17,21 @@ enum PaywallStatus {
 @immutable
 class SubscriptionState {
   const SubscriptionState({
-    required this.isPro,
+    required bool isPro,
     required this.options,
     required this.status,
     this.errorMessage,
-  });
+  }) : _isPro = isPro;
 
-  /// Whether the current user has an active Pro entitlement. Gate Pro
-  /// features on this: `context.watch<SubscriptionBloc>().state.isPro`
-  final bool isPro;
+  /// Raw Pro entitlement as reported by the store. Prefer [isPro] for gating.
+  final bool _isPro;
+
+  /// Whether the current user should be treated as Pro. Gate Pro features on
+  /// this: `context.watch<SubscriptionBloc>().state.isPro`
+  ///
+  /// In debug builds this is always `true` so the paywall never blocks
+  /// development. Release builds use the real entitlement.
+  bool get isPro => kDebugMode || _isPro;
 
   /// One option per [PaywallPlan]; packages are null until prices load.
   final List<PaywallPlanOption> options;
@@ -51,7 +57,7 @@ class SubscriptionState {
     String? errorMessage,
   }) {
     return SubscriptionState(
-      isPro: isPro ?? this.isPro,
+      isPro: isPro ?? _isPro,
       options: options ?? this.options,
       status: status ?? this.status,
       // Intentionally not carried over — a message belongs to one emit.
