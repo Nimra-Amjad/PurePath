@@ -15,6 +15,13 @@ const String kPlayStoreUrl =
 // TODO: Replace with the real App Store link once the iOS app is published.
 const String kAppStoreUrl = 'https://apps.apple.com/app/purepath';
 
+// Play Store subscriptions page for this app. A subscription can only be
+// cancelled from the store itself (Google/Apple policy), so the in-app
+// "Manage Subscription" option deep-links here rather than cancelling
+// directly. `package` scopes the page to PurePath's subscriptions.
+const String kManageSubscriptionUrl =
+    'https://play.google.com/store/account/subscriptions?package=ai.purepath';
+
 // RevenueCat (in-app purchases)
 //
 // Public Android SDK key (safe to ship — it is not the secret key).

@@ -345,6 +345,12 @@ class ProfilePage extends StatelessWidget {
         ),
         _settingTile(
           context: context,
+          icon: Icons.card_membership_rounded,
+          title: "Manage Subscription",
+          onTap: () => _openManageSubscription(context),
+        ),
+        _settingTile(
+          context: context,
           icon: Icons.lock_rounded,
           title: "Privacy & Data",
           onTap: () => _openPrivacyPolicy(context),
@@ -406,6 +412,22 @@ class ProfilePage extends StatelessWidget {
           'No email app found. Write to $kSupportEmail',
         );
       }
+    }
+  }
+
+  // ── Manage subscription ────────────────────────────────────────────────────
+
+  /// Opens the Play Store subscriptions page where the user can view, change,
+  /// or cancel their PurePath Pro subscription. Cancellation cannot happen
+  /// inside the app — Google (and Apple) require it to be done in the store —
+  /// so this deep-links out to the store's own management screen.
+  Future<void> _openManageSubscription(BuildContext context) async {
+    final opened = await launchUrl(
+      Uri.parse(kManageSubscriptionUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && context.mounted) {
+      AppSnackBar.error(context, 'Could not open subscription settings.');
     }
   }
 
