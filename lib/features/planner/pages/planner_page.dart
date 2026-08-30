@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
+import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
+import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 import 'package:purepath/features/planner/models/planner_task.dart';
 import 'package:purepath/features/planner/widgets/planner_task_sheet.dart';
@@ -74,6 +76,12 @@ class _PlannerPageState extends State<PlannerPage> {
   // ── Task actions ────────────────────────────────────────────────────────────
 
   void _onAdd(BuildContext context, int hour) {
+    // Scheduling tasks is a Pro feature — free users hit the paywall first.
+    if (!context.read<SubscriptionBloc>().state.isPro) {
+      AppRoute.paywall.push(context);
+      return;
+    }
+
     final bloc = context.read<PlannerBloc>();
     final date = bloc.state.selectedDate;
     PlannerTaskSheet.showAdd(

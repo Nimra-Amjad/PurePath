@@ -250,15 +250,24 @@ class FirestoreHomeRepository implements HomeRepository {
     // No gap in range → streak is healthy. Gap too old → not restorable.
     if (i > _restoreWindow || i > _maxBreakAgeDays) return null;
 
-    // Collect the consecutive missed days (the gap).
-    final missed = <DateTime>[];
-    while (i <= _restoreWindow && !done[i]) {
-      missed.add(today.subtract(Duration(days: i)));
-      i++;
+    // Find the deepest completed day still inside the window — the anchor the
+    // current run reconnects to. Everything missing *between* the gap top and
+    // that day gets frozen in one go. Freezing only the first contiguous gap
+    // (the old behaviour) left any second, older gap behind, so the banner
+    // reappeared on the next recompute and survived an app restart.
+    int lastDone = -1;
+    for (int j = i; j <= _restoreWindow; j++) {
+      if (done[j]) lastDone = j;
     }
+    // Need a completed day below the gap to reconnect to.
+    if (lastDone < i) return null;
 
-    // Need a completed run right below the gap to reconnect to.
-    if (i > _restoreWindow || missed.isEmpty) return null;
+    // Every missed day bridging the current run to that anchor day.
+    final missed = <DateTime>[
+      for (int j = i; j < lastDone; j++)
+        if (!done[j]) today.subtract(Duration(days: j)),
+    ];
+    if (missed.isEmpty) return null;
 
     // What the streak becomes once those days are frozen.
     final recovered = await _streakWith(uid, extraFrozen: missed.toSet());
