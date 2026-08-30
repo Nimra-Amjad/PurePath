@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -150,27 +153,8 @@ class _TaskCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Check toggle ────────────────────────────────────────────
-            GestureDetector(
-              onTap: onToggle,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.only(top: 1),
-                decoration: BoxDecoration(
-                  color: done ? kPrimaryGreenColor : kTransparentColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: done ? kPrimaryGreenColor : kLightGreyColor,
-                    width: 1.5,
-                  ),
-                ),
-                child: done
-                    ? const Icon(Icons.check, size: 14, color: kBlackColor)
-                    : null,
-              ),
-            ),
+            // ── Check toggle (with completion burst) ────────────────────
+            _TaskCheck(done: done, onToggle: onToggle),
             Space.horizontal(10),
 
             // ── Title + note ────────────────────────────────────────────
@@ -207,4 +191,181 @@ class _TaskCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Task check
+//
+// The round check toggle plus its completion celebration — the same burst the
+// home habit tile plays: a radiating ring, sparkle dots shooting outward, the
+// check springing in with an elastic "pop", and a light haptic tap. The
+// transition is detected in [didUpdateWidget] off the real (bloc-driven) [done]
+// flag, so the burst fires on a fresh completion only — never on a plain rebuild
+// or when un-checking. A non-clipping [Stack] lets the burst spill past the
+// 22×22 circle.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TaskCheck extends StatefulWidget {
+  const _TaskCheck({required this.done, required this.onToggle});
+
+  final bool done;
+  final VoidCallback onToggle;
+
+  @override
+  State<_TaskCheck> createState() => _TaskCheckState();
+}
+
+class _TaskCheckState extends State<_TaskCheck>
+    with SingleTickerProviderStateMixin {
+  static const double _size = 22;
+
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+      // Start settled when already done, so re-selecting the day (a plain
+      // rebuild) shows the check with no burst — only a fresh completion
+      // animates from zero.
+      value: widget.done ? 1.0 : 0.0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _TaskCheck oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final was = oldWidget.done;
+    final now = widget.done;
+
+    if (!was && now) {
+      // Just completed → celebrate.
+      HapticFeedback.mediumImpact();
+      _controller.forward(from: 0);
+    } else if (was && !now) {
+      // Un-completed → reset silently so the next completion animates again.
+      _controller.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final done = widget.done;
+    final popScale = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.55, curve: Curves.elasticOut),
+    );
+
+    return GestureDetector(
+      onTap: widget.onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(top: 1),
+        child: SizedBox(
+          width: _size,
+          height: _size,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // ── Burst overlay (ring + sparkles) ──────────────────────────
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  if (!_controller.isAnimating) return const SizedBox.shrink();
+                  return CustomPaint(
+                    size: const Size(_size, _size),
+                    painter: _CheckBurstPainter(progress: _controller.value),
+                  );
+                },
+              ),
+
+              // ── The circle itself ────────────────────────────────────────
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: _size,
+                height: _size,
+                decoration: BoxDecoration(
+                  color: done ? kPrimaryGreenColor : kTransparentColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: done ? kPrimaryGreenColor : kLightGreyColor,
+                    width: 1.5,
+                  ),
+                ),
+                child: done
+                    ? ScaleTransition(
+                        scale: popScale,
+                        child: const Icon(
+                          Icons.check,
+                          size: 14,
+                          color: kBlackColor,
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Check burst painter
+//
+// One frame of the completion celebration: an expanding, fading ring plus six
+// sparkle dots flung outward from the centre, sized for the 22×22 check circle.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CheckBurstPainter extends CustomPainter {
+  const _CheckBurstPainter({required this.progress});
+
+  final double progress;
+
+  static const int _sparkleCount = 6;
+  static const Color _color = kPrimaryGreenColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final eased = Curves.easeOut.transform(progress);
+    final fade = (1.0 - progress).clamp(0.0, 1.0);
+
+    // ── Expanding ring ─────────────────────────────────────────────────────
+    final ringRadius = 11 + eased * 10; // 11 → 21
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5 * fade
+      ..color = _color.withValues(alpha: 0.5 * fade);
+    if (ringPaint.strokeWidth > 0) {
+      canvas.drawCircle(center, ringRadius, ringPaint);
+    }
+
+    // ── Sparkle dots ───────────────────────────────────────────────────────
+    final dotDistance = 6 + eased * 13; // 6 → 19
+    final dotRadius = 2.2 * fade;
+    final dotPaint = Paint()..color = _color.withValues(alpha: fade);
+    if (dotRadius > 0) {
+      for (var i = 0; i < _sparkleCount; i++) {
+        final angle = (2 * math.pi / _sparkleCount) * i - math.pi / 2;
+        final dx = center.dx + math.cos(angle) * dotDistance;
+        final dy = center.dy + math.sin(angle) * dotDistance;
+        canvas.drawCircle(Offset(dx, dy), dotRadius, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CheckBurstPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
