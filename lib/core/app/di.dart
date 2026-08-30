@@ -22,8 +22,12 @@ import 'package:purepath/features/home/bloc/daily_reflection_bloc.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/core/providers/home_provider.dart';
+import 'package:purepath/core/providers/planner_provider.dart';
 import 'package:purepath/core/repositories/firestore_home_repository.dart';
+import 'package:purepath/core/repositories/firestore_planner_repository.dart';
 import 'package:purepath/core/repositories/home_repository.dart';
+import 'package:purepath/core/repositories/planner_repository.dart';
+import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
@@ -84,6 +88,9 @@ class _ProviderDI extends StatelessWidget {
         RepositoryProvider<HomeProvider>(
           create: (_) => HomeProvider(),
         ),
+        RepositoryProvider<PlannerProvider>(
+          create: (_) => PlannerProvider(),
+        ),
         RepositoryProvider<CommunityProvider>(
           create: (_) => CommunityProvider(),
         ),
@@ -130,6 +137,11 @@ class _RepositoryDI extends StatelessWidget {
         RepositoryProvider<HomeRepository>(
           create: (ctx) => FirestoreHomeRepository(
             provider: ctx.read<HomeProvider>(),
+          ),
+        ),
+        RepositoryProvider<PlannerRepository>(
+          create: (ctx) => FirestorePlannerRepository(
+            provider: ctx.read<PlannerProvider>(),
           ),
         ),
         RepositoryProvider<CommunityRepository>(
@@ -193,6 +205,10 @@ class _BlocDI extends StatelessWidget {
         BlocProvider<ManageHabitsBloc>(
           create: (ctx) =>
               ManageHabitsBloc(repository: ctx.read<HomeRepository>()),
+        ),
+        BlocProvider<PlannerBloc>(
+          create: (ctx) =>
+              PlannerBloc(repository: ctx.read<PlannerRepository>()),
         ),
         BlocProvider<DailyReflectionBloc>(
           create: (ctx) =>

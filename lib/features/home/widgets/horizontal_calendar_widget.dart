@@ -32,6 +32,11 @@ class TrainingCalendar extends StatefulWidget {
   /// icon entirely. Used to open the weekly overview sheet.
   final VoidCallback? onOverviewTap;
 
+  /// When true, future days (and future weeks) are selectable — used by the
+  /// planner, where scheduling ahead is the point. Home leaves this false so
+  /// completions can't be logged for days that haven't happened yet.
+  final bool allowFuture;
+
   const TrainingCalendar({
     super.key,
     required this.selectedDate,
@@ -39,6 +44,7 @@ class TrainingCalendar extends StatefulWidget {
     required this.onDateSelected,
     required this.onWeekChanged,
     this.onOverviewTap,
+    this.allowFuture = false,
   });
 
   @override
@@ -81,7 +87,10 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
       return _DayTileData(
         date: date,
         isSelected: DateUtils.isSameDay(date, widget.selectedDate),
-        isFuture: date.isAfter(_dateOnly(DateTime.now())),
+        // When future planning is allowed, no day is treated as "future" — all
+        // tiles render normally and stay tappable.
+        isFuture:
+            !widget.allowFuture && date.isAfter(_dateOnly(DateTime.now())),
       );
     });
   }
@@ -111,7 +120,9 @@ class _TrainingCalendarState extends State<TrainingCalendar> {
               controller: _pageController,
               onPageChanged: (page) {
                 // Block navigation to future weeks — snap back immediately.
-                if (page > _centerPage) {
+                // The planner ([allowFuture]) skips this so users can plan
+                // upcoming weeks.
+                if (!widget.allowFuture && page > _centerPage) {
                   _pageController.jumpToPage(_centerPage);
                   return;
                 }

@@ -11,6 +11,7 @@ import 'package:purepath/features/community/pages/community_page.dart';
 import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/insights/pages/insights_page.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
+import 'package:purepath/features/planner/pages/planner_page.dart';
 import 'package:purepath/features/profile/pages/profile_page.dart';
 
 class BottomNavBarPage extends StatefulWidget {
@@ -24,10 +25,11 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
   int _index = 0;
 
   // Insights is a Pro-only tab. Its position in [_tabs] / the nav bar.
-  static const _insightsIndex = 1;
+  static const _insightsIndex = 2;
 
   static const _tabs = <_HomeTab>[
     _HomeTab(label: 'Home', icon: Assets.svgHomeIcon),
+    _HomeTab(label: 'Planner', icon: Assets.svgPlannerIcon),
     _HomeTab(label: 'Insights', icon: Assets.svgInsightsIcon),
     _HomeTab(label: 'Community', icon: Assets.svgCommunityIcon),
     _HomeTab(label: 'Profile', icon: Assets.svgUserIcon),
@@ -58,6 +60,7 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
           index: _index,
           children: const [
             HomePage(),
+            PlannerPage(),
             InsightsPage(),
             CommunityPage(),
             ProfilePage(),
