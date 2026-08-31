@@ -9,6 +9,7 @@ import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 import 'package:purepath/features/planner/models/planner_task.dart';
+import 'package:purepath/features/planner/widgets/planner_month_calendar.dart';
 import 'package:purepath/features/planner/widgets/planner_task_sheet.dart';
 import 'package:purepath/features/planner/widgets/planner_week_calendar.dart';
 import 'package:purepath/features/planner/widgets/timeline_slot_widget.dart';
@@ -146,23 +147,34 @@ class _PlannerPageState extends State<PlannerPage> {
                 color: kScaffoldColor,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Planner',
-                        style: AppTextStyles.bold.copyWith(
-                          fontSize: 24,
-                          color: kWhiteColor,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Planner',
+                              style: AppTextStyles.bold.copyWith(
+                                fontSize: 24,
+                                color: kWhiteColor,
+                              ),
+                            ),
+                            Space.vertical(4),
+                            Text(
+                              _dateLabel(state.selectedDate),
+                              style: AppTextStyles.normal.copyWith(
+                                fontSize: 14,
+                                color: kLightGreyColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Space.vertical(4),
-                      Text(
-                        _dateLabel(state.selectedDate),
-                        style: AppTextStyles.normal.copyWith(
-                          fontSize: 14,
-                          color: kLightGreyColor,
-                        ),
+                      // Opens the full-month calendar sheet.
+                      _CalendarIconButton(
+                        onTap: () => PlannerMonthCalendar.show(context),
                       ),
                     ],
                   ),
@@ -249,6 +261,36 @@ class _PlannerPageState extends State<PlannerPage> {
                 context.read<PlannerBloc>().add(PlannerTaskToggled(task.id)),
           ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calendar icon button — opens the full-month calendar sheet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CalendarIconButton extends StatelessWidget {
+  const _CalendarIconButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(
+          Icons.calendar_month_rounded,
+          color: kPrimaryGreenColor,
+          size: 22,
+        ),
+      ),
     );
   }
 }

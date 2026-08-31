@@ -24,6 +24,14 @@ final class PlannerWeekChanged extends PlannerEvent {
   PlannerWeekChanged(this.weekStart);
 }
 
+/// Triggered when the month calendar sheet opens or flips to a new month.
+/// Prefetches every day of [month] so its completion rings are populated.
+/// [month] can be any day inside the target month.
+final class PlannerMonthChanged extends PlannerEvent {
+  final DateTime month;
+  PlannerMonthChanged(this.month);
+}
+
 /// Triggered from the add-task sheet after tapping a slot's "+" button.
 final class PlannerTaskAdded extends PlannerEvent {
   final DateTime date;

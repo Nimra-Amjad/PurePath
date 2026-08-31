@@ -34,6 +34,7 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     on<PlannerStarted>(_onStarted);
     on<PlannerDateSelected>(_onDateSelected);
     on<PlannerWeekChanged>(_onWeekChanged);
+    on<PlannerMonthChanged>(_onMonthChanged);
     on<PlannerTaskAdded>(_onTaskAdded);
     on<PlannerTaskUpdated>(_onTaskUpdated);
     on<PlannerTaskToggled>(_onTaskToggled);
@@ -88,6 +89,15 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     final monday = _dateOnly(event.weekStart);
     emit(state.copyWith(visibleWeekStart: monday));
     await _preloadWeek(monday, emit);
+  }
+
+  /// Opening the month sheet (or paging to another month) prefetches that whole
+  /// month so every date tile can show its completion ring.
+  Future<void> _onMonthChanged(
+    PlannerMonthChanged event,
+    Emitter<PlannerState> emit,
+  ) async {
+    await _preloadMonth(event.month, emit);
   }
 
   /// Persists the new task, then reloads the day so the generated id is in play.
@@ -182,6 +192,37 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
       for (int i = 0; i < 7; i++)
         if (!state.tasksByDate.containsKey(monday.add(Duration(days: i))))
           monday.add(Duration(days: i)),
+    ];
+    if (missing.isEmpty) return;
+
+    try {
+      final results = await Future.wait(
+        missing.map(_repository.getTasksForDay),
+      );
+      final merged = {...state.tasksByDate};
+      for (var i = 0; i < missing.length; i++) {
+        merged[missing[i]] = results[i];
+      }
+      emit(state.copyWith(tasksByDate: merged));
+    } catch (_) {
+      // Non-fatal: rings stay empty for the un-fetched days.
+    }
+  }
+
+  /// Fetches any not-yet-cached days of [month] (1 … last day) and merges them
+  /// into the cache in one emit. Best-effort — same contract as [_preloadWeek].
+  Future<void> _preloadMonth(
+    DateTime month,
+    Emitter<PlannerState> emit,
+  ) async {
+    final year = month.year;
+    final m = month.month;
+    // Day 0 of the next month == last day of this month.
+    final daysInMonth = DateTime(year, m + 1, 0).day;
+    final missing = [
+      for (int d = 1; d <= daysInMonth; d++)
+        if (!state.tasksByDate.containsKey(DateTime(year, m, d)))
+          DateTime(year, m, d),
     ];
     if (missing.isEmpty) return;
 
