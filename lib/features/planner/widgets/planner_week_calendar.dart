@@ -156,6 +156,7 @@ class _DayCapsule extends StatelessWidget {
               // On the lime capsule the disc goes dark so the ring + number
               // read clearly; off it, a slightly-raised container tint.
               fillColor: isSelected ? kScaffoldColor : kContainerColor,
+              isSelected: isSelected,
             ),
           ],
         ),
@@ -173,13 +174,19 @@ class _DateCircle extends StatelessWidget {
     required this.day,
     required this.completion,
     required this.fillColor,
+    required this.isSelected,
   });
 
   final int day;
   final double? completion;
   final Color fillColor;
+  final bool isSelected;
 
   static const double _size = 45;
+
+  // On the selected day the ring is pulled in from the disc rim so it reads as
+  // a separate circle instead of merging into the capsule's grey edge.
+  static const double _selectedInset = 3.5;
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +211,12 @@ class _DateCircle extends StatelessWidget {
             curve: Curves.easeOutCubic,
             builder: (_, value, __) => CustomPaint(
               size: const Size(_size, _size),
-              painter: _RingPainter(progress: value),
+              painter: _RingPainter(
+                progress: value,
+                inset: isSelected ? _selectedInset : 0,
+                // Hide the grey empty track on the selected capsule.
+                showTrack: !isSelected,
+              ),
             ),
           ),
           Text(
@@ -226,28 +238,40 @@ class _DateCircle extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.progress});
+  const _RingPainter({
+    required this.progress,
+    this.inset = 0,
+    this.showTrack = true,
+  });
 
   /// Completion fraction in [0, 1].
   final double progress;
+
+  /// Padding pulling the ring in from the disc edge.
+  final double inset;
+
+  /// Whether to draw the faint grey empty track behind the progress arc.
+  final bool showTrack;
 
   static const double _stroke = 1.5;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - _stroke) / 2;
+    final radius = (size.width - _stroke) / 2 - inset;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
     // Empty track.
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _stroke
-        ..color = kLightGreyColor.withValues(alpha: 0.25),
-    );
+    if (showTrack) {
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _stroke
+          ..color = kLightGreyColor.withValues(alpha: 0.25),
+      );
+    }
 
     if (progress <= 0) return;
 
@@ -267,5 +291,7 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress ||
+      oldDelegate.inset != inset ||
+      oldDelegate.showTrack != showTrack;
 }
