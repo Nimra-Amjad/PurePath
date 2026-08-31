@@ -6,11 +6,11 @@ import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/widgets/app_dialog.dart';
 import 'package:purepath/core/widgets/custom_error_view.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/home/widgets/horizontal_calendar_widget.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 import 'package:purepath/features/planner/models/planner_task.dart';
 import 'package:purepath/features/planner/widgets/planner_task_sheet.dart';
+import 'package:purepath/features/planner/widgets/planner_week_calendar.dart';
 import 'package:purepath/features/planner/widgets/timeline_slot_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +71,16 @@ class _PlannerPageState extends State<PlannerPage> {
     final weekday = _weekdayNames[date.weekday - 1];
     final month = _monthNames[date.month - 1];
     return '$weekday, $month ${date.day}';
+  }
+
+  /// Fraction of [date]'s tasks that are checked off, or null when the day has
+  /// no tasks (or hasn't loaded yet) — drives the calendar's completion ring.
+  double? _completionFor(PlannerState state, DateTime date) {
+    final key = DateTime(date.year, date.month, date.day);
+    final tasks = state.tasksByDate[key];
+    if (tasks == null || tasks.isEmpty) return null;
+    final done = tasks.where((t) => t.done).length;
+    return done / tasks.length;
   }
 
   // ── Task actions ────────────────────────────────────────────────────────────
@@ -183,10 +193,9 @@ class _PlannerPageState extends State<PlannerPage> {
                       ),
                     ),
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    child: TrainingCalendar(
+                    child: PlannerWeekCalendar(
                       selectedDate: state.selectedDate,
-                      visibleWeekStart: state.visibleWeekStart,
-                      allowFuture: true,
+                      completionFor: (date) => _completionFor(state, date),
                       onDateSelected: (date) => context
                           .read<PlannerBloc>()
                           .add(PlannerDateSelected(date)),
@@ -258,9 +267,9 @@ class _PinnedCalendarHeader extends SliverPersistentHeaderDelegate {
 
   final Widget child;
 
-  /// Calendar card (~146) + the header's 4/12 vertical padding, plus a small
-  /// safety margin so the child can never exceed the box.
-  static const double _extent = 168;
+  /// Week strip (92) + the header's 4/12 vertical padding + 1px grey edge,
+  /// plus a small safety margin so the child can never exceed the box.
+  static const double _extent = 116;
 
   @override
   double get minExtent => _extent;

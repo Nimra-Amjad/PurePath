@@ -61,6 +61,9 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     Emitter<PlannerState> emit,
   ) async {
     await _loadDay(state.selectedDate, emit, showLoading: true);
+    // Prefetch the rest of the visible week so the calendar's completion rings
+    // are populated for every day, not just the selected one.
+    await _preloadWeek(state.visibleWeekStart, emit);
   }
 
   /// Selecting a day loads its tasks (from cache when already fetched).
@@ -76,10 +79,15 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     await _loadDay(date, emit, showLoading: true);
   }
 
-  /// Swiping to a different week only updates the header label — days load
-  /// lazily as the user taps them.
-  void _onWeekChanged(PlannerWeekChanged event, Emitter<PlannerState> emit) {
-    emit(state.copyWith(visibleWeekStart: _dateOnly(event.weekStart)));
+  /// Swiping to a different week updates the header label and prefetches that
+  /// week's days so their completion rings render immediately.
+  Future<void> _onWeekChanged(
+    PlannerWeekChanged event,
+    Emitter<PlannerState> emit,
+  ) async {
+    final monday = _dateOnly(event.weekStart);
+    emit(state.copyWith(visibleWeekStart: monday));
+    await _preloadWeek(monday, emit);
   }
 
   /// Persists the new task, then reloads the day so the generated id is in play.
@@ -159,6 +167,35 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     } catch (_) {
       // Non-fatal: reload the day so the tile reappears if the delete failed.
       await _loadDay(date, emit);
+    }
+  }
+
+  /// Fetches any not-yet-cached days of the week starting at [weekStart] and
+  /// merges them into the cache in one emit. Best-effort: preload failures are
+  /// swallowed so the calendar simply shows empty rings for those days.
+  Future<void> _preloadWeek(
+    DateTime weekStart,
+    Emitter<PlannerState> emit,
+  ) async {
+    final monday = _dateOnly(weekStart);
+    final missing = [
+      for (int i = 0; i < 7; i++)
+        if (!state.tasksByDate.containsKey(monday.add(Duration(days: i))))
+          monday.add(Duration(days: i)),
+    ];
+    if (missing.isEmpty) return;
+
+    try {
+      final results = await Future.wait(
+        missing.map(_repository.getTasksForDay),
+      );
+      final merged = {...state.tasksByDate};
+      for (var i = 0; i < missing.length; i++) {
+        merged[missing[i]] = results[i];
+      }
+      emit(state.copyWith(tasksByDate: merged));
+    } catch (_) {
+      // Non-fatal: rings stay empty for the un-fetched days.
     }
   }
 
