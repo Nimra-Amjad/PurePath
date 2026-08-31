@@ -219,7 +219,7 @@ class _PlannerMonthCalendarState extends State<PlannerMonthCalendar> {
                   _showMonthYearPicker
                       ? Icons.keyboard_arrow_up_rounded
                       : Icons.keyboard_arrow_down_rounded,
-                  color: kPrimaryGreenColor,
+                  color: kLightGreyColor,
                   size: 24,
                 ),
               ],

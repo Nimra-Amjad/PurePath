@@ -74,6 +74,36 @@ class _PlannerWeekCalendarState extends State<PlannerWeekCalendar> {
     return thisMonday.add(Duration(days: (page - _centerPage) * 7));
   }
 
+  /// The page that shows the week containing [date].
+  int _pageForDate(DateTime date) {
+    final today = _dateOnly(DateTime.now());
+    // Compare Mondays in UTC so daylight-saving shifts can't skew the day count.
+    final thisMonday = today.subtract(Duration(days: today.weekday - 1));
+    final monday = _dateOnly(date).subtract(Duration(days: date.weekday - 1));
+    final diffDays = DateTime.utc(monday.year, monday.month, monday.day)
+        .difference(DateTime.utc(thisMonday.year, thisMonday.month, thisMonday.day))
+        .inDays;
+    return _centerPage + (diffDays ~/ 7);
+  }
+
+  /// When the selected date jumps to another week (e.g. picked from the month
+  /// sheet), page the strip over to that week so the selection stays visible.
+  @override
+  void didUpdateWidget(PlannerWeekCalendar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (DateUtils.isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
+      return;
+    }
+    final target = _pageForDate(widget.selectedDate);
+    final current = _pageController.hasClients
+        ? (_pageController.page?.round() ?? _centerPage)
+        : _centerPage;
+    if (target == current) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients) _pageController.jumpToPage(target);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
