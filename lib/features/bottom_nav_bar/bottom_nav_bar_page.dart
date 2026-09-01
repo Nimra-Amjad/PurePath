@@ -7,7 +7,6 @@ import 'package:purepath/core/constants/assets_constants.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/navigation/app_routes.dart';
 import 'package:purepath/core/utils/utils.dart';
-import 'package:purepath/features/community/pages/community_page.dart';
 import 'package:purepath/features/home/pages/home_page.dart';
 import 'package:purepath/features/insights/pages/insights_page.dart';
 import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
@@ -31,7 +30,6 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
     _HomeTab(label: 'Home', icon: Assets.svgHomeIcon),
     _HomeTab(label: 'Planner', icon: Assets.svgPlannerIcon),
     _HomeTab(label: 'Insights', icon: Assets.svgInsightsIcon),
-    _HomeTab(label: 'Community', icon: Assets.svgCommunityIcon),
     _HomeTab(label: 'Profile', icon: Assets.svgUserIcon),
   ];
 
@@ -62,7 +60,6 @@ class _BottomNavBarPageState extends State<BottomNavBarPage> {
             HomePage(),
             PlannerPage(),
             InsightsPage(),
-            CommunityPage(),
             ProfilePage(),
           ],
         ),

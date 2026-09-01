@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show immutable, listEquals;
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:purepath/core/enums/onboarding_enums.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,9 +30,6 @@ class UserModel {
     this.activityLevel,
     this.notificationsEnabled = false,
     this.hasCelebratedFirstCompletion = false,
-    // ── Community moderation (client-side, per user) ──────────────────────────
-    this.blockedUsers = const [],
-    this.hiddenPosts = const [],
   });
 
   // ── Core identity ──────────────────────────────────────────────────────────
@@ -66,25 +63,6 @@ class UserModel {
   /// True once the user has been shown the one-time "first habit completed"
   /// motivational popup. Persisted so the celebration never repeats.
   final bool hasCelebratedFirstCompletion;
-
-  // ── Community moderation ────────────────────────────────────────────────────
-
-  /// User ids this user has blocked. Every post authored by one of these
-  /// users is filtered out of the community feed client-side. Kept entirely
-  /// separate from [hiddenPosts] — blocking is about a *person*, hiding is
-  /// about a single *post*.
-  final List<String> blockedUsers;
-
-  /// Individual post ids this user has hidden from their own feed. Hiding a
-  /// post never affects its author's other posts. Kept separate from
-  /// [blockedUsers].
-  final List<String> hiddenPosts;
-
-  /// Whether a community notification should be suppressed for this user
-  /// because they blocked its [actorId] or hid its [postId]. Used to keep the
-  /// notification banner and inbox in sync with the feed's hide/block filter.
-  bool suppressesNotification({required String actorId, required String postId}) =>
-      blockedUsers.contains(actorId) || hiddenPosts.contains(postId);
 
   // ── Convenience getters ────────────────────────────────────────────────────
 
@@ -124,8 +102,6 @@ class UserModel {
     String? activityLevel,
     bool? notificationsEnabled,
     bool? hasCelebratedFirstCompletion,
-    List<String>? blockedUsers,
-    List<String>? hiddenPosts,
   }) {
     return UserModel(
       fullName: fullName ?? this.fullName,
@@ -144,8 +120,6 @@ class UserModel {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       hasCelebratedFirstCompletion:
           hasCelebratedFirstCompletion ?? this.hasCelebratedFirstCompletion,
-      blockedUsers: blockedUsers ?? this.blockedUsers,
-      hiddenPosts: hiddenPosts ?? this.hiddenPosts,
     );
   }
 
@@ -168,8 +142,6 @@ class UserModel {
       'activityLevel': activityLevel,
       'notificationsEnabled': notificationsEnabled,
       'hasCelebratedFirstCompletion': hasCelebratedFirstCompletion,
-      'blockedUsers': blockedUsers,
-      'hiddenPosts': hiddenPosts,
     };
   }
 
@@ -198,12 +170,6 @@ class UserModel {
       notificationsEnabled: map['notificationsEnabled'] as bool? ?? false,
       hasCelebratedFirstCompletion:
           map['hasCelebratedFirstCompletion'] as bool? ?? false,
-      blockedUsers:
-          (map['blockedUsers'] as List?)?.map((e) => e.toString()).toList() ??
-          const [],
-      hiddenPosts:
-          (map['hiddenPosts'] as List?)?.map((e) => e.toString()).toList() ??
-          const [],
     );
   }
 
@@ -241,9 +207,7 @@ class UserModel {
         other.challenge == challenge &&
         other.activityLevel == activityLevel &&
         other.notificationsEnabled == notificationsEnabled &&
-        other.hasCelebratedFirstCompletion == hasCelebratedFirstCompletion &&
-        listEquals(other.blockedUsers, blockedUsers) &&
-        listEquals(other.hiddenPosts, hiddenPosts);
+        other.hasCelebratedFirstCompletion == hasCelebratedFirstCompletion;
   }
 
   @override
@@ -262,9 +226,7 @@ class UserModel {
         (challenge?.hashCode ?? 0) ^
         (activityLevel?.hashCode ?? 0) ^
         notificationsEnabled.hashCode ^
-        hasCelebratedFirstCompletion.hashCode ^
-        Object.hashAll(blockedUsers) ^
-        Object.hashAll(hiddenPosts);
+        hasCelebratedFirstCompletion.hashCode;
   }
 
   @override

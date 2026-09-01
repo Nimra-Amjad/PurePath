@@ -12,12 +12,7 @@ import 'package:purepath/core/repositories/app_version_repository.dart';
 import 'package:purepath/core/repositories/firebase_auth_repository.dart';
 import 'package:purepath/core/repositories/subscription_repository.dart';
 import 'package:purepath/core/repositories/user_repository.dart';
-import 'package:purepath/core/services/community_notification_listener.dart';
 import 'package:purepath/core/services/notification_service.dart';
-import 'package:purepath/features/community/bloc/community_bloc.dart';
-import 'package:purepath/core/providers/community_provider.dart';
-import 'package:purepath/core/repositories/community_repository.dart';
-import 'package:purepath/core/repositories/firestore_community_repository.dart';
 import 'package:purepath/features/home/bloc/daily_reflection_bloc.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
@@ -91,9 +86,6 @@ class _ProviderDI extends StatelessWidget {
         RepositoryProvider<PlannerProvider>(
           create: (_) => PlannerProvider(),
         ),
-        RepositoryProvider<CommunityProvider>(
-          create: (_) => CommunityProvider(),
-        ),
         RepositoryProvider<NotificationService>(
           create: (_) => NotificationService(),
         ),
@@ -144,11 +136,6 @@ class _RepositoryDI extends StatelessWidget {
             provider: ctx.read<PlannerProvider>(),
           ),
         ),
-        RepositoryProvider<CommunityRepository>(
-          create: (ctx) => FirestoreCommunityRepository(
-            provider: ctx.read<CommunityProvider>(),
-          ),
-        ),
         // Eager (lazy: false): RevenueCat must be configured at startup so
         // entitlements are known before the user ever opens the paywall, and
         // so the identity stays synced with Firebase Auth for the whole
@@ -160,18 +147,6 @@ class _RepositoryDI extends StatelessWidget {
             userRepository: ctx.read<UserRepository>(),
           )..start(),
           dispose: (r) => r.dispose(),
-        ),
-        // Eager (lazy: false): must run for the whole session so community
-        // events surface as device notifications even when no widget ever
-        // reads it.
-        RepositoryProvider<CommunityNotificationListener>(
-          lazy: false,
-          create: (ctx) => CommunityNotificationListener(
-            communityRepository: ctx.read<CommunityRepository>(),
-            userRepository: ctx.read<UserRepository>(),
-            notificationService: ctx.read<NotificationService>(),
-          )..start(),
-          dispose: (l) => l.dispose(),
         ),
       ],
       child: child,
@@ -217,12 +192,6 @@ class _BlocDI extends StatelessWidget {
         BlocProvider<InsightsBloc>(
           create: (ctx) =>
               InsightsBloc(repository: ctx.read<HomeRepository>()),
-        ),
-        BlocProvider<CommunityBloc>(
-          create: (ctx) => CommunityBloc(
-            repository: ctx.read<CommunityRepository>(),
-            userRepository: ctx.read<UserRepository>(),
-          )..add(CommunityStarted()),
         ),
         BlocProvider<SubscriptionBloc>(
           create: (ctx) => SubscriptionBloc(

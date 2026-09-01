@@ -61,35 +61,6 @@ class SaveOnboardingData extends UserEvent {
   });
 }
 
-// ── Community moderation ──────────────────────────────────────────────────────
-// Block a user / hide a post. Handled by delegating to UserRepository, which
-// optimistically updates the local user; the resulting user-stream emission
-// flows back through [_SyncLocalUser] and rebuilds the feed.
-
-/// Hides a single post from the current user's community feed.
-class PostHidden extends UserEvent {
-  final String postId;
-  PostHidden(this.postId);
-}
-
-/// Un-hides a previously hidden post.
-class PostUnhidden extends UserEvent {
-  final String postId;
-  PostUnhidden(this.postId);
-}
-
-/// Blocks a user — all of their posts are filtered out of the feed.
-class UserBlocked extends UserEvent {
-  final String userId;
-  UserBlocked(this.userId);
-}
-
-/// Unblocks a previously blocked user.
-class UserUnblocked extends UserEvent {
-  final String userId;
-  UserUnblocked(this.userId);
-}
-
 // ── Internal stream sync ──────────────────────────────────────────────────────
 
 class _SyncFirebaseUser extends UserEvent {
