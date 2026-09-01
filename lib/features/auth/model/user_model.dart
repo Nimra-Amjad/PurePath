@@ -19,7 +19,6 @@ class UserModel {
     required this.onboardingStatus,
     required this.email,
     required this.password,
-    this.username,
     this.fcmToken,
     this.imgUrl,
     this.streak = 0,
@@ -34,10 +33,6 @@ class UserModel {
 
   // ── Core identity ──────────────────────────────────────────────────────────
   final String fullName;
-
-  /// Handle-style username chosen during onboarding (e.g. `nimraamjad_5`).
-  /// Distinct from [fullName]; null for users created before this existed.
-  final String? username;
 
   final String uid;
   final OnboardingStatus onboardingStatus;
@@ -88,7 +83,6 @@ class UserModel {
 
   UserModel copyWith({
     String? fullName,
-    String? username,
     String? uid,
     OnboardingStatus? onboardingStatus,
     String? email,
@@ -105,7 +99,6 @@ class UserModel {
   }) {
     return UserModel(
       fullName: fullName ?? this.fullName,
-      username: username ?? this.username,
       uid: uid ?? this.uid,
       onboardingStatus: onboardingStatus ?? this.onboardingStatus,
       email: email ?? this.email,
@@ -128,7 +121,6 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       'fullName': fullName,
-      'username': username,
       'uid': uid,
       'onboardingStatus': onboardingStatus.toValue(),
       'email': email,
@@ -148,7 +140,6 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       fullName: map['fullName'] as String? ?? '',
-      username: map['username'] as String?,
       uid: map['uid'] as String? ?? '',
       onboardingStatus: OnboardingStatus.fromValue(
         map['onboardingStatus'] as String? ?? 'in_progress',
@@ -194,7 +185,6 @@ class UserModel {
   bool operator ==(covariant UserModel other) {
     if (identical(this, other)) return true;
     return other.fullName == fullName &&
-        other.username == username &&
         other.uid == uid &&
         other.onboardingStatus == onboardingStatus &&
         other.email == email &&
@@ -213,7 +203,6 @@ class UserModel {
   @override
   int get hashCode {
     return fullName.hashCode ^
-        (username?.hashCode ?? 0) ^
         uid.hashCode ^
         onboardingStatus.hashCode ^
         email.hashCode ^
@@ -233,7 +222,6 @@ class UserModel {
   String toString() =>
       'UserModel('
       'fullName: $fullName, '
-      'username: $username, '
       'uid: $uid, '
       'onboardingStatus: ${onboardingStatus.toValue()}, '
       'email: $email, '

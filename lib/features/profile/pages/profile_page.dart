@@ -73,7 +73,6 @@ class ProfilePage extends StatelessWidget {
       builder: (context, state) {
         final user = state.user;
         final fullName = (user?.fullName ?? '').trim();
-        final username = (user?.username ?? '').trim();
         final email = user?.email ?? '';
         final displayName = fullName.isEmpty ? 'Welcome' : fullName;
         final initial = fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
@@ -99,16 +98,6 @@ class ProfilePage extends StatelessWidget {
                 color: kWhiteColor,
               ),
             ),
-            if (username.isNotEmpty) ...[
-              Space.vertical(2),
-              Text(
-                '@$username',
-                style: AppTextStyles.normal.copyWith(
-                  fontSize: 14,
-                  color: kPrimaryGreenColor,
-                ),
-              ),
-            ],
             if (email.isNotEmpty) ...[
               Space.vertical(4),
               Text(
@@ -328,8 +317,8 @@ class ProfilePage extends StatelessWidget {
         _settingTile(
           context: context,
           icon: Icons.person_outline_rounded,
-          title: 'Edit Username',
-          onTap: () => _showChangeUsernameSheet(context),
+          title: 'Edit Name',
+          onTap: () => _showEditNameSheet(context),
         ),
         _settingTile(
           context: context,
@@ -457,8 +446,8 @@ class ProfilePage extends StatelessWidget {
 
   // ── Sheets ────────────────────────────────────────────────────────────────
 
-  void _showChangeUsernameSheet(BuildContext context) {
-    AppBottomSheet.show(context, body: const _ChangeUsernameSheet());
+  void _showEditNameSheet(BuildContext context) {
+    AppBottomSheet.show(context, body: const _EditNameSheet());
   }
 
   void _showChangePasswordSheet(BuildContext context) {
@@ -592,20 +581,20 @@ class _Tier {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Change-username sheet
+// Edit-name sheet
 //
 // Pre-fills with the current name. Updates Firestore + local UserBloc state
 // on save so every avatar/initial in the app refreshes automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ChangeUsernameSheet extends StatefulWidget {
-  const _ChangeUsernameSheet();
+class _EditNameSheet extends StatefulWidget {
+  const _EditNameSheet();
 
   @override
-  State<_ChangeUsernameSheet> createState() => _ChangeUsernameSheetState();
+  State<_EditNameSheet> createState() => _EditNameSheetState();
 }
 
-class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
+class _EditNameSheetState extends State<_EditNameSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _controller;
   bool _saving = false;
@@ -643,7 +632,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
     setState(() => _saving = false);
 
     if (ok) {
-      AppSnackBar.success(context, 'Username updated!');
+      AppSnackBar.success(context, 'Name updated!');
       context.pop();
     } else {
       AppSnackBar.error(context, 'Could not update. Please try again.');
@@ -661,7 +650,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Edit Username',
+              'Edit Name',
               style: AppTextStyles.bold.copyWith(
                 fontSize: 20,
                 color: kWhiteColor,
@@ -669,7 +658,7 @@ class _ChangeUsernameSheetState extends State<_ChangeUsernameSheet> {
             ),
             Space.vertical(6),
             Text(
-              'Your name appears on your posts, comments, and replies.',
+              'This is the name shown on your profile.',
               style: AppTextStyles.normal.copyWith(
                 color: textSecondary,
                 fontSize: 13,

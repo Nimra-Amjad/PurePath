@@ -29,20 +29,6 @@ class UserFirestoreProvider {
     await _firestore.collection(_kUsers).doc(uid).update(data);
   }
 
-  /// Whether [username] is already used by an account. Usernames are stored
-  /// lowercase, so an exact-match query is effectively case-insensitive.
-  /// [excludeUid] lets a user keep their own username (their doc doesn't
-  /// count as a conflict).
-  Future<bool> isUsernameTaken(String username, {String? excludeUid}) async {
-    final snap = await _firestore
-        .collection(_kUsers)
-        .where('username', isEqualTo: username)
-        .limit(2)
-        .get();
-
-    return snap.docs.any((doc) => doc.id != excludeUid);
-  }
-
   /// Permanently deletes everything in Firestore that belongs to [uid]:
   /// their `users` doc and every `habits` / `insights` doc they own.
   ///

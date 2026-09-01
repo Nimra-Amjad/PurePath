@@ -188,7 +188,6 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       // NotificationBloc owns that field end-to-end via NotificationToggled.
       final updatedUser = (currentUser ?? UserModel.empty()).copyWith(
         onboardingStatus: OnboardingStatus.completed,
-        username: event.username,
         goal: event.goal,
         challenge: event.challenge,
         activityLevel: event.activityLevel,
@@ -196,7 +195,6 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       userRepository.updateLocalUser(updatedUser);
 
       await userRepository.updateUserDocument({
-        'username': event.username,
         'goal': event.goal,
         'challenge': event.challenge,
         'activityLevel': event.activityLevel,
