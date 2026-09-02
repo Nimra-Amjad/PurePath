@@ -7,6 +7,7 @@ import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/planner/models/planner_task.dart';
+import 'package:purepath/features/planner/widgets/planner_month_calendar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Planner move sheet — "Move to Date & Time"
@@ -57,27 +58,14 @@ class _PlannerMoveSheetState extends State<PlannerMoveSheet> {
     _time = DateTime(_date.year, _date.month, _date.day, widget.task.hour);
   }
 
-  Future<void> _pickFromCalendar() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        // Recolour the Material date picker to the app's dark/lime palette.
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: kPrimaryGreenColor,
-            onPrimary: kBlackColor,
-            surface: kContainerColor,
-            onSurface: kWhiteColor,
-          ),
-          dialogTheme: const DialogThemeData(backgroundColor: kScaffoldColor),
-        ),
-        child: child!,
-      ),
+  void _pickFromCalendar() {
+    // Reuse the planner's own month calendar in picker mode — it hands the date
+    // back here without touching the planner's own selected date.
+    PlannerMonthCalendar.show(
+      context,
+      selectedDate: _date,
+      onDateSelected: (date) => setState(() => _date = _dateOnly(date)),
     );
-    if (picked != null) setState(() => _date = _dateOnly(picked));
   }
 
   void _apply() {

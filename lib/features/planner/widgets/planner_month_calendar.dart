@@ -23,19 +23,43 @@ import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PlannerMonthCalendar extends StatefulWidget {
-  const PlannerMonthCalendar({super.key});
+  const PlannerMonthCalendar({
+    super.key,
+    this.selectedDate,
+    this.onDateSelected,
+  });
+
+  /// The day to highlight. Null → the bloc's current selected date (default
+  /// use, opened from the planner header).
+  final DateTime? selectedDate;
+
+  /// When provided, tapping a day calls this (and closes the sheet) instead of
+  /// changing the planner's own selected date — used as a plain date picker,
+  /// e.g. from the move sheet's calendar icon.
+  final ValueChanged<DateTime>? onDateSelected;
 
   /// Opens the month calendar as a bottom sheet. Wires the sheet to the caller's
   /// [PlannerBloc] so it can read completion data and dispatch selections.
-  static Future<void> show(BuildContext context) {
+  ///
+  /// Pass [onDateSelected] to use it as a picker (the caller receives the date
+  /// and the planner's own selection is left untouched); [selectedDate] sets
+  /// which day opens highlighted.
+  static Future<void> show(
+    BuildContext context, {
+    DateTime? selectedDate,
+    ValueChanged<DateTime>? onDateSelected,
+  }) {
     final bloc = context.read<PlannerBloc>();
-    // Prefetch the currently-selected month so its rings are ready on open.
-    bloc.add(PlannerMonthChanged(bloc.state.selectedDate));
+    // Prefetch the month being shown so its rings are ready on open.
+    bloc.add(PlannerMonthChanged(selectedDate ?? bloc.state.selectedDate));
     return AppBottomSheet.show(
       context,
       body: BlocProvider.value(
         value: bloc,
-        child: const PlannerMonthCalendar(),
+        child: PlannerMonthCalendar(
+          selectedDate: selectedDate,
+          onDateSelected: onDateSelected,
+        ),
       ),
     );
   }
@@ -76,7 +100,8 @@ class _PlannerMonthCalendarState extends State<PlannerMonthCalendar> {
   @override
   void initState() {
     super.initState();
-    final selected = context.read<PlannerBloc>().state.selectedDate;
+    final selected =
+        widget.selectedDate ?? context.read<PlannerBloc>().state.selectedDate;
     _visibleMonth = DateTime(selected.year, selected.month, 1);
     _monthWheel = FixedExtentScrollController(
       initialItem: _visibleMonth.month - 1,
@@ -346,17 +371,27 @@ class _PlannerMonthCalendarState extends State<PlannerMonthCalendar> {
   Widget _cellForDate(DateTime date, PlannerState state, DateTime today) {
     final inMonth =
         date.month == _visibleMonth.month && date.year == _visibleMonth.year;
+    final highlighted = widget.selectedDate ?? state.selectedDate;
+    // Picker mode (from the move sheet) is a plain day chooser: no completion
+    // rings and no "today" marker — just the selected day.
+    final pickerMode = widget.onDateSelected != null;
     return _MonthDayCell(
       day: date.day,
       inMonth: inMonth,
       // Rings/today-marker only for the current month's own days.
-      completion: inMonth ? _completionFor(state, date) : null,
-      isSelected: inMonth && DateUtils.isSameDay(date, state.selectedDate),
-      isToday: inMonth && DateUtils.isSameDay(date, today),
+      completion: (inMonth && !pickerMode) ? _completionFor(state, date) : null,
+      isSelected: inMonth && DateUtils.isSameDay(date, highlighted),
+      isToday: inMonth && !pickerMode && DateUtils.isSameDay(date, today),
       // Neighbouring-month days are display-only (dimmed), not tappable.
       onTap: inMonth
           ? () {
-              context.read<PlannerBloc>().add(PlannerDateSelected(date));
+              final picked = _dateOnly(date);
+              // Picker mode hands the date back; default mode drives the bloc.
+              if (widget.onDateSelected != null) {
+                widget.onDateSelected!(picked);
+              } else {
+                context.read<PlannerBloc>().add(PlannerDateSelected(picked));
+              }
               Navigator.of(context).pop();
             }
           : null,
