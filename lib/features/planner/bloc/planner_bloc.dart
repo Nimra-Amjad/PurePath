@@ -39,6 +39,7 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
     on<PlannerTaskUpdated>(_onTaskUpdated);
     on<PlannerTaskToggled>(_onTaskToggled);
     on<PlannerTaskDeleted>(_onTaskDeleted);
+    on<PlannerTaskMoved>(_onTaskMoved);
   }
 
   // ── Static helpers (no widget dependencies) ─────────────────────────────────
@@ -178,6 +179,57 @@ class PlannerBloc extends Bloc<PlannerEvent, PlannerState> {
       // Non-fatal: reload the day so the tile reappears if the delete failed.
       await _loadDay(date, emit);
     }
+  }
+
+  /// Moves a task to a new day/hour. Within the same day it's a plain hour
+  /// change; across days the task is removed from its old day document and
+  /// re-added to the new one (day is carried by the parent doc, so a task can't
+  /// simply be "updated" onto another date). Afterwards both affected days are
+  /// reloaded and the view follows the task to its new home.
+  Future<void> _onTaskMoved(
+    PlannerTaskMoved event,
+    Emitter<PlannerState> emit,
+  ) async {
+    final oldDate = _dateOnly(event.task.date);
+    final newDate = _dateOnly(event.newDate);
+    final sameDay = oldDate == newDate;
+
+    if (sameDay && event.task.hour == event.newHour) return; // no-op
+
+    try {
+      if (sameDay) {
+        await _repository.updateTask(event.task.copyWith(hour: event.newHour));
+      } else {
+        // Moving a completed task to a day later than today resets it to
+        // not-done (you'll do it again then); moving to today or the past keeps
+        // its completion.
+        final movedDone = event.task.done && !newDate.isAfter(_today);
+        await _repository.deleteTask(date: oldDate, id: event.task.id);
+        // addTask stamps a fresh id and preserves title/note.
+        await _repository.addTask(
+          event.task.copyWith(
+            date: newDate,
+            hour: event.newHour,
+            done: movedDone,
+          ),
+        );
+      }
+    } catch (_) {
+      // Non-fatal: reload the source day so nothing appears lost.
+      await _loadDay(oldDate, emit);
+      return;
+    }
+
+    await _loadDay(oldDate, emit);
+    if (!sameDay) await _loadDay(newDate, emit);
+
+    // Follow the task: select the destination day and bring its week into view.
+    emit(
+      state.copyWith(
+        selectedDate: newDate,
+        visibleWeekStart: _mondayOf(newDate),
+      ),
+    );
   }
 
   /// Fetches any not-yet-cached days of the week starting at [weekStart] and

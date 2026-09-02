@@ -52,19 +52,6 @@ class PlannerTaskSheet extends StatefulWidget {
     );
   }
 
-  /// Opens a read-only detail view of [task]. An "Edit" button hands off to
-  /// the editable sheet via [onEdit].
-  static Future<void> showView(
-    BuildContext context, {
-    required PlannerTask task,
-    required VoidCallback onEdit,
-  }) {
-    return AppBottomSheet.show(
-      context,
-      body: _TaskDetailView(task: task, onEdit: onEdit),
-    );
-  }
-
   /// Opens the sheet pre-filled with [task] for editing.
   static Future<void> showEdit(
     BuildContext context, {
@@ -190,106 +177,6 @@ class _PlannerTaskSheetState extends State<PlannerTaskSheet> {
           PrimaryButton(
             text: _isEditing ? 'Save changes' : 'Add task',
             onPressed: _submit,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Task detail view
-//
-// The read-only counterpart of the sheet, shown from the card's "View" menu.
-// Displays the time slot, title, note and completion state, with an Edit
-// button that closes this sheet and opens the editable one.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TaskDetailView extends StatelessWidget {
-  const _TaskDetailView({required this.task, required this.onEdit});
-
-  final PlannerTask task;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = task.done;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header: time slot + done pill ────────────────────────────────
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: kPrimaryGreenColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  plannerHourLabel(task.hour),
-                  style: AppTextStyles.semiBold.copyWith(
-                    fontSize: 14,
-                    color: kPrimaryGreenColor,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Icon(
-                    done
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    size: 18,
-                    color: done ? kPrimaryGreenColor : kLightGreyColor,
-                  ),
-                  Space.horizontal(6),
-                  Text(
-                    done ? 'Completed' : 'Pending',
-                    style: AppTextStyles.medium.copyWith(
-                      fontSize: 13,
-                      color: done ? kPrimaryGreenColor : kLightGreyColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Space.vertical(20),
-
-          // ── Title ─────────────────────────────────────────────────────────
-          Text(
-            task.title,
-            style: AppTextStyles.semiBold.copyWith(
-              fontSize: 20,
-              color: kWhiteColor,
-            ),
-          ),
-
-          // ── Note (optional) ───────────────────────────────────────────────
-          if (task.note.isNotEmpty) ...[
-            Space.vertical(12),
-            Text(
-              task.note,
-              style: AppTextStyles.normal.copyWith(
-                fontSize: 14,
-                color: kLightGreyColor,
-                height: 1.4,
-              ),
-            ),
-          ],
-          Space.vertical(28),
-
-          PrimaryButton(
-            text: 'Edit task',
-            onPressed: () {
-              context.pop();
-              onEdit();
-            },
           ),
         ],
       ),

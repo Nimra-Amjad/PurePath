@@ -10,6 +10,7 @@ import 'package:purepath/features/paywall/bloc/subscription_bloc.dart';
 import 'package:purepath/features/planner/bloc/planner_bloc.dart';
 import 'package:purepath/features/planner/models/planner_task.dart';
 import 'package:purepath/features/planner/widgets/planner_month_calendar.dart';
+import 'package:purepath/features/planner/widgets/planner_move_sheet.dart';
 import 'package:purepath/features/planner/widgets/planner_task_sheet.dart';
 import 'package:purepath/features/planner/widgets/planner_week_calendar.dart';
 import 'package:purepath/features/planner/widgets/timeline_slot_widget.dart';
@@ -116,11 +117,14 @@ class _PlannerPageState extends State<PlannerPage> {
     );
   }
 
-  void _onTaskView(BuildContext context, PlannerTask task) {
-    PlannerTaskSheet.showView(
+  void _onTaskMove(BuildContext context, PlannerTask task) {
+    final bloc = context.read<PlannerBloc>();
+    PlannerMoveSheet.show(
       context,
       task: task,
-      onEdit: () => _onTaskEdit(context, task),
+      onMove: (date, hour) => bloc.add(
+        PlannerTaskMoved(task: task, newDate: date, newHour: hour),
+      ),
     );
   }
 
@@ -264,7 +268,7 @@ class _PlannerPageState extends State<PlannerPage> {
             hour: hour,
             tasks: tasksByHour[hour] ?? const [],
             onAdd: () => _onAdd(context, hour),
-            onTaskView: (task) => _onTaskView(context, task),
+            onTaskMove: (task) => _onTaskMove(context, task),
             onTaskEdit: (task) => _onTaskEdit(context, task),
             onTaskDelete: (task) => _confirmDelete(context, task),
             onTaskToggle: (task) =>

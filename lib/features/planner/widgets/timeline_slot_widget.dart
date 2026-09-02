@@ -22,7 +22,7 @@ class TimelineSlot extends StatelessWidget {
     required this.hour,
     required this.tasks,
     required this.onAdd,
-    required this.onTaskView,
+    required this.onTaskMove,
     required this.onTaskEdit,
     required this.onTaskDelete,
     required this.onTaskToggle,
@@ -35,7 +35,7 @@ class TimelineSlot extends StatelessWidget {
   final List<PlannerTask> tasks;
 
   final VoidCallback onAdd;
-  final void Function(PlannerTask task) onTaskView;
+  final void Function(PlannerTask task) onTaskMove;
   final void Function(PlannerTask task) onTaskEdit;
   final void Function(PlannerTask task) onTaskDelete;
   final void Function(PlannerTask task) onTaskToggle;
@@ -79,7 +79,7 @@ class TimelineSlot extends StatelessWidget {
                         _TaskCard(
                           task: task,
                           onToggle: () => onTaskToggle(task),
-                          onView: () => onTaskView(task),
+                          onMove: () => onTaskMove(task),
                           onEdit: () => onTaskEdit(task),
                           onDelete: () => onTaskDelete(task),
                         ),
@@ -131,14 +131,14 @@ class _TaskCard extends StatelessWidget {
   const _TaskCard({
     required this.task,
     required this.onToggle,
-    required this.onView,
+    required this.onMove,
     required this.onEdit,
     required this.onDelete,
   });
 
   final PlannerTask task;
   final VoidCallback onToggle;
-  final VoidCallback onView;
+  final VoidCallback onMove;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -198,7 +198,7 @@ class _TaskCard extends StatelessWidget {
             // ── Overflow menu (view · edit · delete) ────────────────────
             Space.horizontal(6),
             _TaskMenuButton(
-              onView: onView,
+              onMove: onMove,
               onEdit: onEdit,
               onDelete: onDelete,
             ),
@@ -220,12 +220,12 @@ class _TaskCard extends StatelessWidget {
 
 class _TaskMenuButton extends StatefulWidget {
   const _TaskMenuButton({
-    required this.onView,
+    required this.onMove,
     required this.onEdit,
     required this.onDelete,
   });
 
-  final VoidCallback onView;
+  final VoidCallback onMove;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -352,9 +352,9 @@ class _TaskMenuButtonState extends State<_TaskMenuButton>
           children: [
             _menuItem(
               index: 0,
-              icon: Icons.visibility_outlined,
-              label: 'View',
-              onTap: () => _select(widget.onView),
+              icon: Icons.drive_file_move_outline,
+              label: 'Move',
+              onTap: () => _select(widget.onMove),
             ),
             _divider(),
             _menuItem(

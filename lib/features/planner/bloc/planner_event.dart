@@ -63,3 +63,17 @@ final class PlannerTaskDeleted extends PlannerEvent {
   final String taskId;
   PlannerTaskDeleted(this.taskId);
 }
+
+/// Triggered when the user moves a task to a different day and/or hour via the
+/// card's "Move" menu. [task] is the original; [newDate] (local midnight) and
+/// [newHour] (0–23) are the destination slot.
+final class PlannerTaskMoved extends PlannerEvent {
+  final PlannerTask task;
+  final DateTime newDate;
+  final int newHour;
+  PlannerTaskMoved({
+    required this.task,
+    required this.newDate,
+    required this.newHour,
+  });
+}
