@@ -104,7 +104,7 @@ class _PlannerPageState extends State<PlannerPage> {
     );
   }
 
-  void _onTaskTap(BuildContext context, PlannerTask task) {
+  void _onTaskEdit(BuildContext context, PlannerTask task) {
     final bloc = context.read<PlannerBloc>();
     PlannerTaskSheet.showEdit(
       context,
@@ -113,6 +113,14 @@ class _PlannerPageState extends State<PlannerPage> {
         PlannerTaskUpdated(task.copyWith(title: title, note: note)),
       ),
       onDelete: () => _confirmDelete(context, task),
+    );
+  }
+
+  void _onTaskView(BuildContext context, PlannerTask task) {
+    PlannerTaskSheet.showView(
+      context,
+      task: task,
+      onEdit: () => _onTaskEdit(context, task),
     );
   }
 
@@ -256,7 +264,9 @@ class _PlannerPageState extends State<PlannerPage> {
             hour: hour,
             tasks: tasksByHour[hour] ?? const [],
             onAdd: () => _onAdd(context, hour),
-            onTaskTap: (task) => _onTaskTap(context, task),
+            onTaskView: (task) => _onTaskView(context, task),
+            onTaskEdit: (task) => _onTaskEdit(context, task),
+            onTaskDelete: (task) => _confirmDelete(context, task),
             onTaskToggle: (task) =>
                 context.read<PlannerBloc>().add(PlannerTaskToggled(task.id)),
           ),

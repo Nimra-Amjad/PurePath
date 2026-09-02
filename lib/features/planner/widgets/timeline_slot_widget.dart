@@ -22,7 +22,9 @@ class TimelineSlot extends StatelessWidget {
     required this.hour,
     required this.tasks,
     required this.onAdd,
-    required this.onTaskTap,
+    required this.onTaskView,
+    required this.onTaskEdit,
+    required this.onTaskDelete,
     required this.onTaskToggle,
   });
 
@@ -33,7 +35,9 @@ class TimelineSlot extends StatelessWidget {
   final List<PlannerTask> tasks;
 
   final VoidCallback onAdd;
-  final void Function(PlannerTask task) onTaskTap;
+  final void Function(PlannerTask task) onTaskView;
+  final void Function(PlannerTask task) onTaskEdit;
+  final void Function(PlannerTask task) onTaskDelete;
   final void Function(PlannerTask task) onTaskToggle;
 
   @override
@@ -74,8 +78,10 @@ class TimelineSlot extends StatelessWidget {
                       for (final task in tasks) ...[
                         _TaskCard(
                           task: task,
-                          onTap: () => onTaskTap(task),
                           onToggle: () => onTaskToggle(task),
+                          onView: () => onTaskView(task),
+                          onEdit: () => onTaskEdit(task),
+                          onDelete: () => onTaskDelete(task),
                         ),
                         if (task != tasks.last) Space.vertical(8),
                       ],
@@ -124,22 +130,24 @@ class _AddButton extends StatelessWidget {
 class _TaskCard extends StatelessWidget {
   const _TaskCard({
     required this.task,
-    required this.onTap,
     required this.onToggle,
+    required this.onView,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final PlannerTask task;
-  final VoidCallback onTap;
   final VoidCallback onToggle;
+  final VoidCallback onView;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final done = task.done;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    // The card body is not tappable — Edit/View/Delete all live in the ⋮ menu.
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: kContainerColor,
           borderRadius: BorderRadius.circular(12),
@@ -186,7 +194,256 @@ class _TaskCard extends StatelessWidget {
                 ],
               ),
             ),
+
+            // ── Overflow menu (view · edit · delete) ────────────────────
+            Space.horizontal(6),
+            _TaskMenuButton(
+              onView: onView,
+              onEdit: onEdit,
+              onDelete: onDelete,
+            ),
           ],
+        ),
+      );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Task menu button
+//
+// The trailing "⋮" on a task card. Tapping it pops a small floating menu with
+// View / Edit / Delete, anchored to the button via a [LayerLink] so it tracks
+// the card on scroll. The menu animates in — the card springs up from the
+// corner (scale + fade) and the rows stagger downward — and reverses out on
+// dismiss. A full-screen translucent barrier catches the outside tap.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TaskMenuButton extends StatefulWidget {
+  const _TaskMenuButton({
+    required this.onView,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final VoidCallback onView;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  State<_TaskMenuButton> createState() => _TaskMenuButtonState();
+}
+
+class _TaskMenuButtonState extends State<_TaskMenuButton>
+    with SingleTickerProviderStateMixin {
+  final LayerLink _link = LayerLink();
+  late final AnimationController _controller;
+  OverlayEntry? _entry;
+
+  static const double _menuWidth = 210;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+  }
+
+  @override
+  void dispose() {
+    _entry?.remove();
+    _entry = null;
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isOpen => _entry != null;
+
+  void _open() {
+    if (_isOpen) return;
+    HapticFeedback.selectionClick();
+    _entry = OverlayEntry(builder: _buildOverlay);
+    Overlay.of(context).insert(_entry!);
+    _controller.forward(from: 0);
+  }
+
+  Future<void> _close() async {
+    if (!_isOpen) return;
+    try {
+      await _controller.reverse();
+    } finally {
+      _entry?.remove();
+      _entry = null;
+    }
+  }
+
+  /// Runs the chosen action after the close animation settles, so the menu
+  /// doesn't linger over a sheet/dialog it just opened.
+  Future<void> _select(VoidCallback action) async {
+    await _close();
+    if (!mounted) return;
+    action();
+  }
+
+  Widget _buildOverlay(BuildContext context) {
+    return Stack(
+      children: [
+        // Outside-tap barrier.
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _close,
+          ),
+        ),
+        // The menu, pinned to the button's bottom-right corner.
+        CompositedTransformFollower(
+          link: _link,
+          showWhenUnlinked: false,
+          targetAnchor: Alignment.bottomRight,
+          followerAnchor: Alignment.topRight,
+          // Drop below the card's bottom border so the menu never overlaps it,
+          // and nudge it toward the right edge to tighten the right gap.
+          offset: const Offset(12, 16),
+          child: Align(
+            alignment: Alignment.topRight,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final v = _controller.value.clamp(0.0, 1.0);
+                final scale = 0.82 + 0.18 * Curves.easeOutBack.transform(v);
+                return Opacity(
+                  opacity: v,
+                  child: Transform.scale(
+                    scale: scale,
+                    alignment: Alignment.topRight,
+                    child: child,
+                  ),
+                );
+              },
+              child: _menuCard(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _menuCard() {
+    return Material(
+      color: kTransparentColor,
+      child: Container(
+        width: _menuWidth,
+        decoration: BoxDecoration(
+          color: kContainerColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kLightGreyColor.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: kBlackColor.withValues(alpha: 0.45),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _menuItem(
+              index: 0,
+              icon: Icons.visibility_outlined,
+              label: 'View',
+              onTap: () => _select(widget.onView),
+            ),
+            _divider(),
+            _menuItem(
+              index: 1,
+              icon: Icons.edit_outlined,
+              label: 'Edit',
+              onTap: () => _select(widget.onEdit),
+            ),
+            _divider(),
+            _menuItem(
+              index: 2,
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete',
+              color: kRedColor,
+              onTap: () => _select(widget.onDelete),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() => Container(
+    height: 1,
+    color: kLightGreyColor.withValues(alpha: 0.1),
+  );
+
+  /// One menu row, staggered in behind the card's own entrance so the three
+  /// options cascade downward.
+  Widget _menuItem({
+    required int index,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color color = kWhiteColor,
+  }) {
+    final start = 0.15 + index * 0.18;
+    final anim = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(start, (start + 0.5).clamp(0.0, 1.0), curve: Curves.easeOut),
+    );
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (context, child) {
+        return Opacity(
+          opacity: anim.value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - anim.value) * -8),
+            child: child,
+          ),
+        );
+      },
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 19, color: color),
+              Space.horizontal(12),
+              Text(
+                label,
+                style: AppTextStyles.medium.copyWith(
+                  fontSize: 14,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _link,
+      child: GestureDetector(
+        onTap: _open,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Icon(
+            Icons.more_vert_rounded,
+            size: 20,
+            color: kLightGreyColor,
+          ),
         ),
       ),
     );
