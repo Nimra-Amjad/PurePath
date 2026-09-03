@@ -16,7 +16,6 @@ enum InsightsStatus { loading, loaded, error }
 class HabitWeeklyStat {
   final String id;
   final String title;
-  final HabitCategory category;
 
   /// How many days within the visible week this habit was completed.
   final int completedDays;
@@ -27,7 +26,6 @@ class HabitWeeklyStat {
   const HabitWeeklyStat({
     required this.id,
     required this.title,
-    required this.category,
     required this.completedDays,
     required this.totalDays,
   });
@@ -96,7 +94,7 @@ class InsightsState {
       for (final habit in day.habits) {
         final entry = accumulator.putIfAbsent(
           habit.id,
-          () => _MutableStat(title: habit.title, category: habit.category),
+          () => _MutableStat(title: habit.title),
         );
         entry.totalDays += 1;
         if (habit.isCompleted) entry.completedDays += 1;
@@ -107,7 +105,6 @@ class InsightsState {
       return HabitWeeklyStat(
         id: e.key,
         title: e.value.title,
-        category: e.value.category,
         completedDays: e.value.completedDays,
         totalDays: e.value.totalDays,
       );
@@ -138,9 +135,8 @@ class InsightsState {
 // Internal mutable accumulator — keeps [habitWeeklyStats] readable.
 class _MutableStat {
   final String title;
-  final HabitCategory category;
   int completedDays = 0;
   int totalDays = 0;
 
-  _MutableStat({required this.title, required this.category});
+  _MutableStat({required this.title});
 }

@@ -237,12 +237,12 @@ class _HabitWeekCard extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: habit.category.color.withOpacityValue(0.18),
+                  color: kHabitAccentColor.withOpacityValue(0.18),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  habit.category.emoji,
-                  style: const TextStyle(fontSize: 17),
+                child: const Text(
+                  kHabitEmoji,
+                  style: TextStyle(fontSize: 17),
                 ),
               ),
               Space.horizontal(10),

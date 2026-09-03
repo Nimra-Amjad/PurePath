@@ -4,7 +4,6 @@ import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/widgets/frequency_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,7 +30,7 @@ class ManageHabitTileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = habit.category.color;
+    const color = kHabitAccentColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -49,9 +48,9 @@ class ManageHabitTileWidget extends StatelessWidget {
           CircleAvatar(
             radius: 22,
             backgroundColor: color.withOpacityValue(0.15),
-            child: Text(
-              habit.category.emoji,
-              style: const TextStyle(fontSize: 18),
+            child: const Text(
+              kHabitEmoji,
+              style: TextStyle(fontSize: 18),
             ),
           ),
           Space.horizontal(12),

@@ -174,8 +174,7 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
           id: h.id,
           title: h.title,
           subtitle: h.subtitle,
-          category: h.category,
-          isDaily: h.isDaily,
+          frequencyLabel: h.frequencyLabel,
           progress: event.completed ? 1.0 : 0.0,
         );
       }).toList();

@@ -13,7 +13,6 @@ import 'package:purepath/features/explore/widgets/configure_predefined_habit_she
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/core/repositories/home_repository.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 import 'package:purepath/features/notifications/bloc/notification_bloc.dart';
@@ -22,9 +21,9 @@ import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Explore Habits (Habit Library)
 //
-// A category-tabbed catalog of suggested habits. The top tab bar lists every
-// [HabitCategory]; tapping a tab shows that category's habits grouped by
-// [IntensityLevel] (Beginner → Intermediate → Advanced).
+// A single flat catalog of suggested habits grouped by [IntensityLevel]
+// (Beginner → Intermediate → Advanced). Habits no longer have categories, so
+// there are no tabs — the user just scrolls the list.
 //
 // Each habit shows a + to add it to the user's habits and, once added, a −
 // to remove it again (with a confirmation dialog). Both paths go through
@@ -33,15 +32,12 @@ import 'package:purepath/features/paywall/utils/habit_limit_gate.dart';
 // shows up everywhere at once.
 //
 // The set of already-added library habits is loaded once on entry (and kept in
-// sync after each add/delete) so the +/− state is correct even after switching
-// tabs or re-opening the screen.
+// sync after each add/delete) so the +/− state is correct even after re-opening
+// the screen.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ExploreHabitsPage extends StatefulWidget {
   const ExploreHabitsPage({super.key});
-
-  /// Categories rendered as tabs, in enum/display order.
-  static const categories = HabitCategory.values;
 
   @override
   State<ExploreHabitsPage> createState() => _ExploreHabitsPageState();
@@ -53,11 +49,9 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
   final Map<String, String> _addedIds = {};
   bool _loading = true;
 
-  /// Stable identity for a library habit (category + title). Two library
-  /// entries never share both, so this uniquely matches a user habit back to
-  /// its catalog row.
-  static String keyFor(HabitCategory category, String title) =>
-      '${category.name}|$title';
+  /// Stable identity for a library habit — its title. Library titles are unique
+  /// across the catalog, so this uniquely matches a user habit back to its row.
+  static String keyFor(String title) => title;
 
   @override
   void initState() {
@@ -75,7 +69,7 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
         _addedIds
           ..clear()
           ..addEntries(
-            habits.map((h) => MapEntry(keyFor(h.category, h.title), h.id)),
+            habits.map((h) => MapEntry(keyFor(h.title), h.id)),
           );
         _loading = false;
       });
@@ -134,128 +128,49 @@ class _ExploreHabitsPageState extends State<ExploreHabitsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ExploreHabitsPage.categories;
-
-    return DefaultTabController(
-      length: categories.length,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: kScaffoldColor,
+      appBar: AppBar(
         backgroundColor: kScaffoldColor,
-        appBar: AppBar(
-          backgroundColor: kScaffoldColor,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leading: CustomBackButton(onTap: () => context.pop()),
-          title: Text(
-            'Habit Library',
-            style: AppTextStyles.bold.copyWith(
-              fontSize: 20,
-              color: kWhiteColor,
-            ),
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(52),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicatorColor: kPrimaryGreenColor,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.label,
-                dividerColor: kTransparentColor,
-                labelColor: kPrimaryGreenColor,
-                unselectedLabelColor: kLightGreyColor,
-                labelStyle: AppTextStyles.semiBold.copyWith(fontSize: 14),
-                unselectedLabelStyle: AppTextStyles.medium.copyWith(
-                  fontSize: 14,
-                ),
-                tabs: [
-                  for (final c in categories)
-                    Tab(
-                      height: 44,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(c.emoji, style: const TextStyle(fontSize: 15)),
-                          Space.horizontal(6),
-                          Text(c.label),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: CustomBackButton(onTap: () => context.pop()),
+        title: Text(
+          'Habit Library',
+          style: AppTextStyles.bold.copyWith(
+            fontSize: 20,
+            color: kWhiteColor,
           ),
         ),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: kPrimaryGreenColor),
-              )
-            : TabBarView(
-                children: [
-                  for (final c in categories)
-                    _CategoryHabitsView(
-                      category: c,
-                      isAdded: (title) =>
-                          _addedIds.containsKey(keyFor(c, title)),
-                      addedId: (title) => _addedIds[keyFor(c, title)],
-                      onAdd: _persistHabit,
-                      onDelete: _deleteHabit,
-                    ),
-                ],
-              ),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Single category tab content — habits grouped by intensity level.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CategoryHabitsView extends StatelessWidget {
-  final HabitCategory category;
-  final bool Function(String title) isAdded;
-  final String? Function(String title) addedId;
-  final Future<void> Function(HabitDefinition habit) onAdd;
-  final Future<void> Function(String id) onDelete;
-
-  const _CategoryHabitsView({
-    required this.category,
-    required this.isAdded,
-    required this.addedId,
-    required this.onAdd,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final byLevel = kHabitLibrary[category] ?? const {};
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      children: [
-        for (final level in IntensityLevel.values) ...[
-          _LevelHeader(level: level),
-          Space.vertical(12),
-          ...(byLevel[level] ?? const <String>[]).map(
-            (habit) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _LibraryHabitCard(
-                title: habit,
-                category: category,
-                isAdded: isAdded(habit),
-                onAdd: onAdd,
-                onDelete: () async {
-                  final id = addedId(habit);
-                  if (id != null) await onDelete(id);
-                },
-              ),
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: kPrimaryGreenColor),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                for (final level in IntensityLevel.values) ...[
+                  _LevelHeader(level: level),
+                  Space.vertical(12),
+                  ...(kHabitLibrary[level] ?? const <String>[]).map(
+                    (habit) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _LibraryHabitCard(
+                        title: habit,
+                        isAdded: _addedIds.containsKey(keyFor(habit)),
+                        onAdd: _persistHabit,
+                        onDelete: () async {
+                          final id = _addedIds[keyFor(habit)];
+                          if (id != null) await _deleteHabit(id);
+                        },
+                      ),
+                    ),
+                  ),
+                  Space.vertical(16),
+                ],
+              ],
             ),
-          ),
-          Space.vertical(16),
-        ],
-      ],
     );
   }
 }
@@ -313,7 +228,6 @@ class _LevelHeader extends StatelessWidget {
 
 class _LibraryHabitCard extends StatefulWidget {
   final String title;
-  final HabitCategory category;
 
   /// Whether this habit already exists in the user's habits.
   final bool isAdded;
@@ -325,7 +239,6 @@ class _LibraryHabitCard extends StatefulWidget {
 
   const _LibraryHabitCard({
     required this.title,
-    required this.category,
     required this.isAdded,
     required this.onAdd,
     required this.onDelete,
@@ -345,7 +258,6 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
     // options. The spinner only appears once they tap "Add Habit".
     final habit = await ConfigurePredefinedHabitSheet.show(
       context,
-      category: widget.category,
       title: widget.title,
     );
     if (habit == null || !mounted) return;
@@ -379,8 +291,6 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryColor = widget.category.color;
-
     return GestureDetector(
       // Tapping anywhere on an un-added tile opens the configure sheet; an
       // already-added tile only responds to its − (remove) button.
@@ -398,10 +308,10 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: categoryColor.withValues(alpha: 0.2),
-              child: Text(
-                widget.category.emoji,
-                style: const TextStyle(fontSize: 15),
+              backgroundColor: kHabitAccentColor.withValues(alpha: 0.2),
+              child: const Text(
+                kHabitEmoji,
+                style: TextStyle(fontSize: 15),
               ),
             ),
             Space.horizontal(12),

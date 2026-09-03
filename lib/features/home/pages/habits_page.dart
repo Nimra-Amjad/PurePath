@@ -102,8 +102,8 @@ class _LoadedView extends StatelessWidget {
   const _LoadedView({required this.habits});
 
   // ── Edit ─────────────────────────────────────────────────────────────────
-  // Navigate to EditHabitPage. ManageHabitsBloc is globally provided in DI so
-  // no explicit BlocProvider.value wrapping is needed.
+  // Navigate to HabitFormPage in edit mode (passing the habit). ManageHabitsBloc
+  // is globally provided in DI so no explicit BlocProvider.value wrapping is needed.
 
   void _onEdit(BuildContext context, HabitDefinition habit) {
     AppRoute.editHabit.push(context, extra: habit);

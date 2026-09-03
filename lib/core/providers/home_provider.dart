@@ -9,16 +9,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 //
 // 1) `habits/{uid}/habits`  — habit definitions (one doc per habit).
 //    {
-//      id:           <doc id, also stored as a field for convenience>
-//      userId:       <Firebase auth uid of the creator>
-//      title:        String
-//      category:     String   (HabitCategory.name)
-//      type:         String   (HabitType.name)
-//      isDaily:      bool
-//      weekDays:     [int]    (0 = Mon … 6 = Sun, empty when isDaily)
-//      reminderTime: String
-//      createdAt:    Timestamp
+//      id:              <doc id, also stored as a field for convenience>
+//      userId:          <Firebase auth uid of the creator>
+//      title:           String
+//      type:            String  (HabitType.name — custom | predefined)
+//      scheduleType:    String  (HabitSchedule.name — everyDay | weekDays | monthDays)
+//      weekDays:        [int]   (0 = Mon … 6 = Sun; used when scheduleType == weekDays)
+//      monthDays:       [int]   (1 … 31;            used when scheduleType == monthDays)
+//      reminderEnabled: bool    (whether a reminder notification is set)
+//      reminderTime:    String  (e.g. "7:30 AM"; empty when no reminder)
+//      startDateMillis: int     (local-midnight millis — first active day)
+//      endDateMillis:   int?    (local-midnight millis — last active day, or null)
+//      createdAt:       Timestamp
 //    }
+//    (Habits no longer have a `category`; older docs may still carry a legacy
+//     `isDaily` bool, which is read as everyDay/weekDays for back-compat.)
 //
 // 2) `insights/{uid}/days/{yyyymmdd}` — one doc per (user, date) recording
 //    which habits the user completed that day. Days live in a per-user

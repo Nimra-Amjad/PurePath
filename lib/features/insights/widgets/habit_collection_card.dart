@@ -3,7 +3,6 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/models/habit_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit collection card
@@ -61,19 +60,27 @@ class HabitCollectionCard extends StatelessWidget {
   }
 
   /// Whether the habit is scheduled to run on [date] (inside its active window
-  /// and on a matching weekday for weekly habits).
+  /// and on a matching day for its schedule).
   bool _isScheduled(DateTime date) {
-    if (!habit.isActiveOn(date)) return false;
-    if (habit.isDaily) return true;
-    return habit.weekDays.contains(date.weekday - 1);
+    return habit.isActiveOn(date) && habit.runsOn(date);
   }
 
-  /// "Everyday" for daily habits, otherwise "N times a week".
+  /// Compact schedule label shown top-right, e.g. "Everyday",
+  /// "3 times a week", or "2 times a month".
   String get _frequencyLabel {
-    if (habit.isDaily || habit.weekDays.length >= 7) return 'Everyday';
-    final n = habit.weekDays.length;
-    if (n <= 1) return '1 time a week';
-    return '$n times a week';
+    switch (habit.schedule) {
+      case HabitSchedule.everyDay:
+        return 'Everyday';
+      case HabitSchedule.weekDays:
+        final n = habit.weekDays.length;
+        if (n >= 7) return 'Everyday';
+        if (n <= 1) return '1 time a week';
+        return '$n times a week';
+      case HabitSchedule.monthDays:
+        final n = habit.monthDays.length;
+        if (n <= 1) return '1 time a month';
+        return '$n times a month';
+    }
   }
 
   @override
@@ -101,7 +108,7 @@ class HabitCollectionCard extends StatelessWidget {
           // ── Header: emoji + title  ···  frequency ─────────────────────────
           Row(
             children: [
-              Text(habit.category.emoji, style: const TextStyle(fontSize: 18)),
+              const Text(kHabitEmoji, style: TextStyle(fontSize: 18)),
               Space.horizontal(8),
               Expanded(
                 child: Text(

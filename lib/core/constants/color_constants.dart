@@ -41,3 +41,9 @@ const kContainerColorContrast = Color(0xff222223);
 const kRedColor = Color(0xFFef233c);
 const kTransparentColor = Colors.transparent;
 const kPurpleColor = Color(0xFF6C4DFF);
+
+// ── Habit defaults ───────────────────────────────────────────────────────────
+// Habits no longer have a category, so every habit uses one shared accent color
+// and emoji wherever an icon/avatar is shown (tiles, insights, overview).
+const kHabitAccentColor = kPrimaryGreenColor;
+const kHabitEmoji = '🎯';

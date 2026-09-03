@@ -320,8 +320,8 @@ class _HomePageState extends State<HomePage> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit library banner
 //
-// Tappable entry point on the home screen that opens the category-tabbed
-// Habit Library (suggested habits grouped by intensity level).
+// Tappable entry point on the home screen that opens the Habit Library
+// (suggested habits grouped by intensity level).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HabitLibraryBanner extends StatelessWidget {
@@ -366,7 +366,7 @@ class _HabitLibraryBanner extends StatelessWidget {
                   ),
                   Space.vertical(2),
                   Text(
-                    'Browse habits by category & level',
+                    'Browse suggested habits by level',
                     style: AppTextStyles.normal.copyWith(
                       fontSize: 12,
                       color: kLightGreyColor,

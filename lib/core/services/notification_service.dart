@@ -89,24 +89,32 @@ class NotificationService {
 
   // ── Scheduling ─────────────────────────────────────────────────────────────
 
-  /// Replaces every scheduled habit reminder with one entry per habit that
-  /// has a non-empty `reminderTime`. Daily habits fire every day; weekly
-  /// habits fire on each selected weekday. Habits without a reminderTime are
-  /// silently skipped.
+  /// Replaces every scheduled habit reminder with one entry per habit that has
+  /// its reminder turned on and a valid `reminderTime`. Fires every day for
+  /// [HabitSchedule.everyDay], on each selected weekday for
+  /// [HabitSchedule.weekDays], and on each selected day of the month for
+  /// [HabitSchedule.monthDays]. Habits with the reminder toggle off are skipped.
   Future<void> scheduleHabits(List<HabitDefinition> habits) async {
     if (!_isInitialized) await initialize();
 
     await cancelAll();
 
     for (final habit in habits) {
+      if (!habit.reminderEnabled) continue;
       final time = _parseTime(habit.reminderTime);
       if (time == null) continue;
 
       try {
-        if (habit.isDaily) {
-          await _scheduleDaily(habit, time);
-        } else {
-          await _scheduleWeekly(habit, time);
+        switch (habit.schedule) {
+          case HabitSchedule.everyDay:
+            await _scheduleDaily(habit, time);
+            break;
+          case HabitSchedule.weekDays:
+            await _scheduleWeekly(habit, time);
+            break;
+          case HabitSchedule.monthDays:
+            await _scheduleMonthly(habit, time);
+            break;
         }
       } catch (e) {
         debugPrint('Failed to schedule "${habit.title}": $e');
@@ -154,6 +162,24 @@ class NotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: 'habit:${habit.id}',
+      );
+    }
+  }
+
+  Future<void> _scheduleMonthly(HabitDefinition habit, TimeOfDay time) async {
+    // monthDays: 1 … 31 (calendar date of the month).
+    for (final monthDay in habit.monthDays) {
+      await _plugin.zonedSchedule(
+        _idFor(habit.id, monthDay),
+        'Time for ${habit.title}',
+        _bodyFor(habit),
+        _nextInstanceOfMonthDay(monthDay, time),
+        _details(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
         payload: 'habit:${habit.id}',
       );
     }
@@ -216,11 +242,13 @@ class NotificationService {
   // ── Internals: helpers ─────────────────────────────────────────────────────
 
   /// Maps a Firestore habit id to a stable positive 31-bit int used by the
-  /// platform scheduler. Weekly habits add their weekday index (0..6) on
-  /// top; the base is multiplied by 8 to leave room for that offset.
-  int _idFor(String habitId, [int weekdayOffset = 0]) {
-    final base = (habitId.hashCode & 0x0FFFFFFF) * 8;
-    return base + weekdayOffset;
+  /// platform scheduler. Weekly habits add their weekday index (0..6) and
+  /// monthly habits add their day-of-month (1..31) on top; the base is
+  /// multiplied by 40 to leave room for either offset without overflowing
+  /// a signed 32-bit int.
+  int _idFor(String habitId, [int dayOffset = 0]) {
+    final base = (habitId.hashCode & 0x01FFFFFF) * 40;
+    return base + dayOffset;
   }
 
   /// Parses strings produced by [TimeOfDay.format], which may be 12-hour
@@ -275,6 +303,17 @@ class NotificationService {
   tz.TZDateTime _nextInstanceOfWeekday(int weekday, TimeOfDay time) {
     var scheduled = _nextInstanceOfTime(time);
     while (scheduled.toLocal().weekday != weekday) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
+  }
+
+  /// The next absolute moment matching [monthDay] (1..31) at [time]. Walks
+  /// forward a day at a time so months without that date (e.g. day 31 in
+  /// February) are simply skipped to the next month that has it.
+  tz.TZDateTime _nextInstanceOfMonthDay(int monthDay, TimeOfDay time) {
+    var scheduled = _nextInstanceOfTime(time);
+    while (scheduled.toLocal().day != monthDay) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;

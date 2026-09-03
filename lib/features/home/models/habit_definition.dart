@@ -1,5 +1,3 @@
-import 'package:purepath/features/home/models/habit_model.dart';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit type
 //
@@ -30,32 +28,75 @@ extension HabitTypeExtension on HabitType {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Habit schedule
+//
+// How often a habit runs. This single field replaces the old `isDaily` boolean
+// so the schedule is obvious at a glance — anyone reading the database can tell
+// the mode from one value instead of inferring it from a bool + a list.
+//
+//   everyDay   → runs every single day.            (weekDays & monthDays unused)
+//   weekDays   → runs on specific days of the week. (uses `weekDays`:  0=Mon…6=Sun)
+//   monthDays  → runs on specific dates of the month.(uses `monthDays`: 1…31)
+//
+// Firestore: stored as the `scheduleType` field (HabitSchedule.name).
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum HabitSchedule { everyDay, weekDays, monthDays }
+
+extension HabitScheduleExtension on HabitSchedule {
+  /// Parses a stored `scheduleType` string back into a [HabitSchedule].
+  /// Falls back to [HabitSchedule.everyDay] for unknown / missing values.
+  static HabitSchedule fromString(String? value) {
+    return HabitSchedule.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => HabitSchedule.everyDay,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Habit definition
 //
 // Represents the *configuration* of a habit — what the user set up when they
-// tapped "Create Habit". This is distinct from [HabitModel], which represents
-// the habit's completion status for a specific calendar day.
+// tapped "Save". This is distinct from [HabitModel], which represents the
+// habit's completion status for a specific calendar day.
 //
-// Firestore tip: store each [HabitDefinition] as a document in the user's
-// `users/{uid}/habits` sub-collection.
+// Firestore document shape (collection: `habits/{uid}/habits`):
+//   {
+//     id:              String
+//     title:           String
+//     type:            String   (HabitType.name — custom | predefined)
+//     scheduleType:    String   (HabitSchedule.name — everyDay | weekDays | monthDays)
+//     weekDays:        [int]    (0=Mon…6=Sun; used when scheduleType == weekDays)
+//     monthDays:       [int]    (1…31;        used when scheduleType == monthDays)
+//     reminderEnabled: bool     (whether a reminder notification is set)
+//     reminderTime:    String   (e.g. "7:30 AM"; empty when no reminder)
+//     startDateMillis: int      (local-midnight millis — first active day)
+//     endDateMillis:   int?     (local-midnight millis — last active day, or null)
+//   }
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HabitDefinition {
   final String id;
   final String title;
-  final HabitCategory category;
 
   /// Whether this habit was created by the user ([HabitType.custom]) or added
   /// from the app's predefined library ([HabitType.predefined]).
   final HabitType type;
 
-  /// true  → habit runs every day
-  /// false → habit runs only on [weekDays]
-  final bool isDaily;
+  /// How often the habit runs — see [HabitSchedule].
+  final HabitSchedule schedule;
 
-  /// Indices of active days (0 = Mon … 6 = Sun).
-  /// Empty when [isDaily] is true.
+  /// Indices of active weekdays (0 = Mon … 6 = Sun).
+  /// Only meaningful when [schedule] is [HabitSchedule.weekDays].
   final List<int> weekDays;
+
+  /// Active dates of the month (1 … 31).
+  /// Only meaningful when [schedule] is [HabitSchedule.monthDays].
+  final List<int> monthDays;
+
+  /// Whether a reminder notification is set for this habit.
+  final bool reminderEnabled;
 
   /// Formatted reminder time string, e.g. "7:30 AM". Empty = no reminder.
   final String reminderTime;
@@ -71,22 +112,63 @@ class HabitDefinition {
   const HabitDefinition({
     required this.id,
     required this.title,
-    required this.category,
-    required this.isDaily,
+    required this.schedule,
     required this.startDate,
     this.type = HabitType.custom,
     this.endDate,
     this.weekDays = const [],
+    this.monthDays = const [],
+    this.reminderEnabled = false,
     this.reminderTime = '',
   });
 
   // ── Derived helpers ────────────────────────────────────────────────────────
 
-  /// Short subtitle shown in tile and daily view.
-  String get subtitle => category.label;
+  /// Convenience: true when the habit runs every day.
+  bool get isEveryDay => schedule == HabitSchedule.everyDay;
 
-  /// Human-readable frequency label.
-  String get frequencyLabel => isDaily ? 'Daily' : 'Weekly';
+  /// Short frequency label for badges: "Daily", "Weekly", or "Monthly".
+  String get frequencyLabel {
+    switch (schedule) {
+      case HabitSchedule.everyDay:
+        return 'Daily';
+      case HabitSchedule.weekDays:
+        return 'Weekly';
+      case HabitSchedule.monthDays:
+        return 'Monthly';
+    }
+  }
+
+  /// Human-readable schedule summary shown under the title, e.g.
+  /// "Every day", "Mon, Wed, Fri", or "Day 1, 15".
+  String get subtitle {
+    switch (schedule) {
+      case HabitSchedule.everyDay:
+        return 'Every day';
+      case HabitSchedule.weekDays:
+        if (weekDays.isEmpty) return 'Weekly';
+        const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final sorted = [...weekDays]..sort();
+        return sorted.map((i) => names[i]).join(', ');
+      case HabitSchedule.monthDays:
+        if (monthDays.isEmpty) return 'Monthly';
+        final sorted = [...monthDays]..sort();
+        return 'Day ${sorted.join(', ')}';
+    }
+  }
+
+  /// Whether the habit is scheduled to run on [date] based on its [schedule]
+  /// (ignores the active-window check — combine with [isActiveOn] for that).
+  bool runsOn(DateTime date) {
+    switch (schedule) {
+      case HabitSchedule.everyDay:
+        return true;
+      case HabitSchedule.weekDays:
+        return weekDays.contains(date.weekday - 1); // 0 = Mon … 6 = Sun
+      case HabitSchedule.monthDays:
+        return monthDays.contains(date.day);
+    }
+  }
 
   /// True when [date] falls inside the habit's active window
   /// (between [startDate] and [endDate], inclusive). [endDate] = null means
@@ -108,10 +190,11 @@ class HabitDefinition {
   HabitDefinition copyWith({
     String? id,
     String? title,
-    HabitCategory? category,
     HabitType? type,
-    bool? isDaily,
+    HabitSchedule? schedule,
     List<int>? weekDays,
+    List<int>? monthDays,
+    bool? reminderEnabled,
     String? reminderTime,
     DateTime? startDate,
     DateTime? endDate,
@@ -120,10 +203,11 @@ class HabitDefinition {
     return HabitDefinition(
       id: id ?? this.id,
       title: title ?? this.title,
-      category: category ?? this.category,
       type: type ?? this.type,
-      isDaily: isDaily ?? this.isDaily,
+      schedule: schedule ?? this.schedule,
       weekDays: weekDays ?? this.weekDays,
+      monthDays: monthDays ?? this.monthDays,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
       startDate: startDate ?? this.startDate,
       endDate: clearEndDate ? null : (endDate ?? this.endDate),
@@ -136,10 +220,11 @@ class HabitDefinition {
     return {
       'id': id,
       'title': title,
-      'category': category.name,
       'type': type.name,
-      'isDaily': isDaily,
+      'scheduleType': schedule.name,
       'weekDays': weekDays,
+      'monthDays': monthDays,
+      'reminderEnabled': reminderEnabled,
       'reminderTime': reminderTime,
       'startDateMillis': startDate.millisecondsSinceEpoch,
       'endDateMillis': endDate?.millisecondsSinceEpoch,
@@ -152,23 +237,41 @@ class HabitDefinition {
     final start = startMillis != null
         ? _dateOnly(DateTime.fromMillisecondsSinceEpoch(startMillis))
         : _today();
+
+    final reminderTime = map['reminderTime'] as String? ?? '';
+
     return HabitDefinition(
       id: map['id'] as String? ?? '',
       title: map['title'] as String? ?? '',
-      category: HabitCategoryExtension.fromString(
-        map['category'] as String? ?? '',
-      ),
       type: HabitTypeExtension.fromString(map['type'] as String?),
-      isDaily: map['isDaily'] as bool? ?? true,
+      schedule: _scheduleFromMap(map),
       weekDays:
           (map['weekDays'] as List?)?.map((e) => (e as num).toInt()).toList() ??
               const [],
-      reminderTime: map['reminderTime'] as String? ?? '',
+      monthDays:
+          (map['monthDays'] as List?)?.map((e) => (e as num).toInt()).toList() ??
+              const [],
+      // Older docs had no explicit toggle — treat any saved time as enabled.
+      reminderEnabled:
+          map['reminderEnabled'] as bool? ?? reminderTime.trim().isNotEmpty,
+      reminderTime: reminderTime,
       startDate: start,
       endDate: endMillis != null
           ? _dateOnly(DateTime.fromMillisecondsSinceEpoch(endMillis))
           : null,
     );
+  }
+
+  /// Reads the schedule from a stored doc, staying backward-compatible with the
+  /// old `isDaily` boolean (true → everyDay, false → weekDays).
+  static HabitSchedule _scheduleFromMap(Map<String, dynamic> map) {
+    final raw = map['scheduleType'] as String?;
+    if (raw != null) return HabitScheduleExtension.fromString(raw);
+    final isDaily = map['isDaily'] as bool?;
+    if (isDaily != null) {
+      return isDaily ? HabitSchedule.everyDay : HabitSchedule.weekDays;
+    }
+    return HabitSchedule.everyDay;
   }
 
   static DateTime _today() {

@@ -11,8 +11,7 @@ import 'package:purepath/features/auth/pages/splash_page.dart';
 import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
 import 'package:purepath/features/explore/pages/explore_habits_page.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
-import 'package:purepath/features/home/pages/add_habit_page.dart';
-import 'package:purepath/features/home/pages/edit_habit_page.dart';
+import 'package:purepath/features/home/pages/habit_form_page.dart';
 import 'package:purepath/features/home/pages/habits_page.dart';
 import 'package:purepath/features/insights/pages/habit_collection_page.dart';
 import 'package:purepath/features/paywall/pages/paywall_page.dart';
@@ -67,7 +66,7 @@ final router = GoRouter(
     ),
     GoRoute(
       path: AppRoute.addHabit.path,
-      pageBuilder: (context, state) => _fadePage(state, const AddHabitPage()),
+      pageBuilder: (context, state) => _fadePage(state, const HabitFormPage()),
     ),
     GoRoute(
       path: AppRoute.habits.path,
@@ -82,7 +81,7 @@ final router = GoRouter(
       path: AppRoute.editHabit.path,
       pageBuilder: (context, state) => _fadePage(
         state,
-        EditHabitPage(habit: state.extra as HabitDefinition),
+        HabitFormPage(habit: state.extra as HabitDefinition),
       ),
     ),
     GoRoute(

@@ -79,8 +79,8 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.habit.category.color;
-    final emoji = widget.habit.category.emoji;
+    const color = kHabitAccentColor;
+    const emoji = kHabitEmoji;
 
     return GestureDetector(
       onTap: widget.onTap,

@@ -146,13 +146,10 @@ class FirestoreHomeRepository implements HomeRepository {
 
     for (int dayIndex = 0; dayIndex < 7; dayIndex++) {
       final date = _dateOnly(weekStart.add(Duration(days: dayIndex)));
-      final weekDayIndex = date.weekday - 1; // 0 = Mon … 6 = Sun
 
       final habitsForDay = habits
           .where((h) => h.isActiveOn(date))
-          .where(
-            (h) => h.isDaily || h.weekDays.contains(weekDayIndex),
-          )
+          .where((h) => h.runsOn(date))
           .map((definition) {
             final hasDone = hasDoneByKey[
                   '${definition.id}_${date.millisecondsSinceEpoch}'
@@ -162,8 +159,7 @@ class FirestoreHomeRepository implements HomeRepository {
               id: definition.id,
               title: definition.title,
               subtitle: definition.subtitle,
-              category: definition.category,
-              isDaily: definition.isDaily,
+              frequencyLabel: definition.frequencyLabel,
               progress: hasDone ? 1.0 : 0.0,
             );
           })

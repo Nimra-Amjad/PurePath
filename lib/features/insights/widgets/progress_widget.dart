@@ -3,7 +3,6 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
-import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/insights/bloc/insights_bloc.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +29,7 @@ class ProgressWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = stat.category.color;
+    const color = kHabitAccentColor;
     final percent = (stat.progress * 100).round();
 
     return Container(
@@ -54,10 +53,10 @@ class ProgressWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(13),
                   border: Border.all(color: color.withOpacityValue(0.22)),
                 ),
-                child: Center(
+                child: const Center(
                   child: Text(
-                    stat.category.emoji,
-                    style: const TextStyle(fontSize: 20),
+                    kHabitEmoji,
+                    style: TextStyle(fontSize: 20),
                   ),
                 ),
               ),
