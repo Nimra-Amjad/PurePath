@@ -179,18 +179,11 @@ class _HabitWeek {
 
   _HabitWeek({required this.habit});
 
-  /// Days scheduled up to and including today (future days excluded from the
-  /// denominator so the ratio reads "done so far", not "done out of the whole
-  /// week including days that haven't happened").
-  int scheduledSoFar(DateTime weekStart, DateTime today) {
-    var count = 0;
-    for (var i = 0; i < 7; i++) {
-      final date = weekStart.add(Duration(days: i));
-      final past = !date.isAfter(today);
-      if (days[i] != _DayState.off && past) count++;
-    }
-    return count;
-  }
+  /// Total days the habit is scheduled across the whole week — future days
+  /// included — so the ratio reads "done out of everything scheduled this
+  /// week" (e.g. 4 of 7), not just "done so far".
+  int get scheduledTotal =>
+      days.where((d) => d != _DayState.off).length;
 
   int get completedCount => days.where((d) => d == _DayState.done).length;
 }
@@ -216,7 +209,7 @@ class _HabitWeekCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final habit = habitWeek.habit;
     final today = _today();
-    final scheduled = habitWeek.scheduledSoFar(weekStart, today);
+    final scheduled = habitWeek.scheduledTotal;
     final done = habitWeek.completedCount;
     final percent = scheduled == 0 ? 0 : ((done / scheduled) * 100).round();
 
@@ -349,9 +342,11 @@ class _DayCircle extends StatelessWidget {
       // Not scheduled that day — dim, no border.
       textColor = kLightGreyColor.withOpacityValue(0.35);
     } else if (isToday) {
-      // Today, still open — highlighted lime ring.
-      borderColor = kPrimaryGreenColor;
-      textColor = kPrimaryGreenColor;
+      // Today, still open — normal grey ring like any scheduled day, so it's
+      // clear the habit was scheduled today. (The weekday label stays lime to
+      // still mark today.)
+      borderColor = kLightGreyColor.withOpacityValue(0.4);
+      textColor = kLightGreyColor;
     } else if (isFuture) {
       // Scheduled but not here yet — faint ring.
       borderColor = kLightGreyColor.withOpacityValue(0.3);
@@ -369,9 +364,7 @@ class _DayCircle extends StatelessWidget {
           label,
           style: AppTextStyles.medium.copyWith(
             fontSize: 11,
-            color: isToday
-                ? kPrimaryGreenColor
-                : kLightGreyColor.withOpacityValue(0.8),
+            color: kLightGreyColor.withOpacityValue(0.8),
           ),
         ),
         Space.vertical(6),
