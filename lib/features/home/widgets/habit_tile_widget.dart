@@ -35,7 +35,16 @@ class HabitTileWidget extends StatefulWidget {
   /// Parent is responsible for dispatching [HabitToggled] to [HomeBloc].
   final VoidCallback onTap;
 
-  const HabitTileWidget({super.key, required this.habit, required this.onTap});
+  /// Fades the tile to signal it's read-only — used for future days, which are
+  /// viewable but can't be marked done.
+  final bool dimmed;
+
+  const HabitTileWidget({
+    super.key,
+    required this.habit,
+    required this.onTap,
+    this.dimmed = false,
+  });
 
   @override
   State<HabitTileWidget> createState() => _HabitTileWidgetState();
@@ -87,102 +96,109 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
 
     return GestureDetector(
       onTap: widget.onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          // Completed tiles glow with a soft accent tint washing in from the
-          // left; incomplete tiles stay a flat dark card.
-          gradient: isCompleted
-              ? LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color.alphaBlend(color.withValues(alpha: 0.16), kScaffoldColor),
-                    kScaffoldColor,
-                  ],
-                )
-              : null,
-          color: isCompleted ? null : kContainerColor,
-          border: Border.all(
-            color: isCompleted
-                ? color.withValues(alpha: 0.35)
-                : Colors.white.withValues(alpha: 0.04),
-            width: 1,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: widget.dimmed ? 0.45 : 1.0,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            // Completed tiles glow with a soft accent tint washing in from the
+            // left; incomplete tiles stay a flat dark card.
+            gradient: isCompleted
+                ? LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color.alphaBlend(
+                        color.withValues(alpha: 0.16),
+                        kScaffoldColor,
+                      ),
+                      kScaffoldColor,
+                    ],
+                  )
+                : null,
+            color: isCompleted ? null : kContainerColor,
+            border: Border.all(
+              color: isCompleted
+                  ? color.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.04),
+              width: 1,
+            ),
+            boxShadow: isCompleted
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.10),
+                      blurRadius: 16,
+                      spreadRadius: -4,
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: isCompleted
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.10),
-                    blurRadius: 16,
-                    spreadRadius: -4,
+          child: Row(
+            children: [
+              // ── Left accent bar ──────────────────────────────────────────
+              Container(
+                width: 4,
+                height: 52,
+                margin: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.horizontal(
+                    right: Radius.circular(4),
                   ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            // ── Left accent bar ──────────────────────────────────────────
-            Container(
-              width: 4,
-              height: 52,
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(4),
                 ),
               ),
-            ),
 
-            // ── Title + streak ───────────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.habit.title,
-                      style: AppTextStyles.semiBold.copyWith(
-                        fontSize: 16,
-                        color: isCompleted ? kLightGreyColor : kWhiteColor,
-                      ),
-                    ),
-                    Space.vertical(6),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.local_fire_department_rounded,
-                          size: 16,
-                          color: color,
+              // ── Title + streak ───────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.habit.title,
+                        style: AppTextStyles.semiBold.copyWith(
+                          fontSize: 16,
+                          color: isCompleted ? kLightGreyColor : kWhiteColor,
                         ),
-                        Space.horizontal(5),
-                        Text(
-                          '${widget.habit.streak}',
-                          style: AppTextStyles.semiBold.copyWith(
-                            fontSize: 14,
+                      ),
+                      Space.vertical(6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.local_fire_department_rounded,
+                            size: 16,
                             color: color,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          Space.horizontal(5),
+                          Text(
+                            '${widget.habit.streak}',
+                            style: AppTextStyles.semiBold.copyWith(
+                              fontSize: 14,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // ── Completion badge ─────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: _CompletionBadge(
-                controller: _controller,
-                color: color,
-                isCompleted: isCompleted,
+              // ── Completion badge ─────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: _CompletionBadge(
+                  controller: _controller,
+                  color: color,
+                  isCompleted: isCompleted,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

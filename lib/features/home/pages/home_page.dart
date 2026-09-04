@@ -97,6 +97,10 @@ class _HomePageState extends State<HomePage> {
               TrainingCalendar(
                 selectedDate: state.selectedDate,
                 visibleWeekStart: state.visibleWeekStart,
+                // Future days are viewable so users can look ahead at what's
+                // scheduled — but completions stay blocked for them (see the
+                // future-day guard in the habit tile's onTap below).
+                allowFuture: true,
                 onDateSelected: (date) {
                   context.read<HomeBloc>().add(HomeDateSelected(date));
                 },
@@ -156,6 +160,13 @@ class _HomePageState extends State<HomePage> {
 
         // Summary missing means the user swiped to a week that's still loading.
         if (summary == null) return const _LoadingView();
+
+        // Future days are viewable but read-only — a completion can't be logged
+        // for a day that hasn't happened yet.
+        final today = DateTime.now();
+        final selected = state.selectedDate;
+        final isFutureDay = DateTime(selected.year, selected.month, selected.day)
+            .isAfter(DateTime(today.year, today.month, today.day));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +245,13 @@ class _HomePageState extends State<HomePage> {
                 (habit) => HabitTileWidget(
                   key: ValueKey(habit.id),
                   habit: habit,
+                  dimmed: isFutureDay,
                   onTap: () async {
+                    // Future days are look-ahead only — a completion can't be
+                    // logged for a day that hasn't happened yet. The tile is
+                    // faded to signal this; the tap simply does nothing.
+                    if (isFutureDay) return;
+
                     final home = context.read<HomeBloc>();
                     final insights = context.read<InsightsBloc>();
                     final userRepo = context.read<UserRepository>();
