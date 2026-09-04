@@ -6,13 +6,17 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
-import 'package:purepath/features/home/widgets/frequency_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit tile widget
 //
-// Displays one habit row: category emoji avatar, title, subtitle,
-// and an animated checkmark badge.
+// Displays one habit row: a colored accent bar on the left edge, the title,
+// a flame + streak count, and a circular completion badge on the right.
+//
+// A completed tile is highlighted — a soft accent-tinted gradient washes in
+// from the left edge, a faint accent border wraps the card, and the title dims
+// to show the day's work is done. An incomplete tile stays flat and dark with a
+// bright white title and a hollow outline circle waiting to be tapped.
 //
 // Tapping fires [onTap] → parent dispatches [HabitToggled] to [HomeBloc],
 // which toggles completion and propagates the change to both the calendar
@@ -79,49 +83,104 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
   @override
   Widget build(BuildContext context) {
     final color = widget.habit.accentColor;
+    final isCompleted = widget.habit.isCompleted;
 
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: kContainerColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          // Completed tiles glow with a soft accent tint washing in from the
+          // left; incomplete tiles stay a flat dark card.
+          gradient: isCompleted
+              ? LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color.alphaBlend(color.withValues(alpha: 0.16), kScaffoldColor),
+                    kScaffoldColor,
+                  ],
+                )
+              : null,
+          color: isCompleted ? null : kContainerColor,
+          border: Border.all(
+            color: isCompleted
+                ? color.withValues(alpha: 0.35)
+                : Colors.white.withValues(alpha: 0.04),
+            width: 1,
+          ),
+          boxShadow: isCompleted
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.10),
+                    blurRadius: 16,
+                    spreadRadius: -4,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            // Title, subtitle, and frequency badge
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.habit.title,
-                    style: AppTextStyles.bold.copyWith(color: kWhiteColor),
-                  ),
-                  Space.vertical(3),
-                  Text(
-                    widget.habit.subtitle,
-                    style: AppTextStyles.normal.copyWith(
-                      color: kSecondaryGreyColor,
-                    ),
-                  ),
-                  Space.vertical(5),
-                  FrequencyBadge(
-                    label: widget.habit.frequencyLabel,
-                    color: color,
-                  ),
-                ],
+            // ── Left accent bar ──────────────────────────────────────────
+            Container(
+              width: 4,
+              height: 52,
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: const BorderRadius.horizontal(
+                  right: Radius.circular(4),
+                ),
               ),
             ),
-            Space.horizontal(12),
 
-            // Checkmark badge with completion celebration.
-            _CompletionBadge(
-              controller: _controller,
-              color: color,
-              isCompleted: widget.habit.isCompleted,
+            // ── Title + streak ───────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.habit.title,
+                      style: AppTextStyles.semiBold.copyWith(
+                        fontSize: 16,
+                        color: isCompleted ? kLightGreyColor : kWhiteColor,
+                      ),
+                    ),
+                    Space.vertical(6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 16,
+                          color: color,
+                        ),
+                        Space.horizontal(5),
+                        Text(
+                          '${widget.habit.streak}',
+                          style: AppTextStyles.semiBold.copyWith(
+                            fontSize: 14,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Completion badge ─────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _CompletionBadge(
+                controller: _controller,
+                color: color,
+                isCompleted: isCompleted,
+              ),
             ),
           ],
         ),
@@ -138,7 +197,10 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
 //   • a radiating ring that expands and fades,
 //   • sparkle dots that shoot outward,
 //   • the check icon springing in with an elastic "pop".
-// A non-clipping [Stack] lets the burst spill past the 28×28 badge bounds.
+//
+// Completed → a solid accent disc with a dark check. Incomplete → a hollow
+// ring with a faint grey outline, waiting to be tapped.
+// A non-clipping [Stack] lets the burst spill past the badge bounds.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CompletionBadge extends StatelessWidget {
@@ -152,7 +214,7 @@ class _CompletionBadge extends StatelessWidget {
     required this.isCompleted,
   });
 
-  static const double _size = 28;
+  static const double _size = 34;
 
   @override
   Widget build(BuildContext context) {
@@ -190,14 +252,20 @@ class _CompletionBadge extends StatelessWidget {
             height: _size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isCompleted ? color : kWhiteColor,
+              color: isCompleted ? color : kTransparentColor,
+              border: isCompleted
+                  ? null
+                  : Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      width: 2,
+                    ),
             ),
             child: isCompleted
                 ? ScaleTransition(
                     scale: popScale,
                     child: const Icon(
-                      Icons.check,
-                      size: 16,
+                      Icons.check_rounded,
+                      size: 20,
                       color: kBlackColor,
                     ),
                   )
@@ -231,7 +299,7 @@ class _BurstPainter extends CustomPainter {
     final fade = (1.0 - progress).clamp(0.0, 1.0);
 
     // ── Expanding ring ─────────────────────────────────────────────────────
-    final ringRadius = 14 + eased * 12; // 14 → 26
+    final ringRadius = 17 + eased * 14; // 17 → 31
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5 * fade
@@ -241,7 +309,7 @@ class _BurstPainter extends CustomPainter {
     }
 
     // ── Sparkle dots ───────────────────────────────────────────────────────
-    final dotDistance = 8 + eased * 16; // 8 → 24
+    final dotDistance = 10 + eased * 18; // 10 → 28
     final dotRadius = 2.4 * fade;
     final dotPaint = Paint()..color = color.withValues(alpha: fade);
     if (dotRadius > 0) {

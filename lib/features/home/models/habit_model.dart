@@ -32,6 +32,10 @@ class HabitModel {
   /// The habit's chosen accent color as an ARGB int, or null for the default.
   final int? colorValue;
 
+  /// The current consecutive-day streak for this habit, shown next to the
+  /// flame on the tile. Static 0 for now until per-habit streaks are wired up.
+  final int streak;
+
   const HabitModel({
     required this.id,
     required this.title,
@@ -39,6 +43,7 @@ class HabitModel {
     required this.progress,
     this.frequencyLabel = 'Daily',
     this.colorValue,
+    this.streak = 0,
   });
 
   bool get isCompleted => progress >= 1.0;
