@@ -229,23 +229,9 @@ class _HabitWeekCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: emoji + title  ···  frequency ──────────────────────
+          // ── Header: title  ···  frequency ──────────────────────────────
           Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: kHabitAccentColor.withOpacityValue(0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  kHabitEmoji,
-                  style: TextStyle(fontSize: 17),
-                ),
-              ),
-              Space.horizontal(10),
               Expanded(
                 child: Text(
                   habit.title,

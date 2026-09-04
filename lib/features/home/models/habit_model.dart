@@ -8,9 +8,12 @@
 //   • [isCompleted] → shows the checkmark badge in the habit tile
 //   • DaySummary.overallProgress → drives the arc ring in the calendar
 //
-// Habits no longer carry a category — every habit shares one accent color and
-// emoji (see kHabitAccentColor / kHabitEmoji in color_constants.dart).
+// Each habit carries an optional accent color chosen by the user; when unset,
+// [accentColor] falls back to the shared default (see color_constants.dart).
 // ─────────────────────────────────────────────────────────────────────────────
+
+import 'package:flutter/material.dart';
+import 'package:purepath/core/constants/color_constants.dart';
 
 class HabitModel {
   final String id;
@@ -26,13 +29,21 @@ class HabitModel {
   /// "Daily", "Weekly", or "Monthly".
   final String frequencyLabel;
 
+  /// The habit's chosen accent color as an ARGB int, or null for the default.
+  final int? colorValue;
+
   const HabitModel({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.progress,
     this.frequencyLabel = 'Daily',
+    this.colorValue,
   });
 
   bool get isCompleted => progress >= 1.0;
+
+  /// The color to tint this habit with, falling back to the shared default.
+  Color get accentColor =>
+      colorValue != null ? Color(colorValue!) : kHabitAccentColor;
 }

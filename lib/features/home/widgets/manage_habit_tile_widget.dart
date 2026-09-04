@@ -30,7 +30,7 @@ class ManageHabitTileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = kHabitAccentColor;
+    final color = habit.accentColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -44,17 +44,6 @@ class ManageHabitTileWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // ── Category emoji avatar ───────────────────────────────────────
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: color.withOpacityValue(0.15),
-            child: const Text(
-              kHabitEmoji,
-              style: TextStyle(fontSize: 18),
-            ),
-          ),
-          Space.horizontal(12),
-
           // ── Title + meta ────────────────────────────────────────────────
           Expanded(
             child: Column(

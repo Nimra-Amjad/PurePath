@@ -5,7 +5,6 @@ import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/app_bottom_sheet.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
-import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/widgets/habit_form_fields.dart';
 
@@ -117,24 +116,12 @@ class _ConfigurePredefinedHabitSheetState
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── Header: habit being added ──────────────────────────────────────
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: kHabitAccentColor.withValues(alpha: 0.2),
-                child: const Text(kHabitEmoji, style: TextStyle(fontSize: 17)),
-              ),
-              Space.horizontal(12),
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: AppTextStyles.semiBold.copyWith(
-                    fontSize: 15,
-                    color: kWhiteColor,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            widget.title,
+            style: AppTextStyles.semiBold.copyWith(
+              fontSize: 15,
+              color: kWhiteColor,
+            ),
           ),
           const SizedBox(height: 24),
 

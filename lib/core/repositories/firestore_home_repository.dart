@@ -161,6 +161,7 @@ class FirestoreHomeRepository implements HomeRepository {
               subtitle: definition.subtitle,
               frequencyLabel: definition.frequencyLabel,
               progress: hasDone ? 1.0 : 0.0,
+              colorValue: definition.colorValue,
             );
           })
           .toList();

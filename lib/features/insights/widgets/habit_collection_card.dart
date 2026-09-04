@@ -105,11 +105,9 @@ class HabitCollectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: emoji + title  ···  frequency ─────────────────────────
+          // ── Header: title  ···  frequency ────────────────────────────────
           Row(
             children: [
-              const Text(kHabitEmoji, style: TextStyle(fontSize: 18)),
-              Space.horizontal(8),
               Expanded(
                 child: Text(
                   habit.title,

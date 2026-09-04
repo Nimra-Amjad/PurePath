@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
-import 'package:purepath/core/extensions/color.dart';
 import 'package:purepath/core/widgets/space.dart';
 import 'package:purepath/features/home/models/habit_model.dart';
 import 'package:purepath/features/home/widgets/frequency_badge.dart';
@@ -79,8 +78,7 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
 
   @override
   Widget build(BuildContext context) {
-    const color = kHabitAccentColor;
-    const emoji = kHabitEmoji;
+    final color = widget.habit.accentColor;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -93,14 +91,6 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
         ),
         child: Row(
           children: [
-            // Category emoji inside a tinted circle
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color.withOpacityValue(0.15),
-              child: Text(emoji, style: const TextStyle(fontSize: 18)),
-            ),
-            Space.horizontal(12),
-
             // Title, subtitle, and frequency badge
             Expanded(
               child: Column(

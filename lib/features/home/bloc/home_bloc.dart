@@ -141,6 +141,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         subtitle: habit.subtitle,
         frequencyLabel: habit.frequencyLabel,
         progress: newProgress,
+        colorValue: habit.colorValue,
       );
     }).toList();
 

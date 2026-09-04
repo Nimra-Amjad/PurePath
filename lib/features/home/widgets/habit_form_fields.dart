@@ -78,6 +78,165 @@ class HabitFormSection extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Habit color — a tappable field that opens the color-picker bottom sheet.
+//
+// [selectedColor] is the chosen color as an ARGB int. It always has a value —
+// the form defaults it to the palette's first entry (the shared default accent)
+// so a habit created without touching this section still gets a valid color.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class HabitColorSection extends StatelessWidget {
+  final int selectedColor;
+  final ValueChanged<int> onColorSelected;
+
+  const HabitColorSection({
+    super.key,
+    required this.selectedColor,
+    required this.onColorSelected,
+  });
+
+  Future<void> _openPicker(BuildContext context) async {
+    final picked = await showHabitColorPicker(context, selected: selectedColor);
+    if (picked != null) onColorSelected(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(selectedColor);
+    return HabitFormSection(
+      label: 'HABIT COLOR',
+      child: GestureDetector(
+        onTap: () => _openPicker(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: kContainerColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kSecondaryGreyColor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              // Selected color swatch with a soft glow.
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kWhiteColor, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.5),
+                      blurRadius: 8,
+                      spreadRadius: 0.5,
+                    ),
+                  ],
+                ),
+              ),
+              Space.horizontal(12),
+              Expanded(
+                child: Text(
+                  'Habit color',
+                  style: AppTextStyles.semiBold.copyWith(
+                    fontSize: 14,
+                    color: kWhiteColor,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: kSecondaryGreyColor,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the habit color-picker bottom sheet. Resolves to the chosen color as
+/// an ARGB int, or null if the sheet is dismissed without a pick.
+Future<int?> showHabitColorPicker(
+  BuildContext context, {
+  required int selected,
+}) {
+  return AppBottomSheet.show<int>(
+    context,
+    backgroundColor: kContainerColor,
+    body: _ColorPickerBody(selected: selected),
+  );
+}
+
+class _ColorPickerBody extends StatelessWidget {
+  final int selected;
+  const _ColorPickerBody({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Habit Color',
+            style: AppTextStyles.bold.copyWith(fontSize: 18, color: kWhiteColor),
+          ),
+          Space.vertical(4),
+          Text(
+            'Pick a color to make this habit easy to spot.',
+            style: AppTextStyles.normal.copyWith(
+              fontSize: 13,
+              color: kSecondaryGreyColor,
+            ),
+          ),
+          Space.vertical(22),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: kHabitColorPalette.map((color) {
+              final value = color.toARGB32();
+              final isSelected = value == selected;
+              return GestureDetector(
+                onTap: () => context.pop(value),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? kWhiteColor : kTransparentColor,
+                      width: 3,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.55),
+                              blurRadius: 12,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check_rounded,
+                          size: 24, color: kBlackColor)
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Task days — the schedule picker (Every day / Weekdays / Month dates)
 // ─────────────────────────────────────────────────────────────────────────────
 

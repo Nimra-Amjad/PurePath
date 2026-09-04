@@ -50,6 +50,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
   late bool _reminderEnabled;
   late DateTime _startDate;
   DateTime? _endDate;
+  late int _selectedColor;
 
   bool _weekDayError = false;
   bool _monthDayError = false;
@@ -70,6 +71,9 @@ class _HabitFormPageState extends State<HabitFormPage> {
     _reminderEnabled = h?.reminderEnabled ?? false;
     _startDate = h?.startDate ?? _today();
     _endDate = h?.endDate;
+    // Default to the palette's first entry (the shared default accent) so a new
+    // habit always has a color even if the user never opens the picker.
+    _selectedColor = h?.colorValue ?? kHabitColorPalette.first.toARGB32();
   }
 
   static DateTime _today() {
@@ -131,6 +135,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           startDate: _startDate,
           endDate: _endDate,
           clearEndDate: _endDate == null,
+          colorValue: _selectedColor,
         );
         await repo.updateHabit(updated);
       } else {
@@ -146,6 +151,7 @@ class _HabitFormPageState extends State<HabitFormPage> {
           reminderTime: reminderTime,
           startDate: _startDate,
           endDate: _endDate,
+          colorValue: _selectedColor,
         );
         await repo.addHabit(created);
       }
@@ -212,6 +218,11 @@ class _HabitFormPageState extends State<HabitFormPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               HabitNameField(controller: _nameController),
+              const SizedBox(height: 24),
+              HabitColorSection(
+                selectedColor: _selectedColor,
+                onColorSelected: (c) => setState(() => _selectedColor = c),
+              ),
               const SizedBox(height: 24),
               TaskDaysSection(
                 schedule: _schedule,

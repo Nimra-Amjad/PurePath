@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:purepath/core/constants/color_constants.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Habit type
 //
@@ -74,6 +77,7 @@ extension HabitScheduleExtension on HabitSchedule {
 //     startDateMillis: int      (local-midnight millis — first active day)
 //     endDateMillis:   int?     (local-midnight millis — last active day, or null)
 //   }
+//     colorValue:      int?     (chosen accent color as ARGB; null = default)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HabitDefinition {
@@ -109,6 +113,10 @@ class HabitDefinition {
   /// habit shows up indefinitely from [startDate] onward.
   final DateTime? endDate;
 
+  /// The habit's chosen accent color as an ARGB int. Null means the user didn't
+  /// pick one, so [accentColor] falls back to [kHabitAccentColor].
+  final int? colorValue;
+
   const HabitDefinition({
     required this.id,
     required this.title,
@@ -120,7 +128,13 @@ class HabitDefinition {
     this.monthDays = const [],
     this.reminderEnabled = false,
     this.reminderTime = '',
+    this.colorValue,
   });
+
+  /// The color to tint this habit with everywhere it's shown. Falls back to the
+  /// shared default accent when the user hasn't chosen a custom color.
+  Color get accentColor =>
+      colorValue != null ? Color(colorValue!) : kHabitAccentColor;
 
   // ── Derived helpers ────────────────────────────────────────────────────────
 
@@ -199,6 +213,8 @@ class HabitDefinition {
     DateTime? startDate,
     DateTime? endDate,
     bool clearEndDate = false,
+    int? colorValue,
+    bool clearColor = false,
   }) {
     return HabitDefinition(
       id: id ?? this.id,
@@ -211,6 +227,7 @@ class HabitDefinition {
       reminderTime: reminderTime ?? this.reminderTime,
       startDate: startDate ?? this.startDate,
       endDate: clearEndDate ? null : (endDate ?? this.endDate),
+      colorValue: clearColor ? null : (colorValue ?? this.colorValue),
     );
   }
 
@@ -228,6 +245,7 @@ class HabitDefinition {
       'reminderTime': reminderTime,
       'startDateMillis': startDate.millisecondsSinceEpoch,
       'endDateMillis': endDate?.millisecondsSinceEpoch,
+      'colorValue': colorValue,
     };
   }
 
@@ -259,6 +277,7 @@ class HabitDefinition {
       endDate: endMillis != null
           ? _dateOnly(DateTime.fromMillisecondsSinceEpoch(endMillis))
           : null,
+      colorValue: (map['colorValue'] as num?)?.toInt(),
     );
   }
 

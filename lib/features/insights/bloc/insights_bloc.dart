@@ -176,6 +176,7 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
           subtitle: h.subtitle,
           frequencyLabel: h.frequencyLabel,
           progress: event.completed ? 1.0 : 0.0,
+          colorValue: h.colorValue,
         );
       }).toList();
       weekData[date] = DaySummary(date: summary.date, habits: updatedHabits);

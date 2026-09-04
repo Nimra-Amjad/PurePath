@@ -306,15 +306,6 @@ class _LibraryHabitCardState extends State<_LibraryHabitCard> {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: kHabitAccentColor.withValues(alpha: 0.2),
-              child: const Text(
-                kHabitEmoji,
-                style: TextStyle(fontSize: 15),
-              ),
-            ),
-            Space.horizontal(12),
             Expanded(
               child: Text(
                 widget.title,

@@ -43,7 +43,25 @@ const kTransparentColor = Colors.transparent;
 const kPurpleColor = Color(0xFF6C4DFF);
 
 // ── Habit defaults ───────────────────────────────────────────────────────────
-// Habits no longer have a category, so every habit uses one shared accent color
-// and emoji wherever an icon/avatar is shown (tiles, insights, overview).
+// The default accent color, used whenever the user hasn't picked a custom color
+// for a habit.
 const kHabitAccentColor = kPrimaryGreenColor;
-const kHabitEmoji = '🎯';
+
+// ── Habit color palette ──────────────────────────────────────────────────────
+// The soft, light colors the user can choose from when creating or editing a
+// habit. The first entry is the default (used when the user leaves the color
+// unset). Each habit stores its chosen color as an ARGB int (Color.toARGB32()).
+const kHabitColorPalette = <Color>[
+  kPrimaryGreenColor, // Lime — default accent
+  Color(0xFFF7A8C4), // Blush
+  Color(0xFFFFB39B), // Peach
+  Color(0xFFFFCF9E), // Apricot
+  Color(0xFFFCE38A), // Butter
+  Color(0xFFC5E1A5), // Sage
+  Color(0xFFA8E6CF), // Mint
+  Color(0xFFA0DDE6), // Aqua
+  Color(0xFFAEC6F7), // Sky
+  Color(0xFFB3B0F0), // Periwinkle
+  Color(0xFFCDB4F6), // Lavender
+  Color(0xFFE3B7EC), // Lilac
+];

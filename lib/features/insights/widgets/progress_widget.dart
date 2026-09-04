@@ -44,24 +44,6 @@ class ProgressWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              // ── Category emoji inside a tinted rounded tile ──────────────
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withOpacityValue(0.16),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: color.withOpacityValue(0.22)),
-                ),
-                child: const Center(
-                  child: Text(
-                    kHabitEmoji,
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-              ),
-              Space.horizontal(12),
-
               // ── Title + completion label ─────────────────────────────────
               Expanded(
                 child: Column(
