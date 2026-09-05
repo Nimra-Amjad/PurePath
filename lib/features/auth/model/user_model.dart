@@ -21,7 +21,7 @@ class UserModel {
     required this.password,
     this.fcmToken,
     this.imgUrl,
-    this.streak = 0,
+    this.xp = 0,
     this.stripeSubscriptionId = '',
     // ── Preferences ─────────────────────────────────────────────────────────
     this.goal,
@@ -41,11 +41,11 @@ class UserModel {
   final String? fcmToken;
   final String? imgUrl;
 
-  /// Length of the user's current consecutive-day completion streak.
-  /// Recomputed from the insights data after every habit toggle, so
-  /// backfilling a missed day correctly extends (or repairs) the streak.
-  /// Drives badge unlocks and the profile tier card.
-  final int streak;
+  /// The user's lifetime XP ("coins"). Earned +1 for every habit completion
+  /// and spent -1 when a completion is undone. It only ever accumulates over
+  /// time — skipping a day never resets it. Drives badge unlocks and the
+  /// profile tier card.
+  final int xp;
 
   final String stripeSubscriptionId;
 
@@ -89,7 +89,7 @@ class UserModel {
     String? password,
     String? fcmToken,
     String? imgUrl,
-    int? streak,
+    int? xp,
     String? stripeSubscriptionId,
     String? goal,
     String? challenge,
@@ -105,7 +105,7 @@ class UserModel {
       password: password ?? this.password,
       fcmToken: fcmToken ?? this.fcmToken,
       imgUrl: imgUrl ?? this.imgUrl,
-      streak: streak ?? this.streak,
+      xp: xp ?? this.xp,
       stripeSubscriptionId: stripeSubscriptionId ?? this.stripeSubscriptionId,
       goal: goal ?? this.goal,
       challenge: challenge ?? this.challenge,
@@ -127,7 +127,7 @@ class UserModel {
       'password': password,
       'fcmToken': fcmToken,
       'imgUrl': imgUrl,
-      'streak': streak,
+      'xp': xp,
       'subscriptionId': stripeSubscriptionId,
       'goal': goal,
       'challenge': challenge,
@@ -148,9 +148,10 @@ class UserModel {
       password: map['password'] as String? ?? '',
       fcmToken: map['fcmToken'] as String?,
       imgUrl: map['imgUrl'] as String?,
-      // Read the new `streak` key, falling back to the legacy `coins` key so
-      // existing users don't lose their streak before it's rewritten.
-      streak:
+      // Read the new `xp` key, falling back to the legacy `streak` / `coins`
+      // keys so existing users carry their balance over on first load.
+      xp:
+          (map['xp'] as num?)?.toInt() ??
           (map['streak'] as num?)?.toInt() ??
           (map['coins'] as num?)?.toInt() ??
           0,
@@ -191,7 +192,7 @@ class UserModel {
         other.password == password &&
         other.fcmToken == fcmToken &&
         other.imgUrl == imgUrl &&
-        other.streak == streak &&
+        other.xp == xp &&
         other.stripeSubscriptionId == stripeSubscriptionId &&
         other.goal == goal &&
         other.challenge == challenge &&
@@ -209,7 +210,7 @@ class UserModel {
         password.hashCode ^
         (fcmToken?.hashCode ?? 0) ^
         (imgUrl?.hashCode ?? 0) ^
-        streak.hashCode ^
+        xp.hashCode ^
         stripeSubscriptionId.hashCode ^
         (goal?.hashCode ?? 0) ^
         (challenge?.hashCode ?? 0) ^
@@ -229,6 +230,6 @@ class UserModel {
       'challenge: $challenge, '
       'activityLevel: $activityLevel, '
       'notificationsEnabled: $notificationsEnabled, '
-      'streak: $streak'
+      'xp: $xp'
       ')';
 }

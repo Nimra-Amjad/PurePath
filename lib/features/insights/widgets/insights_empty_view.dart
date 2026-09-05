@@ -59,7 +59,7 @@ class InsightsEmptyView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'Create your first habit and watch your weekly progress, '
-              'streaks, and collection come to life.',
+              'coins, and collection come to life.',
               style: AppTextStyles.normal.copyWith(
                 fontSize: 14,
                 color: textSecondary,
@@ -95,7 +95,7 @@ class InsightsEmptyView extends StatelessWidget {
               _FeatureRow(
                 icon: Icons.grid_view_rounded,
                 title: 'Habit collection',
-                subtitle: 'Build a streak grid you can be proud of.',
+                subtitle: 'Build a completion grid you can be proud of.',
               ),
             ],
           ),

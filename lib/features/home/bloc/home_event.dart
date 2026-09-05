@@ -32,8 +32,3 @@ final class HabitToggled extends HomeEvent {
   final String habitId;
   HabitToggled(this.habitId);
 }
-
-/// Triggered from the home streak-restore banner (Pro users only — the UI
-/// gates on the entitlement before dispatching). Freezes the missed days in
-/// [state.restorableBreak], repairing the streak.
-final class StreakRestoreRequested extends HomeEvent {}

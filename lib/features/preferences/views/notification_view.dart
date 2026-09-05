@@ -16,7 +16,7 @@ class NotificationView extends StatelessWidget {
     ),
     (
       icon: Icons.add_rounded,
-      text: 'Streak alerts before you lose momentum',
+      text: 'Reminders before you lose momentum',
       color: Color(0xFF21A67A),
     ),
     (

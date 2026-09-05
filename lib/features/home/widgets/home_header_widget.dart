@@ -15,8 +15,8 @@ class HomeHeaderWidget extends StatelessWidget {
       builder: (context, state) {
         final firstName = state.user?.firstName.trim() ?? '';
         final displayName = firstName.isEmpty ? 'there' : firstName;
-        // Streak is persisted on the user doc (the `streak` field).
-        final streak = state.user?.streak ?? 0;
+        // Lifetime XP ("coins"), persisted on the user doc (the `xp` field).
+        final xp = state.user?.xp ?? 0;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -38,7 +38,7 @@ class HomeHeaderWidget extends StatelessWidget {
                 ),
               ],
             ),
-            _StreakChip(streak: streak),
+            _CoinChip(coins: xp),
           ],
         );
       },
@@ -55,12 +55,12 @@ class HomeHeaderWidget extends StatelessWidget {
   }
 }
 
-/// Compact streak counter shown at the top of the home screen: 🔥 + the
-/// current consecutive-day streak.
-class _StreakChip extends StatelessWidget {
-  const _StreakChip({required this.streak});
+/// Compact coin counter shown at the top of the home screen: 🪙 + the user's
+/// lifetime XP. Earned one coin per habit completion; only ever grows.
+class _CoinChip extends StatelessWidget {
+  const _CoinChip({required this.coins});
 
-  final int streak;
+  final int coins;
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +73,10 @@ class _StreakChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🔥', style: TextStyle(fontSize: 15)),
+          const Text('🪙', style: TextStyle(fontSize: 15)),
           Space.horizontal(6),
           Text(
-            '$streak',
+            '$coins',
             style: AppTextStyles.bold.copyWith(
               fontSize: 15,
               color: kPrimaryGreenColor,

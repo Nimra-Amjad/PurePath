@@ -93,7 +93,7 @@ class UserRepository {
   }
 
   /// Flips the user's "notifications enabled" master switch. Mirrors the
-  /// optimistic-update pattern used by [setStreak] / [updateFullName]:
+  /// optimistic-update pattern used by [addXp] / [updateFullName]:
   ///   1. Update the local cache so any listener (profile tab, notification
   ///      bloc) reacts instantly.
   ///   2. Patch Firestore.
@@ -112,6 +112,39 @@ class UserRepository {
     return ok;
   }
 
+  /// Adds [delta] to the user's XP ("coin") balance and persists it.
+  ///
+  /// One coin per day: +1 the first time a day gets a completion, -1 when a
+  /// day's last completion is undone (the caller decides when the day flips).
+  /// The balance is clamped at 0 so it can't go negative, and it never resets
+  /// on a skipped day — the coin count is a single stored number, only nudged
+  /// up or down here, never recalculated. Mirrors the optimistic-update
+  /// pattern: patch the local cache first so the header coin chip, profile
+  /// stats and badges react instantly, then write Firestore and revert on
+  /// failure.
+  Future<void> addXp(int delta) async {
+    if (delta == 0) return;
+
+    final uid = firebaseUser?.uid;
+    if (uid == null) return;
+
+    final current = localUser;
+    if (current == null) return;
+
+    final newXp = (current.xp + delta).clamp(0, 1 << 31);
+    if (newXp == current.xp) return;
+
+    // Optimistic local update so profile/badges/tier/header react instantly.
+    updateLocalUser(current.copyWith(xp: newXp));
+
+    try {
+      await userFirestoreProvider.updateUserDoc(uid, {'xp': newXp});
+    } catch (e) {
+      debugPrint('UserRepository.addXp error: $e');
+      updateLocalUser(current); // Revert on failure.
+    }
+  }
+
   /// Records that the one-time "first habit completed" celebration has been
   /// shown, so it never fires again. Same optimistic pattern as
   /// [setNotificationsEnabled]: patch the local cache first, then Firestore,
@@ -128,24 +161,4 @@ class UserRepository {
     }
   }
 
-  /// Persists the freshly computed coin balance. The value itself is derived
-  /// from the insights data via [HomeRepository.calculateCurrentStreak], so
-  /// this method just stores the result and patches the local cache.
-  Future<void> setStreak(int streak) async {
-    final uid = firebaseUser?.uid;
-    if (uid == null) return;
-
-    final current = localUser;
-    if (current == null || current.streak == streak) return;
-
-    // Optimistic local update so profile/badges/tier card react instantly.
-    updateLocalUser(current.copyWith(streak: streak));
-
-    try {
-      await userFirestoreProvider.updateUserDoc(uid, {'streak': streak});
-    } catch (e) {
-      debugPrint('UserRepository.setStreak error: $e');
-      updateLocalUser(current); // Revert on failure.
-    }
-  }
 }

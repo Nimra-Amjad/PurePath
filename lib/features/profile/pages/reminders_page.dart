@@ -177,8 +177,8 @@ class _InfoCard extends StatelessWidget {
           Expanded(
             child: Text(
               enabled
-                  ? "We'll remind you to check off your habits so your "
-                        'streak stays alive.'
+                  ? "We'll remind you to check off your habits so you keep "
+                        'earning coins.'
                   : "Turn reminders on and we'll send you a friendly nudge "
                         'so you never miss a day.',
               style: AppTextStyles.normal.copyWith(

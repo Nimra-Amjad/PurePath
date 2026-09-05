@@ -105,14 +105,9 @@ class FirestoreHomeRepository implements HomeRepository {
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
 
-    // Stamp the day the completion was actually marked. The streak counts a
-    // completion only if this equals the habit's own day (on-time); a late
-    // backfill is still recorded but won't repair a broken streak.
     final entry = <String, dynamic>{
       'id': habitId,
       'hasDone': hasDone,
-      if (hasDone)
-        'doneAt': _dateOnly(DateTime.now()).millisecondsSinceEpoch,
     };
 
     final idx = habits.indexWhere((e) => e['id'] == habitId);
@@ -204,84 +199,6 @@ class FirestoreHomeRepository implements HomeRepository {
     return out;
   }
 
-  @override
-  Future<int> calculateCurrentStreak() async {
-    final uid = _uid;
-    if (uid == null) return 0;
-    return _streakWith(uid);
-  }
-
-  /// A break is only restorable if the gap *starts* within this many days of
-  /// today. After this the banner disappears and the streak just continues as
-  /// the fresh run.
-  static const _maxBreakAgeDays = 4;
-
-  /// How far back to classify days. One past the max break age so we can also
-  /// see the previous run sitting just below a 14-day-old gap.
-  static const _restoreWindow = _maxBreakAgeDays + 1;
-
-  @override
-  Future<StreakBreak?> findRestorableStreakBreak() async {
-    final uid = _uid;
-    if (uid == null) return null;
-
-    final today = _dateOnly(DateTime.now());
-
-    // Classify the recent window once (index 0 = today). Looks for the shape
-    //   [current run] [gap] [previous run]
-    // so restore stays available even after the user logs more days *past* the
-    // gap — the gap keeps their earlier streak separated until it's frozen.
-    final done = <bool>[];
-    for (int i = 0; i <= _restoreWindow; i++) {
-      done.add(await _isDayCompleted(uid, today.subtract(Duration(days: i))));
-    }
-
-    // Anchor of the current run: today if done, else yesterday (grace window).
-    int i = done[0] ? 0 : (done[1] ? 1 : -1);
-    if (i < 0) return null; // neither today nor yesterday done — nothing live
-
-    // Walk down the current run to the first missed day (top of the gap).
-    while (i <= _restoreWindow && done[i]) {
-      i++;
-    }
-    // No gap in range → streak is healthy. Gap too old → not restorable.
-    if (i > _restoreWindow || i > _maxBreakAgeDays) return null;
-
-    // Find the deepest completed day still inside the window — the anchor the
-    // current run reconnects to. Everything missing *between* the gap top and
-    // that day gets frozen in one go. Freezing only the first contiguous gap
-    // (the old behaviour) left any second, older gap behind, so the banner
-    // reappeared on the next recompute and survived an app restart.
-    int lastDone = -1;
-    for (int j = i; j <= _restoreWindow; j++) {
-      if (done[j]) lastDone = j;
-    }
-    // Need a completed day below the gap to reconnect to.
-    if (lastDone < i) return null;
-
-    // Every missed day bridging the current run to that anchor day.
-    final missed = <DateTime>[
-      for (int j = i; j < lastDone; j++)
-        if (!done[j]) today.subtract(Duration(days: j)),
-    ];
-    if (missed.isEmpty) return null;
-
-    // What the streak becomes once those days are frozen.
-    final recovered = await _streakWith(uid, extraFrozen: missed.toSet());
-    if (recovered <= 0) return null;
-
-    return StreakBreak(missedDates: missed, recoveredStreak: recovered);
-  }
-
-  @override
-  Future<void> restoreStreak(List<DateTime> dates) async {
-    final uid = _uid;
-    if (uid == null) return;
-    for (final date in dates) {
-      await _provider.freezeDay(uid, _dateOnly(date));
-    }
-  }
-
   // ── Daily reflection (mood + note) ─────────────────────────────────────────
 
   @override
@@ -319,63 +236,6 @@ class FirestoreHomeRepository implements HomeRepository {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-
-  /// Counts the consecutive completed days ending at today (or yesterday, as a
-  /// grace window). [extraFrozen] lets callers simulate a restore without
-  /// writing anything — those dates are treated as completed.
-  Future<int> _streakWith(
-    String uid, {
-    Set<DateTime> extraFrozen = const {},
-  }) async {
-    final today = _dateOnly(DateTime.now());
-
-    DateTime cursor = today;
-    bool done = await _isDayCompleted(uid, cursor, extraFrozen: extraFrozen);
-    if (!done) {
-      cursor = today.subtract(const Duration(days: 1));
-      done = await _isDayCompleted(uid, cursor, extraFrozen: extraFrozen);
-      if (!done) return 0;
-    }
-
-    // The 5000 cap matches the top badge threshold; a safety bound only.
-    int streak = 0;
-    while (done && streak < 5000) {
-      streak++;
-      cursor = cursor.subtract(const Duration(days: 1));
-      done = await _isDayCompleted(uid, cursor, extraFrozen: extraFrozen);
-    }
-    return streak;
-  }
-
-  /// A day counts toward the streak if it was frozen (streak-restored) or has
-  /// at least one habit that was completed **on time** — i.e. marked on its own
-  /// day. A late backfill (marked on a later day) is still recorded and shown
-  /// in the UI, but must not silently repair a broken streak; that's what the
-  /// Pro restore is for. Legacy completions without a `doneAt` are treated as
-  /// on-time so existing streaks aren't disrupted.
-  ///
-  /// [extraFrozen] treats extra dates as frozen (restore simulations).
-  Future<bool> _isDayCompleted(
-    String uid,
-    DateTime date, {
-    Set<DateTime> extraFrozen = const {},
-  }) async {
-    if (extraFrozen.contains(date)) return true;
-    final data = await _provider.fetchDayDoc(uid, date);
-    if (data == null) return false;
-    if (data['frozen'] == true) return true;
-    final habits = data['habits'] as List? ?? const [];
-    for (final raw in habits) {
-      if (raw is! Map || raw['hasDone'] != true) continue;
-      final doneAt = raw['doneAt'];
-      if (doneAt == null) return true; // legacy → assume on-time
-      final doneAtDate = _dateOnly(
-        DateTime.fromMillisecondsSinceEpoch((doneAt as num).toInt()),
-      );
-      if (!doneAtDate.isAfter(date)) return true; // completed on its own day
-    }
-    return false;
-  }
 
   /// Reads the 7 day-docs for the visible week and returns a
   /// `<habitId>_<dateMillis>` → hasDone map.

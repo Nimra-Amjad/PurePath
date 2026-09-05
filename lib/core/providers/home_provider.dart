@@ -34,19 +34,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 //    {
 //      date:       "yyyy-MM-dd"
 //      dateMillis: int    (millis since epoch at local midnight)
-//      habits:     [ { id, hasDone, doneAt } ]
-//                  doneAt = local-midnight millis of the day the habit was
-//                  marked done. The streak counts a completion only when
-//                  doneAt matches the habit's own day (on-time); a late
-//                  backfill is recorded but doesn't repair a broken streak.
-//      frozen:     bool   (optional — true = streak-restored day, counts as
-//                          completed even with no habit done)
+//      habits:     [ { id, hasDone } ]
 //      mood:       String (optional — Mood.name, the day's logged mood)
 //      note:       String (optional — the day's free-text journal note)
 //    }
 //
 // Works with raw snapshots / maps only — model mapping and business rules
-// (summaries, streaks) live in FirestoreHomeRepository.
+// (summaries) live in FirestoreHomeRepository.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeProvider {
@@ -237,18 +231,6 @@ class HomeProvider {
       'dateMillis': dateOnly.millisecondsSinceEpoch,
       'mood': mood,
       'note': note,
-    }, SetOptions(merge: true));
-  }
-
-  /// Marks (uid, date) as a frozen / streak-restored day. Merges so an
-  /// existing habits array on that day is preserved, and creates the doc when
-  /// the day was never recorded (a truly missed day).
-  Future<void> freezeDay(String uid, DateTime date) async {
-    final dateOnly = _dateOnly(date);
-    await _daysRef(uid).doc(_dayDocId(dateOnly)).set({
-      'date': _dateString(dateOnly),
-      'dateMillis': dateOnly.millisecondsSinceEpoch,
-      'frozen': true,
     }, SetOptions(merge: true));
   }
 

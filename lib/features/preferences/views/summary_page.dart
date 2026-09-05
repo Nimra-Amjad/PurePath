@@ -53,7 +53,7 @@ class SummaryPage extends StatelessWidget {
                 FeatureDetailWidget(
                   title: "Track your daily habits",
                   description:
-                      "Check off habits each day and watch your streak grow",
+                      "Check off habits each day and watch your coins grow",
                   icon: Icons.check_box,
                 ),
                 FeatureDetailWidget(

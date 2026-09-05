@@ -40,7 +40,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeDateSelected>(_onDateSelected);
     on<HomeWeekChanged>(_onWeekChanged);
     on<HabitToggled>(_onHabitToggled);
-    on<StreakRestoreRequested>(_onStreakRestoreRequested);
   }
 
   // ── Static helpers (no widget dependencies) ───────────────────────────────
@@ -77,11 +76,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ),
       );
     }
-
-    // Refresh the streak once data is loaded. This catches day-rollover
-    // (e.g. user finished day N's habits, kept the app open, and didn't
-    // touch day N+1) and cross-device edits.
-    await _refreshStreakAndBreak(emit);
   }
 
   /// Selecting a date is instant — no network call needed.
@@ -168,63 +162,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // to retry if the network was offline.
     }
 
-    // Recompute the streak from the persisted insights data. This handles
-    // every case correctly without bespoke logic in the bloc:
-    //   • Mark today      → streak grows by one
-    //   • Backfill a day  → streak repairs / extends if it bridges a gap
-    //   • Undo today      → streak drops if today is now empty
-    //   • Skipped a day   → streak resets to wherever the unbroken run ends
-    await _refreshStreakAndBreak(emit);
-  }
-
-  /// Fired from the restore banner. Freezes the missed days, then reloads so
-  /// the repaired streak (and cleared banner) show immediately.
-  Future<void> _onStreakRestoreRequested(
-    StreakRestoreRequested event,
-    Emitter<HomeState> emit,
-  ) async {
-    final brk = state.restorableBreak;
-    if (brk == null) return;
-
-    try {
-      await _repository.restoreStreak(brk.missedDates);
-    } catch (_) {
-      // Non-fatal: leave the banner up so the user can retry.
-      return;
-    }
-
-    // Reload the visible week so any frozen day in view reflects, then
-    // recompute the streak and clear the banner.
-    try {
-      final weekData = await _repository.getSummaryForWeek(
-        state.visibleWeekStart,
-      );
-      emit(state.copyWith(weekData: {...state.weekData, ...weekData}));
-    } catch (_) {
-      // Non-fatal: the streak refresh below still runs.
-    }
-    await _refreshStreakAndBreak(emit);
-  }
-
-  /// Recomputes the streak (persisted via [UserRepository]) and refreshes the
-  /// restorable-break banner state in one pass.
-  Future<void> _refreshStreakAndBreak(Emitter<HomeState> emit) async {
-    try {
-      final streak = await _repository.calculateCurrentStreak();
-      await _userRepository.setStreak(streak);
-    } catch (_) {
-      // Non-fatal: the previous streak value stays put.
-    }
-
-    try {
-      final brk = await _repository.findRestorableStreakBreak();
-      emit(
-        brk == null
-            ? state.copyWith(clearRestorableBreak: true)
-            : state.copyWith(restorableBreak: brk),
-      );
-    } catch (_) {
-      // Non-fatal: leave the banner state unchanged.
+    // One coin per *day*, not per habit. The stored balance moves only when the
+    // day flips between "nothing done" and "something done":
+    //   • first completion of the day        → +1
+    //   • undoing the day's last completion   → -1
+    //   • any toggle while other habits stay done → no change
+    // The coin is a single persisted number (never recalculated on launch);
+    // this just nudges it up or down by one when the day's state flips.
+    final hadAnyBefore = summary.habits.any((h) => h.isCompleted);
+    final hasAnyAfter = updatedHabits.any((h) => h.isCompleted);
+    if (!hadAnyBefore && hasAnyAfter) {
+      await _userRepository.addXp(1);
+    } else if (hadAnyBefore && !hasAnyAfter) {
+      await _userRepository.addXp(-1);
     }
   }
 

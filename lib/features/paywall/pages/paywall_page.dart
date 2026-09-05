@@ -26,7 +26,6 @@ class _PaywallPageState extends State<PaywallPage> {
   // Only features that actually ship in the app. Each maps to a real Pro gate:
   //   • Unlimited habits  → kFreeHabitLimit (free plan caps at 3)
   //   • Insights tab      → gated in BottomNavBarPage
-  //   • Streak restore    → gated in HomePage._onRestoreStreak
   static const _features = <(IconData, String, String)>[
     (
       Icons.all_inclusive,
@@ -37,11 +36,6 @@ class _PaywallPageState extends State<PaywallPage> {
       Icons.insights,
       'Insights & analytics',
       'Weekly charts, habit history and progress stats',
-    ),
-    (
-      Icons.ac_unit,
-      'Streak restore',
-      'Repair a broken streak after a missed day',
     ),
   ];
 

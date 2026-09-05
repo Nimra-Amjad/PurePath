@@ -273,7 +273,7 @@ class _HabitWeekCard extends StatelessWidget {
           Divider(color: kLightGreyColor.withOpacityValue(0.12), height: 1),
           Space.vertical(12),
 
-          // ── Footer: streak-style count + completion % ──────────────────
+          // ── Footer: completed count + completion % ─────────────────────
           Row(
             children: [
               const Icon(

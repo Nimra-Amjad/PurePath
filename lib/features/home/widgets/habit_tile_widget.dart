@@ -11,7 +11,7 @@ import 'package:purepath/features/home/models/habit_model.dart';
 // Habit tile widget
 //
 // Displays one habit row: a colored accent bar on the left edge, the title,
-// a flame + streak count, and a circular completion badge on the right.
+// the schedule subtitle, and a circular completion badge on the right.
 //
 // A completed tile is highlighted — a soft accent-tinted gradient washes in
 // from the left edge, a faint accent border wraps the card, and the title dims
@@ -166,22 +166,12 @@ class _HabitTileWidgetState extends State<HabitTileWidget>
                         ),
                       ),
                       Space.vertical(6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.local_fire_department_rounded,
-                            size: 16,
-                            color: color,
-                          ),
-                          Space.horizontal(5),
-                          Text(
-                            '${widget.habit.streak}',
-                            style: AppTextStyles.semiBold.copyWith(
-                              fontSize: 14,
-                              color: color,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        widget.habit.subtitle,
+                        style: AppTextStyles.normal.copyWith(
+                          fontSize: 13,
+                          color: kLightGreyColor,
+                        ),
                       ),
                     ],
                   ),

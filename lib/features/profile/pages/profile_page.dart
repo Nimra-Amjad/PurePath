@@ -114,9 +114,9 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- STAT WIDGET --------------------------
   Widget _statsRow() {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
+      buildWhen: (a, b) => a.user?.xp != b.user?.xp,
       builder: (context, state) {
-        final xp = state.user?.streak ?? 0;
+        final xp = state.user?.xp ?? 0;
         final earnedBadges = BadgesPage.earnedCountForXp(xp);
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -159,9 +159,9 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- TIER WIDGET --------------------------
   Widget _tierCard() {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
+      buildWhen: (a, b) => a.user?.xp != b.user?.xp,
       builder: (context, state) {
-        final xp = state.user?.streak ?? 0;
+        final xp = state.user?.xp ?? 0;
         final tier = _Tier.forXp(xp);
         final next = tier.next;
 
@@ -220,7 +220,7 @@ class ProfilePage extends StatelessWidget {
   /// -------------------------- BADGES SECTION --------------------------
   Widget _badgesSection(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
+      buildWhen: (a, b) => a.user?.xp != b.user?.xp,
       builder: (context, _) {
         final previews = BadgesPage.firstNPreviews(context);
         return Column(
@@ -500,9 +500,9 @@ class ProfilePage extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Tier ladder — drives the purple progress card
 //
-// One tier per consecutive-day streak band. The top of one tier is the
-// bottom of the next, so progress within a tier is just a normalised
-// fraction of how far the user has climbed inside their current band.
+// One tier per XP band. The top of one tier is the bottom of the next, so
+// progress within a tier is just a normalised fraction of how far the user
+// has climbed inside their current band.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Tier {

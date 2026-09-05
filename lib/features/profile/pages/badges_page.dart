@@ -12,12 +12,12 @@ import 'package:purepath/core/widgets/space.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Badges page
 //
-// One coin = one day in the user's current consecutive-day streak. Each
-// badge unlocks at a day-streak milestone. The first one lands at 10 days,
-// then they grow apart so later badges feel earned.
+// One coin (XP) is earned for every habit completion. Each badge unlocks at
+// an XP milestone. The first lands at 10 XP, then they grow apart so later
+// badges feel earned.
 //
-// Thresholds are static — the user's current coin balance (read from
-// UserBloc) is the only dynamic input.
+// Thresholds are static — the user's current XP balance (read from UserBloc)
+// is the only dynamic input.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class BadgesPage extends StatelessWidget {
@@ -71,7 +71,7 @@ class BadgesPage extends StatelessWidget {
     BuildContext context, {
     int count = 4,
   }) {
-    final xp = context.read<UserBloc>().state.user?.streak ?? 0;
+    final xp = context.read<UserBloc>().state.user?.xp ?? 0;
     final earned = earnedCountForXp(xp);
     return _badges
         .take(earned)
@@ -87,7 +87,7 @@ class BadgesPage extends StatelessWidget {
     BuildContext context, {
     int count = 5,
   }) {
-    final xp = context.read<UserBloc>().state.user?.streak ?? 0;
+    final xp = context.read<UserBloc>().state.user?.xp ?? 0;
     return _badges
         .take(count)
         .map((b) => (emoji: b.emoji, name: b.name, isEarned: xp >= b.threshold))
@@ -97,9 +97,9 @@ class BadgesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(
-      buildWhen: (a, b) => a.user?.streak != b.user?.streak,
+      buildWhen: (a, b) => a.user?.xp != b.user?.xp,
       builder: (context, state) {
-        final xp = state.user?.streak ?? 0;
+        final xp = state.user?.xp ?? 0;
         final earned = earnedCountForXp(xp);
         final total = _badges.length;
 
