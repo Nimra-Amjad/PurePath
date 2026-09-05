@@ -243,7 +243,14 @@ class _HomePageState extends State<HomePage> {
             else
               ...summary.habits.map(
                 (habit) => HabitTileWidget(
-                  key: ValueKey(habit.id),
+                  // Key includes the selected day so switching dates rebuilds
+                  // the tile fresh (badge settles silently) instead of reusing
+                  // the old State and mistaking the day change for a fresh
+                  // completion — which would fire the celebration animation.
+                  key: ValueKey(
+                    '${habit.id}'
+                    '-${selected.year}-${selected.month}-${selected.day}',
+                  ),
                   habit: habit,
                   dimmed: isFutureDay,
                   onTap: () async {
