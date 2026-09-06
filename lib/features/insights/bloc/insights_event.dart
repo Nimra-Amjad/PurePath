@@ -19,6 +19,22 @@ final class InsightsWeekChanged extends InsightsEvent {
   InsightsWeekChanged(this.weekStart);
 }
 
+/// Triggered when the user taps the prev/next month arrow on the Monthly tab.
+/// [monthStart] is always the first day (midnight) of the target month. The
+/// bloc extends the loaded completion history if the month falls outside it.
+final class InsightsMonthChanged extends InsightsEvent {
+  final DateTime monthStart;
+  InsightsMonthChanged(this.monthStart);
+}
+
+/// Triggered when the Yearly tab is opened or the user pages to another year.
+/// [year] is the target calendar year. The bloc extends the loaded completion
+/// history so the full-year grids have data.
+final class InsightsYearChanged extends InsightsEvent {
+  final int year;
+  InsightsYearChanged(this.year);
+}
+
 /// Triggered after a structural change elsewhere (adding, editing, or deleting
 /// a habit) so the insights cache is re-fetched and stays consistent with home.
 final class InsightsRefreshRequested extends InsightsEvent {}

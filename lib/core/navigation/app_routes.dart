@@ -15,7 +15,6 @@ enum AppRoute {
   exploreHabits('/exploreHabits'),
   editHabit('/editHabit'),
   badges('/badges'),
-  habitCollection('/habitCollection'),
   reminders('/reminders'),
   paywall('/paywall');
 
