@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/widgets/space.dart';
@@ -12,6 +13,7 @@ import 'package:purepath/features/insights/widgets/habit_year_card.dart';
 import 'package:purepath/features/insights/widgets/insights_empty_view.dart';
 import 'package:purepath/features/insights/widgets/month_navigator.dart';
 import 'package:purepath/features/insights/widgets/month_stat_tiles.dart';
+import 'package:purepath/features/insights/widgets/no_habits_scheduled_view.dart';
 import 'package:purepath/features/insights/widgets/period_tabs.dart';
 import 'package:purepath/features/insights/widgets/week_navigator.dart';
 import 'package:purepath/features/insights/widgets/year_navigator.dart';
@@ -25,8 +27,10 @@ import 'package:purepath/features/insights/widgets/year_summary_card.dart';
 // same instance. [InsightsStarted] is dispatched in initState so the latest
 // data is fetched whenever the tab is mounted.
 //
-// The screen has three periods (Weekly / Monthly / Yearly). Only Weekly is
-// built out; Monthly and Yearly show a placeholder for now.
+// The screen has three periods (Weekly / Monthly / Yearly), each with its own
+// empty state: no habits at all ([InsightsEmptyView]) vs. habits that exist
+// but weren't scheduled during the visible month/year
+// ([NoHabitsScheduledView]).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class InsightsPage extends StatefulWidget {
@@ -275,6 +279,24 @@ class _MonthlyBody extends StatelessWidget {
 
     final habitStats = state.habitMonthStats;
 
+    // Habits exist, but none were scheduled to run this month.
+    if (habitStats.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MonthNavigator(
+            monthStart: state.visibleMonthStart,
+            onPrevMonth: onPrevMonth,
+            onNextMonth: onNextMonth,
+          ),
+          Space.vertical(20),
+          NoHabitsScheduledView(
+            periodLabel: DateFormat('MMMM yyyy').format(state.visibleMonthStart),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -331,6 +353,22 @@ class _YearlyBody extends StatelessWidget {
     }
 
     final habitStats = state.habitYearStats;
+
+    // Habits exist, but none were scheduled to run this year.
+    if (habitStats.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          YearNavigator(
+            year: state.visibleYear,
+            onPrevYear: onPrevYear,
+            onNextYear: onNextYear,
+          ),
+          Space.vertical(20),
+          NoHabitsScheduledView(periodLabel: '${state.visibleYear}'),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
