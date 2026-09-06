@@ -143,8 +143,13 @@ class FirestoreHomeRepository implements HomeRepository {
       final date = _dateOnly(weekStart.add(Duration(days: dayIndex)));
 
       final habitsForDay = habits
-          .where((h) => h.isActiveOn(date))
-          .where((h) => h.runsOn(date))
+          .where((h) {
+            final hasDone = hasDoneByKey[
+                  '${h.id}_${date.millisecondsSinceEpoch}'
+                ] ??
+                false;
+            return h.countsOn(date, completed: hasDone);
+          })
           .map((definition) {
             final hasDone = hasDoneByKey[
                   '${definition.id}_${date.millisecondsSinceEpoch}'

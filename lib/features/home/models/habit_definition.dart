@@ -199,6 +199,15 @@ class HabitDefinition {
     return true;
   }
 
+  /// Whether [date] should count as scheduled for this habit — either the
+  /// *current* schedule covers it, or [completed] is true (the habit was
+  /// already marked done on that date). A later schedule edit — e.g. dropping
+  /// a month-day the user already completed — shouldn't erase that day from
+  /// history: the completion itself is the evidence it was scheduled at the
+  /// time, even if [runsOn] no longer agrees.
+  bool countsOn(DateTime date, {required bool completed}) =>
+      completed || (isActiveOn(date) && runsOn(date));
+
   // ── copyWith ───────────────────────────────────────────────────────────────
 
   HabitDefinition copyWith({

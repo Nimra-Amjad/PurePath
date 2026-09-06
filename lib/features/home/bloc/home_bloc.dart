@@ -26,16 +26,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc({
     required HomeRepository repository,
     required UserRepository userRepository,
-  })  : _repository = repository,
-        _userRepository = userRepository,
-      super(
-        HomeState(
-          status: HomeStatus.loading,
-          selectedDate: _today,
-          visibleWeekStart: _mondayOf(_today),
-          weekData: const {},
-        ),
-      ) {
+  }) : _repository = repository,
+       _userRepository = userRepository,
+       super(
+         HomeState(
+           status: HomeStatus.loading,
+           selectedDate: _today,
+           visibleWeekStart: _mondayOf(_today),
+           weekData: const {},
+         ),
+       ) {
     on<HomeStarted>(_onStarted);
     on<HomeDateSelected>(_onDateSelected);
     on<HomeWeekChanged>(_onWeekChanged);
@@ -59,10 +59,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   /// Called once when the home screen opens.
   /// Loads data for the current week.
-  Future<void> _onStarted(
-    HomeStarted event,
-    Emitter<HomeState> emit,
-  ) async {
+  Future<void> _onStarted(HomeStarted event, Emitter<HomeState> emit) async {
     try {
       final weekData = await _repository.getSummaryForWeek(
         state.visibleWeekStart,
@@ -182,8 +179,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   /// Returns true if all 7 days of the given week are already in [weekData].
   bool _isWeekCached(DateTime weekStart) {
-    return List.generate(7, (i) => weekStart.add(Duration(days: i))).every(
-      (date) => state.weekData.containsKey(date),
-    );
+    return List.generate(
+      7,
+      (i) => weekStart.add(Duration(days: i)),
+    ).every((date) => state.weekData.containsKey(date));
   }
 }

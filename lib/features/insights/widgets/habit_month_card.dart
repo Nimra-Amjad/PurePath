@@ -91,9 +91,8 @@ class HabitMonthCard extends StatelessWidget {
           MonthCalendarGrid(
             monthStart: monthStart,
             cellBuilder: (date, day) {
-              final scheduled = habit.isActiveOn(date) && habit.runsOn(date);
-              final completed =
-                  scheduled && (history[date]?.contains(habit.id) ?? false);
+              final completed = history[date]?.contains(habit.id) ?? false;
+              final scheduled = habit.countsOn(date, completed: completed);
 
               final Color fill;
               final Color textColor;

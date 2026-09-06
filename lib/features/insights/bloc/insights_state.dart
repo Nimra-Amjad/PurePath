@@ -207,9 +207,10 @@ class InsightsState {
       var scheduled = 0;
       var completed = 0;
       for (final h in habits) {
-        if (h.isActiveOn(date) && h.runsOn(date)) {
+        final isCompleted = completedIds.contains(h.id);
+        if (h.countsOn(date, completed: isCompleted)) {
           scheduled += 1;
-          if (completedIds.contains(h.id)) completed += 1;
+          if (isCompleted) completed += 1;
         }
       }
       return MonthDayStat(
@@ -246,11 +247,10 @@ class InsightsState {
           visibleMonthStart.month,
           i + 1,
         );
-        if (habit.isActiveOn(date) && habit.runsOn(date)) {
+        final isCompleted = completionHistory[date]?.contains(habit.id) ?? false;
+        if (habit.countsOn(date, completed: isCompleted)) {
           scheduled += 1;
-          if (completionHistory[date]?.contains(habit.id) ?? false) {
-            completed += 1;
-          }
+          if (isCompleted) completed += 1;
         }
       }
       if (scheduled == 0) continue;
@@ -287,11 +287,10 @@ class InsightsState {
       var completed = 0;
       var date = start;
       while (!date.isAfter(end)) {
-        if (habit.isActiveOn(date) && habit.runsOn(date)) {
+        final isCompleted = completionHistory[date]?.contains(habit.id) ?? false;
+        if (habit.countsOn(date, completed: isCompleted)) {
           scheduled += 1;
-          if (completionHistory[date]?.contains(habit.id) ?? false) {
-            completed += 1;
-          }
+          if (isCompleted) completed += 1;
         }
         date = date.add(const Duration(days: 1));
       }

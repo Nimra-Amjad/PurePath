@@ -28,7 +28,7 @@ class YearContributionGrid extends StatelessWidget {
     required this.year,
   });
 
-  static const Color _empty = Color(0xFF2a2a2c);
+  static const Color _empty = Color(0xFF1c1c1e);
   static const double _gap = 2;
 
   @override
@@ -53,9 +53,8 @@ class YearContributionGrid extends StatelessWidget {
             return SizedBox(width: cell, height: cell);
           }
           final date = start.add(Duration(days: index));
-          final scheduled = habit.isActiveOn(date) && habit.runsOn(date);
-          final completed =
-              scheduled && (history[date]?.contains(habit.id) ?? false);
+          final completed = history[date]?.contains(habit.id) ?? false;
+          final scheduled = habit.countsOn(date, completed: completed);
 
           final Color fill;
           if (completed) {

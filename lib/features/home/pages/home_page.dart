@@ -143,17 +143,17 @@ class _HomePageState extends State<HomePage> {
         // for a day that hasn't happened yet.
         final today = DateTime.now();
         final selected = state.selectedDate;
-        final isFutureDay = DateTime(selected.year, selected.month, selected.day)
-            .isAfter(DateTime(today.year, today.month, today.day));
+        final isFutureDay = DateTime(
+          selected.year,
+          selected.month,
+          selected.day,
+        ).isAfter(DateTime(today.year, today.month, today.day));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Daily overview (progress ring + mood/note reflection) ────
-            DailyOverviewCard(
-              summary: summary,
-              date: state.selectedDate,
-            ),
+            DailyOverviewCard(summary: summary, date: state.selectedDate),
             Space.vertical(20),
 
             // ── Section header ──────────────────────────────────────────

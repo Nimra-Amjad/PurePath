@@ -141,9 +141,8 @@ class _HabitRow extends StatelessWidget {
     var completedDays = 0;
     for (var i = 0; i < 7; i++) {
       final date = weekStart.add(Duration(days: i));
-      final scheduled = habit.isActiveOn(date) && habit.runsOn(date);
-      final completed =
-          scheduled && (history[date]?.contains(habit.id) ?? false);
+      final completed = history[date]?.contains(habit.id) ?? false;
+      final scheduled = habit.countsOn(date, completed: completed);
       if (completed) completedDays++;
 
       final Color fill;
