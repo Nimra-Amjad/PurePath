@@ -14,7 +14,8 @@ import 'package:purepath/features/insights/widgets/month_calendar.dart';
 //   … month calendar tinted with the habit's accent color …
 //
 // Each day is filled with the habit's accent when completed, a faint accent when
-// scheduled-but-missed, and empty when not scheduled (or still in the future).
+// scheduled but not yet completed (including future days), and empty when not
+// scheduled at all.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HabitMonthCard extends StatelessWidget {
@@ -34,17 +35,11 @@ class HabitMonthCard extends StatelessWidget {
 
   static const Color _empty = Color(0xFF242426);
 
-  DateTime get _today {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
   @override
   Widget build(BuildContext context) {
     final habit = stat.habit;
     final accent = habit.accentColor;
     final percent = (stat.progress * 100).round();
-    final today = _today;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -96,9 +91,7 @@ class HabitMonthCard extends StatelessWidget {
           MonthCalendarGrid(
             monthStart: monthStart,
             cellBuilder: (date, day) {
-              final future = date.isAfter(today);
-              final scheduled =
-                  !future && habit.isActiveOn(date) && habit.runsOn(date);
+              final scheduled = habit.isActiveOn(date) && habit.runsOn(date);
               final completed =
                   scheduled && (history[date]?.contains(habit.id) ?? false);
 

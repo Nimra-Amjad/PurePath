@@ -193,7 +193,8 @@ class InsightsState {
       DateTime(visibleMonthStart.year, visibleMonthStart.month + 1, 0).day;
 
   /// Per-day completion stats for every day of the visible month, day 1 → last.
-  /// Future days (after today) carry no data — they render as empty cells.
+  /// Future days (after today) still report their scheduled habit-days —
+  /// [isFuture] just flags that [completed] can only ever be 0 so far.
   List<MonthDayStat> get monthDayStats {
     final today = _todayDate;
     return List.generate(daysInVisibleMonth, (i) {
@@ -202,14 +203,6 @@ class InsightsState {
         visibleMonthStart.month,
         i + 1,
       );
-      if (date.isAfter(today)) {
-        return MonthDayStat(
-          date: date,
-          scheduled: 0,
-          completed: 0,
-          isFuture: true,
-        );
-      }
       final completedIds = completionHistory[date] ?? const <String>{};
       var scheduled = 0;
       var completed = 0;
@@ -223,7 +216,7 @@ class InsightsState {
         date: date,
         scheduled: scheduled,
         completed: completed,
-        isFuture: false,
+        isFuture: date.isAfter(today),
       );
     });
   }
@@ -243,7 +236,6 @@ class InsightsState {
   /// Per-habit month completion, one entry per habit scheduled at least once
   /// this month — drives the per-habit calendars.
   List<HabitMonthStat> get habitMonthStats {
-    final today = _todayDate;
     final result = <HabitMonthStat>[];
     for (final habit in habits) {
       var scheduled = 0;
@@ -254,7 +246,6 @@ class InsightsState {
           visibleMonthStart.month,
           i + 1,
         );
-        if (date.isAfter(today)) continue;
         if (habit.isActiveOn(date) && habit.runsOn(date)) {
           scheduled += 1;
           if (completionHistory[date]?.contains(habit.id) ?? false) {
@@ -283,13 +274,11 @@ class InsightsState {
 
   // ── Yearly overview ─────────────────────────────────────────────────────────
 
-  /// Per-habit completion across the visible year (Jan 1 → today, or Dec 31 for
-  /// past years). One entry per habit scheduled at least once — drives the
-  /// per-habit year grids.
+  /// Per-habit completion across the visible year (Jan 1 → Dec 31), including
+  /// days still to come. One entry per habit scheduled at least once — drives
+  /// the per-habit year grids.
   List<HabitYearStat> get habitYearStats {
-    final today = _todayDate;
-    final yearEnd = DateTime(visibleYear, 12, 31);
-    final end = yearEnd.isAfter(today) ? today : yearEnd;
+    final end = DateTime(visibleYear, 12, 31);
     final start = DateTime(visibleYear, 1, 1);
 
     final result = <HabitYearStat>[];

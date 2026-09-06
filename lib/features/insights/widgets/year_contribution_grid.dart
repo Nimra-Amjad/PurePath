@@ -7,8 +7,8 @@ import 'package:purepath/features/home/models/habit_definition.dart';
 //
 // A GitHub-style heatmap of one habit across a whole year: 7 rows (Mon → Sun),
 // one column per week. Each cell is filled with the habit's accent color when
-// completed, a faint accent when scheduled-but-missed, and an empty tint
-// otherwise (not scheduled, or still in the future).
+// completed, a faint accent when scheduled but not yet completed (including
+// future days), and an empty tint when not scheduled at all.
 //
 // Cell size is derived from the available width so the full year always fits.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,11 +31,6 @@ class YearContributionGrid extends StatelessWidget {
   static const Color _empty = Color(0xFF2a2a2c);
   static const double _gap = 2;
 
-  DateTime get _today {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
   @override
   Widget build(BuildContext context) {
     final accent = habit.accentColor;
@@ -44,7 +39,6 @@ class YearContributionGrid extends StatelessWidget {
     final daysInYear = DateTime(year, 12, 31).difference(start).inDays + 1;
     final totalSlots = leading + daysInYear;
     final cols = (totalSlots / 7).ceil();
-    final today = _today;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -59,9 +53,7 @@ class YearContributionGrid extends StatelessWidget {
             return SizedBox(width: cell, height: cell);
           }
           final date = start.add(Duration(days: index));
-          final future = date.isAfter(today);
-          final scheduled =
-              !future && habit.isActiveOn(date) && habit.runsOn(date);
+          final scheduled = habit.isActiveOn(date) && habit.runsOn(date);
           final completed =
               scheduled && (history[date]?.contains(habit.id) ?? false);
 
