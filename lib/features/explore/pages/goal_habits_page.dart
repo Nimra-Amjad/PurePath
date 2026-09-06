@@ -44,7 +44,6 @@ class _GoalHabitsPageState extends State<GoalHabitsPage> {
   /// Maps a suggestion's title → the id of the matching habit the user owns.
   /// Presence of a key means "already added"; the value is needed to delete it.
   final Map<String, String> _addedIds = {};
-  bool _loading = true;
 
   @override
   void initState() {
@@ -60,11 +59,9 @@ class _GoalHabitsPageState extends State<GoalHabitsPage> {
         _addedIds
           ..clear()
           ..addEntries(habits.map((h) => MapEntry(h.title, h.id)));
-        _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      // Rows just fall back to "not added" — the next add/delete retries.
     }
   }
 
@@ -117,29 +114,33 @@ class _GoalHabitsPageState extends State<GoalHabitsPage> {
     return Scaffold(
       backgroundColor: kScaffoldColor,
       body: SafeArea(
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: kPrimaryGreenColor),
-              )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Fixed header: back button + title ───────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Row(
                 children: [
-                  // ── Top bar ──────────────────────────────────────────────
-                  Row(
-                    children: [
-                      RoundedBackButton(onTap: () => context.pop()),
-                      Space.horizontal(14),
-                      Text(
-                        'More habits',
-                        style: AppTextStyles.semiBold.copyWith(
-                          fontSize: 18,
-                          color: kWhiteColor,
-                        ),
-                      ),
-                    ],
+                  RoundedBackButton(onTap: () => context.pop()),
+                  Space.horizontal(14),
+                  Text(
+                    'More habits',
+                    style: AppTextStyles.semiBold.copyWith(
+                      fontSize: 18,
+                      color: kWhiteColor,
+                    ),
                   ),
-                  Space.vertical(20),
+                ],
+              ),
+            ),
+            Space.vertical(20),
 
+            // ── Scrollable content ───────────────────────────────────────
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                children: [
                   // ── Goal header card ─────────────────────────────────────
                   _GoalHeaderCard(goal: goal),
                   Space.vertical(20),
@@ -160,6 +161,9 @@ class _GoalHabitsPageState extends State<GoalHabitsPage> {
                   ],
                 ],
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
