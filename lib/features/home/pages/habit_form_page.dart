@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:purepath/core/constants/app_text_styles.dart';
 import 'package:purepath/core/constants/color_constants.dart';
 import 'package:purepath/core/utils/snackbar.dart';
-import 'package:purepath/core/widgets/custom_back_button.dart';
 import 'package:purepath/core/widgets/primary_button.dart';
+import 'package:purepath/core/widgets/rounded_back_button.dart';
 import 'package:purepath/features/home/bloc/home_bloc.dart';
 import 'package:purepath/features/home/bloc/manage_habits_bloc.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
@@ -194,7 +194,13 @@ class _HabitFormPageState extends State<HabitFormPage> {
         backgroundColor: kScaffoldColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: CustomBackButton(onTap: () => context.pop()),
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: RoundedBackButton(onTap: () => context.pop()),
+          ),
+        ),
+        leadingWidth: 60,
         title: Text(
           widget.isEditing ? 'Edit Habit' : 'New Habit',
           style: AppTextStyles.bold.copyWith(fontSize: 20, color: kWhiteColor),

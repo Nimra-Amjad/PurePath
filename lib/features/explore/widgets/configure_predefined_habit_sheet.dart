@@ -12,30 +12,45 @@ import 'package:purepath/features/home/widgets/habit_form_fields.dart';
 // Configure Predefined Habit Sheet
 //
 // Shown when the user taps a habit in the Habit Library. The title comes from
-// the library entry and can't be changed — only the schedule and reminder are
-// configurable here, using the same shared fields as the Add/Edit screens:
+// the library entry and can't be changed — the schedule, reminder and color
+// are configurable here, using the same shared fields as the Add/Edit screens:
 //
-//   Task days → Reminder (optional) → Habit term
+//   Habit color → Task days → Reminder (optional) → Habit term
+//
+// The color defaults to the suggestion's own goal color (e.g. every "Sleep
+// better" habit starts cyan) but the user can still open the picker and
+// choose a different one, exactly like the custom Add Habit flow.
 //
 // On "Add Habit" the sheet pops with a fully-built [HabitDefinition] tagged as
 // [HabitType.predefined]. The caller is responsible for persisting it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ConfigurePredefinedHabitSheet extends StatefulWidget {
-  const ConfigurePredefinedHabitSheet({super.key, required this.title});
+  const ConfigurePredefinedHabitSheet({
+    super.key,
+    required this.title,
+    required this.initialColor,
+  });
 
   final String title;
+
+  /// The goal's accent color — pre-selected, but changeable in the sheet.
+  final Color initialColor;
 
   /// Opens the sheet and resolves to a configured [HabitDefinition], or null if
   /// the user dismissed it without confirming.
   static Future<HabitDefinition?> show(
     BuildContext context, {
     required String title,
+    required Color initialColor,
   }) {
     return AppBottomSheet.show<HabitDefinition>(
       context,
       backgroundColor: kScaffoldColor,
-      body: ConfigurePredefinedHabitSheet(title: title),
+      body: ConfigurePredefinedHabitSheet(
+        title: title,
+        initialColor: initialColor,
+      ),
     );
   }
 
@@ -47,6 +62,8 @@ class ConfigurePredefinedHabitSheet extends StatefulWidget {
 class _ConfigurePredefinedHabitSheetState
     extends State<ConfigurePredefinedHabitSheet> {
   final _reminderController = TextEditingController();
+
+  late int _selectedColor = widget.initialColor.toARGB32();
 
   HabitSchedule _schedule = HabitSchedule.everyDay;
   final Set<int> _selectedWeekDays = {}; // 0 = Mon … 6 = Sun
@@ -102,6 +119,7 @@ class _ConfigurePredefinedHabitSheetState
       reminderTime: _reminderEnabled ? _reminderController.text.trim() : '',
       startDate: _startDate,
       endDate: _endDate,
+      colorValue: _selectedColor,
     );
 
     context.pop(definition);
@@ -122,6 +140,12 @@ class _ConfigurePredefinedHabitSheetState
               fontSize: 15,
               color: kWhiteColor,
             ),
+          ),
+          const SizedBox(height: 24),
+
+          HabitColorSection(
+            selectedColor: _selectedColor,
+            onColorSelected: (c) => setState(() => _selectedColor = c),
           ),
           const SizedBox(height: 24),
 

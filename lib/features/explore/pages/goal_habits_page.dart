@@ -277,6 +277,7 @@ class _GoalHabitRowState extends State<_GoalHabitRow> {
     final habit = await ConfigurePredefinedHabitSheet.show(
       context,
       title: widget.idea.title,
+      initialColor: widget.color,
     );
     if (habit == null || !mounted) return;
 
