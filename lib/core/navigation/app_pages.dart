@@ -9,7 +9,9 @@ import 'package:purepath/features/auth/pages/login_page.dart';
 import 'package:purepath/features/auth/pages/signup_page.dart';
 import 'package:purepath/features/auth/pages/splash_page.dart';
 import 'package:purepath/features/bottom_nav_bar/bottom_nav_bar_page.dart';
+import 'package:purepath/features/explore/models/habit_goal.dart';
 import 'package:purepath/features/explore/pages/explore_habits_page.dart';
+import 'package:purepath/features/explore/pages/goal_habits_page.dart';
 import 'package:purepath/features/home/models/habit_definition.dart';
 import 'package:purepath/features/home/pages/habit_form_page.dart';
 import 'package:purepath/features/home/pages/habits_page.dart';
@@ -75,6 +77,13 @@ final router = GoRouter(
       path: AppRoute.exploreHabits.path,
       pageBuilder: (context, state) =>
           _fadePage(state, const ExploreHabitsPage()),
+    ),
+    GoRoute(
+      path: AppRoute.goalHabits.path,
+      pageBuilder: (context, state) => _fadePage(
+        state,
+        GoalHabitsPage(goal: state.extra as HabitGoal),
+      ),
     ),
     GoRoute(
       path: AppRoute.editHabit.path,

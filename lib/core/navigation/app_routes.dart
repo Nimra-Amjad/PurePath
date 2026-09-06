@@ -13,6 +13,7 @@ enum AppRoute {
   addHabit('/addHabit'),
   habits('/habits'),
   exploreHabits('/exploreHabits'),
+  goalHabits('/goalHabits'),
   editHabit('/editHabit'),
   badges('/badges'),
   reminders('/reminders'),

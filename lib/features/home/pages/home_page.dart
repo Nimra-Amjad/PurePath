@@ -360,7 +360,7 @@ class _HabitLibraryBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Explore Habit Library',
+                    'Habit ideas',
                     style: AppTextStyles.semiBold.copyWith(
                       fontSize: 15,
                       color: kWhiteColor,
@@ -368,7 +368,7 @@ class _HabitLibraryBanner extends StatelessWidget {
                   ),
                   Space.vertical(2),
                   Text(
-                    'Browse suggested habits by level',
+                    'Choose a goal, we\'ll suggest the habits',
                     style: AppTextStyles.normal.copyWith(
                       fontSize: 12,
                       color: kLightGreyColor,
